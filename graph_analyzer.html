@@ -927,6 +927,51 @@ function createMatrixTable(matrix, rowLabels, colLabels) {
     return table;
 }
 
+function countBinaryMatrix(matrix) {
+    const n = matrix.length;
+    const m = matrix[0] ? matrix[0].length : 0;
+    
+    const colStats = [];
+    for (let j = 0; j < m; j++) {
+        colStats.push({ zeros: 0, ones: 0 });
+    }
+    
+    let totalZeros = 0;
+    let totalOnes = 0;
+    
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < m; j++) {
+            const val = matrix[i][j];
+            if (val === 0) {
+                colStats[j].zeros++;
+                totalZeros++;
+            } else if (val === 1) {
+                colStats[j].ones++;
+                totalOnes++;
+            }
+        }
+    }
+    
+    return { colStats, totalZeros, totalOnes };
+}
+
+function countMatrixValues(matrix) {
+    const counts = {};
+    let total = 0;
+    
+    for (let i = 0; i < matrix.length; i++) {
+        for (let j = 0; j < matrix[i].length; j++) {
+            const val = matrix[i][j];
+            if (val === Infinity) continue;
+            
+            counts[val] = (counts[val] || 0) + 1;
+            total++;
+        }
+    }
+    
+    return { counts, total };
+}
+
 function createListTable(map) {
     const table = document.createElement('table');
     const tbody = document.createElement('tbody');
@@ -1104,20 +1149,40 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const adjMatrixDiv = document.createElement('div');
     adjMatrixDiv.className = 'matrix';
     adjMatrixDiv.style.display = 'none';
+    const adjStatsDiv = document.createElement('div');
+    adjStatsDiv.style.display = 'none';
+    adjStatsDiv.style.marginTop = '1rem';
+    adjStatsDiv.style.padding = '1rem';
+    adjStatsDiv.style.backgroundColor = '#e7f3ff';
+    adjStatsDiv.style.borderRadius = '0.25rem';
+    
     showAdjBtn.addEventListener('click', () => {
         if (adjMatrixDiv.style.display === 'none') {
             const adjMat = graph.adjacencyMatrix();
             adjMatrixDiv.innerHTML = '';
             adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
+            
+            // Count 0s and 1s in adjacency matrix
+            const { colStats, totalZeros, totalOnes } = countBinaryMatrix(adjMat);
+            adjStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Celková statistika hodnot 0 a 1:</h4>';
+            adjStatsDiv.innerHTML += `<div style="display: flex; gap: 2rem; margin-top: 0.5rem;">`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #0b5ed7; font-weight: bold;">Počet 1:</span> ${totalOnes}×</div>`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #dc3545; font-weight: bold;">Počet 0:</span> ${totalZeros}×</div>`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="font-weight: bold;">Celkem:</span> ${totalOnes + totalZeros}</div>`;
+            adjStatsDiv.innerHTML += `</div>`;
+            
             adjMatrixDiv.style.display = 'block';
+            adjStatsDiv.style.display = 'block';
             showAdjBtn.textContent = 'Skrýt matici';
         } else {
             adjMatrixDiv.style.display = 'none';
+            adjStatsDiv.style.display = 'none';
             showAdjBtn.textContent = 'Zobrazit celou matici';
         }
     });
     adjSection.appendChild(showAdjBtn);
     adjSection.appendChild(adjMatrixDiv);
+    adjSection.appendChild(adjStatsDiv);
     output.appendChild(adjSection);
 
     // Sign matrix with query
@@ -1131,20 +1196,48 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const signMatrixDiv = document.createElement('div');
     signMatrixDiv.className = 'matrix';
     signMatrixDiv.style.display = 'none';
+    const signStatsDiv = document.createElement('div');
+    signStatsDiv.style.display = 'none';
+    signStatsDiv.style.marginTop = '1rem';
+    signStatsDiv.style.padding = '1rem';
+    signStatsDiv.style.backgroundColor = '#e7f3ff';
+    signStatsDiv.style.borderRadius = '0.25rem';
+    
     showSignBtn.addEventListener('click', () => {
         if (signMatrixDiv.style.display === 'none') {
             const signMat = graph.signMatrix();
             signMatrixDiv.innerHTML = '';
             signMatrixDiv.appendChild(createMatrixTable(signMat, graph.nodes, graph.nodes));
+            
+            // Count values in sign matrix
+            const { counts, total } = countMatrixValues(signMat);
+            signStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Statistika hodnot:</h4>';
+            
+            // Sort keys numerically
+            const sortedKeys = Object.keys(counts).map(Number).sort((a, b) => a - b);
+            const statsHTML = sortedKeys.map(key => {
+                const count = counts[key];
+                const percentage = ((count / total) * 100).toFixed(1);
+                return `<div style="display: inline-block; margin-right: 1.5rem; margin-bottom: 0.5rem;">
+                    <strong>Hodnota ${key}:</strong> ${count}× (${percentage}%)
+                </div>`;
+            }).join('');
+            
+            signStatsDiv.innerHTML += statsHTML;
+            signStatsDiv.innerHTML += `<div style="margin-top: 0.5rem; font-weight: bold;">Celkem hodnot: ${total}</div>`;
+            
             signMatrixDiv.style.display = 'block';
+            signStatsDiv.style.display = 'block';
             showSignBtn.textContent = 'Skrýt matici';
         } else {
             signMatrixDiv.style.display = 'none';
+            signStatsDiv.style.display = 'none';
             showSignBtn.textContent = 'Zobrazit celou matici';
         }
     });
     signSection.appendChild(showSignBtn);
     signSection.appendChild(signMatrixDiv);
+    signSection.appendChild(signStatsDiv);
     output.appendChild(signSection);
 
     // Power matrices with queries
