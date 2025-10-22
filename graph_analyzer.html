@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <title>Graph Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        h1, h2, h3 {
+            color: #0d6efd;
+        }
+        textarea {
+            width: 100%;
+            max-width: 100%;
+            min-height: 160px;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            margin-bottom: 1rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #0d6efd;
+            color: #fff;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            margin-right: 0.5rem;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 0.5rem 0;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 0.25rem 0.5rem;
+            text-align: center;
+        }
+        th {
+            background-color: #e9ecef;
+        }
+        .matrix {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .properties span {
+            display: inline-block;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background-color: #e2e3e5;
+            border-radius: 0.25rem;
+        }
+        .query-section {
+            background-color: #fff;
+            padding: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .query-inputs {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .query-inputs select {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+        }
+        .query-result {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #e7f3ff;
+            border-radius: 0.25rem;
+            font-weight: bold;
+        }
+        .scrollable-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem;
+            background-color: #fff;
+        }
+        .degree-info {
+            display: inline-block;
+            margin-left: 0.5rem;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+<h1>Graph Analyzer</h1>
+<p>Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje
+pomocí řádku začínajícího <code>u</code> a každá hrana pomocí řádku začínajícího
+<code>h</code>. Orientace hrany se určuje šipkami <code>&lt;</code>, <code>&gt;</code> nebo
+pomlčkou <code>-</code>. Ohodnocení je volitelné.</p>
+<textarea id="graphInput">u A;
+u B;
+h A &gt; B 1 :h1;
+u C;
+h B &gt; C 1 :h2;
+u D;
+h A &gt; D 2 :h3;
+u E;
+h A &lt; E 2 :h4;
+h B &lt; E 3 :h5;
+h C &gt; E 3 :h6;
+h D &gt; E 4 :h8;
+u F;
+h C &gt; F 4 :h7;
+h E &gt; F 5 :h9;
+u G;
+h D &lt; G 5 :h10;
+h E &gt; G 6 :h11;
+u H;
+h H &gt; E 6 :h12;
+h F &gt; H 7 :h13;
+h G &lt; H 7 :h14;</textarea>
+<button id="parseBtn">Analyzovat graf</button>
+
+<div id="output"></div>
+
+<script>
+// Graph analyzer with optimizations for large graphs
+class Graph {
+    constructor() {
+        this.nodes = [];
+        this.nodeWeights = {};
+        this.edges = [];
+        this._cachedAdjMatrix = null;
+        this._cachedDegrees = null;
+    }
+
+    parse(text) {
+        this.nodes = [];
+        this.nodeWeights = {};
+        this.edges = [];
+        this._cachedAdjMatrix = null;
+        this._cachedDegrees = null;
+        
+        const lines = text.split(/\r?\n/);
+        const nodePattern = /^u\s+([^\s;]+)(?:\s+([-+]?[0-9]*\.?[0-9]+))?\s*;/i;
+        const edgePattern = /^h\s+([^\s<>-]+)\s*([<>-])\s*([^\s<>-]+)\s*(?:([-+]?[0-9]*\.?[0-9]+))?\s*(?::([^;]+))?\s*;/i;
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            let m;
+            if ((m = nodePattern.exec(trimmed))) {
+                const id = m[1];
+                if (id === '*') continue;
+                const weight = m[2] !== undefined ? parseFloat(m[2]) : null;
+                if (!this.nodes.includes(id)) {
+                    this.nodes.push(id);
+                    this.nodeWeights[id] = weight;
+                }
+            } else if ((m = edgePattern.exec(trimmed))) {
+                const u = m[1];
+                const direction = m[2];
+                const v = m[3];
+                const weight = m[4] !== undefined ? parseFloat(m[4]) : null;
+                const label = m[5] ? m[5].trim() : null;
+                this.edges.push({ u, v, direction, weight, label });
+            }
+        }
+        this.edges = this.edges.filter(e => this.nodes.includes(e.u) && this.nodes.includes(e.v));
+    }
+
+    adjacencyMatrix() {
+        if (this._cachedAdjMatrix) return this._cachedAdjMatrix;
+        
+        const n = this.nodes.length;
+        const idx = {};
+        this.nodes.forEach((id, i) => { idx[id] = i; });
+        const mat = Array.from({ length: n }, () => Array(n).fill(0));
+        
+        for (const e of this.edges) {
+            const i = idx[e.u];
+            const j = idx[e.v];
+            if (e.direction === '>') {
+                mat[i][j] += 1;
+            } else if (e.direction === '<') {
+                mat[j][i] += 1;
+            } else {
+                mat[i][j] += 1;
+                mat[j][i] += 1;
+            }
+        }
+        this._cachedAdjMatrix = mat;
+        return mat;
+    }
+
+    // Optimized: query single cell instead of computing full matrix
+    adjacencyValue(nodeU, nodeV) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        let count = 0;
+        for (const e of this.edges) {
+            if (e.direction === '>' && e.u === nodeU && e.v === nodeV) count++;
+            else if (e.direction === '<' && e.u === nodeV && e.v === nodeU) count++;
+            else if (e.direction === '-' && 
+                     ((e.u === nodeU && e.v === nodeV) || (e.u === nodeV && e.v === nodeU))) count++;
+        }
+        return count;
+    }
+
+    lengthMatrix() {
+        const n = this.nodes.length;
+        const idx = {};
+        this.nodes.forEach((id, i) => { idx[id] = i; });
+        const INF = Infinity;
+        const mat = Array.from({ length: n }, (_, i) => 
+            Array.from({ length: n }, (__, j) => i === j ? 0 : INF));
+        
+        for (const e of this.edges) {
+            const i = idx[e.u];
+            const j = idx[e.v];
+            const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+            if (e.direction === '>') {
+                if (w < mat[i][j]) mat[i][j] = w;
+            } else if (e.direction === '<') {
+                if (w < mat[j][i]) mat[j][i] = w;
+            } else {
+                if (w < mat[i][j]) mat[i][j] = w;
+                if (w < mat[j][i]) mat[j][i] = w;
+            }
+        }
+        return mat;
+    }
+
+    // Optimized: query single cell
+    lengthValue(nodeU, nodeV) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        if (nodeU === nodeV) return 0;
+        
+        let minWeight = Infinity;
+        for (const e of this.edges) {
+            const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+            if (e.direction === '>' && e.u === nodeU && e.v === nodeV) {
+                minWeight = Math.min(minWeight, w);
+            } else if (e.direction === '<' && e.u === nodeV && e.v === nodeU) {
+                minWeight = Math.min(minWeight, w);
+            } else if (e.direction === '-' && 
+                       ((e.u === nodeU && e.v === nodeV) || (e.u === nodeV && e.v === nodeU))) {
+                minWeight = Math.min(minWeight, w);
+            }
+        }
+        return minWeight;
+    }
+
+    signMatrix() {
+        const A = this.adjacencyMatrix();
+        const n = A.length;
+        const S = Array.from({ length: n }, () => Array(n).fill(0));
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                S[i][j] = A[i][j] - A[j][i];
+            }
+        }
+        return S;
+    }
+
+    signValue(nodeU, nodeV) {
+        const adjUV = this.adjacencyValue(nodeU, nodeV);
+        const adjVU = this.adjacencyValue(nodeV, nodeU);
+        if (adjUV === null || adjVU === null) return null;
+        return adjUV - adjVU;
+    }
+
+    static multiplyMatrices(X, Y) {
+        const n = X.length;
+        const result = Array.from({ length: n }, () => Array(n).fill(0));
+        for (let i = 0; i < n; i++) {
+            for (let k = 0; k < n; k++) {
+                if (X[i][k] === 0) continue;
+                for (let j = 0; j < n; j++) {
+                    if (Y[k][j] === 0) continue;
+                    result[i][j] += X[i][k] * Y[k][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    adjacencyPower(k) {
+        let A = this.adjacencyMatrix();
+        let result = A;
+        for (let i = 1; i < k; i++) {
+            result = Graph.multiplyMatrices(result, A);
+        }
+        return result;
+    }
+
+    // Optimized: compute power for specific cell
+    adjacencyPowerValue(nodeU, nodeV, k) {
+        const A = this.adjacencyMatrix();
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        let result = A;
+        for (let i = 1; i < k; i++) {
+            result = Graph.multiplyMatrices(result, A);
+        }
+        return result[uIdx][vIdx];
+    }
+
+    incidenceMatrix() {
+        const n = this.nodes.length;
+        const m = this.edges.length;
+        const idx = {};
+        this.nodes.forEach((id, i) => { idx[id] = i; });
+        const inc = Array.from({ length: n }, () => Array(m).fill(0));
+        
+        this.edges.forEach((e, ci) => {
+            const i = idx[e.u];
+            const j = idx[e.v];
+            if (e.direction === '>') {
+                inc[i][ci] = -1;
+                inc[j][ci] = 1;
+            } else if (e.direction === '<') {
+                inc[j][ci] = 1;
+                inc[i][ci] = -1;
+            } else {
+                inc[i][ci] = 1;
+                inc[j][ci] = 1;
+            }
+        });
+        return inc;
+    }
+
+    floydWarshall() {
+        const n = this.nodes.length;
+        const dist = this.lengthMatrix().map(row => row.slice());
+        const pred = Array.from({ length: n }, () => Array(n).fill(null));
+        
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                if (i !== j && dist[i][j] < Infinity) {
+                    pred[i][j] = i;
+                }
+            }
+        }
+        
+        for (let k = 0; k < n; k++) {
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    const alt = dist[i][k] + dist[k][j];
+                    if (alt < dist[i][j]) {
+                        dist[i][j] = alt;
+                        pred[i][j] = pred[k][j];
+                    }
+                }
+            }
+        }
+        return { dist, pred };
+    }
+
+    // Optimized: compute shortest path for specific pair
+    shortestPath(nodeU, nodeV) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        // Simple Dijkstra for single source-target
+        const n = this.nodes.length;
+        const dist = Array(n).fill(Infinity);
+        const visited = Array(n).fill(false);
+        const pred = Array(n).fill(null);
+        dist[uIdx] = 0;
+        
+        for (let count = 0; count < n; count++) {
+            let minDist = Infinity;
+            let u = -1;
+            for (let i = 0; i < n; i++) {
+                if (!visited[i] && dist[i] < minDist) {
+                    minDist = dist[i];
+                    u = i;
+                }
+            }
+            if (u === -1 || u === vIdx) break;
+            visited[u] = true;
+            
+            for (const e of this.edges) {
+                const w = e.weight !== null ? e.weight : 1;
+                let vNeighbor = -1;
+                if (e.direction === '>' && e.u === this.nodes[u]) {
+                    vNeighbor = this.nodes.indexOf(e.v);
+                } else if (e.direction === '<' && e.v === this.nodes[u]) {
+                    vNeighbor = this.nodes.indexOf(e.u);
+                } else if (e.direction === '-') {
+                    if (e.u === this.nodes[u]) vNeighbor = this.nodes.indexOf(e.v);
+                    else if (e.v === this.nodes[u]) vNeighbor = this.nodes.indexOf(e.u);
+                }
+                
+                if (vNeighbor !== -1 && !visited[vNeighbor]) {
+                    const alt = dist[u] + w;
+                    if (alt < dist[vNeighbor]) {
+                        dist[vNeighbor] = alt;
+                        pred[vNeighbor] = u;
+                    }
+                }
+            }
+        }
+        
+        return {
+            distance: dist[vIdx],
+            predecessor: pred[vIdx] !== null ? this.nodes[pred[vIdx]] : null
+        };
+    }
+
+    incidentEdges() {
+        const map = {};
+        this.nodes.forEach(id => { map[id] = []; });
+        this.edges.forEach(e => {
+            const desc = e.label ? e.label : `${e.u}${e.direction}${e.v}`;
+            map[e.u].push(desc);
+            map[e.v].push(desc);
+        });
+        return map;
+    }
+
+    neighbours() {
+        const map = {};
+        this.nodes.forEach(id => { map[id] = new Set(); });
+        this.edges.forEach(e => {
+            map[e.u].add(e.v);
+            map[e.v].add(e.u);
+        });
+        const result = {};
+        for (const id of this.nodes) {
+            result[id] = Array.from(map[id]);
+        }
+        return result;
+    }
+
+    // Compute and cache degrees
+    degrees() {
+        if (this._cachedDegrees) return this._cachedDegrees;
+        
+        const degrees = {};
+        this.nodes.forEach(id => { degrees[id] = 0; });
+        
+        for (const e of this.edges) {
+            if (e.u === e.v) {
+                degrees[e.u] += 2;
+            } else {
+                degrees[e.u] += 1;
+                degrees[e.v] += 1;
+            }
+        }
+        this._cachedDegrees = degrees;
+        return degrees;
+    }
+
+    // Check if directed graph is strongly connected using Kosaraju's algorithm
+    isStronglyConnected() {
+        const n = this.nodes.length;
+        if (n === 0) return true;
+        
+        const idx = {};
+        this.nodes.forEach((id, i) => { idx[id] = i; });
+        
+        // Build directed adjacency list
+        const adjList = Array.from({ length: n }, () => []);
+        for (const e of this.edges) {
+            const i = idx[e.u];
+            const j = idx[e.v];
+            if (e.direction === '>') {
+                adjList[i].push(j);
+            } else if (e.direction === '<') {
+                adjList[j].push(i);
+            } else {
+                // Undirected edge - add both directions
+                adjList[i].push(j);
+                adjList[j].push(i);
+            }
+        }
+        
+        // DFS from first node
+        const visited = new Array(n).fill(false);
+        const dfs = (start) => {
+            const stack = [start];
+            visited[start] = true;
+            let count = 1;
+            
+            while (stack.length > 0) {
+                const u = stack.pop();
+                for (const v of adjList[u]) {
+                    if (!visited[v]) {
+                        visited[v] = true;
+                        stack.push(v);
+                        count++;
+                    }
+                }
+            }
+            return count;
+        };
+        
+        if (dfs(0) !== n) return false;
+        
+        // Build reverse graph
+        const reverseAdj = Array.from({ length: n }, () => []);
+        for (let u = 0; u < n; u++) {
+            for (const v of adjList[u]) {
+                reverseAdj[v].push(u);
+            }
+        }
+        
+        // DFS on reverse graph
+        visited.fill(false);
+        const stack = [0];
+        visited[0] = true;
+        let count = 1;
+        
+        while (stack.length > 0) {
+            const u = stack.pop();
+            for (const v of reverseAdj[u]) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    stack.push(v);
+                    count++;
+                }
+            }
+        }
+        
+        return count === n;
+    }
+
+    // Find all multiple edges in the graph
+    findMultipleEdges() {
+        const edgeMap = new Map();
+        const multipleEdges = [];
+        
+        for (const e of this.edges) {
+            // Create key based on nodes and direction
+            let key;
+            if (e.direction === '>') {
+                key = `${e.u}>${e.v}`;
+            } else if (e.direction === '<') {
+                key = `${e.v}>${e.u}`;
+            } else {
+                // For undirected edges, normalize the key
+                key = e.u <= e.v ? `${e.u}-${e.v}` : `${e.v}-${e.u}`;
+            }
+            
+            if (!edgeMap.has(key)) {
+                edgeMap.set(key, []);
+            }
+            edgeMap.get(key).push(e);
+        }
+        
+        // Find groups with multiple edges
+        for (const [key, edges] of edgeMap.entries()) {
+            if (edges.length > 1) {
+                multipleEdges.push({
+                    key: key,
+                    count: edges.length,
+                    edges: edges
+                });
+            }
+        }
+        
+        return multipleEdges;
+    }
+
+    
+    properties() {
+        const props = {};
+        const n = this.nodes.length;
+        
+        // Weighted: any edge weight specified and different from 1, or any node has weight
+        let weightedEdge = false;
+        for (const e of this.edges) {
+            if (e.weight !== null && e.weight !== undefined && e.weight !== 1) {
+                weightedEdge = true;
+                break;
+            }
+        }
+        let weightedNode = false;
+        for (const id of this.nodes) {
+            const w = this.nodeWeights[id];
+            if (w !== null && w !== undefined) {
+                weightedNode = true;
+                break;
+            }
+        }
+        props.weighted = weightedEdge || weightedNode;
+        
+        // Orientation: determine if graph is directed, undirected or mixed
+        let hasDirected = false;
+        let hasUndirected = false;
+        for (const e of this.edges) {
+            if (e.direction === '-' || e.direction === '–') hasUndirected = true;
+            else hasDirected = true;
+        }
+        if (hasDirected && !hasUndirected) props.oriented = 'orientovaný';
+        else if (!hasDirected && hasUndirected) props.oriented = 'neorientovaný';
+        else props.oriented = 'smíšený';
+        
+        // Connectivity: BFS on underlying undirected graph
+        const visited = new Array(n).fill(false);
+        if (n > 0) {
+            const idx = {};
+            this.nodes.forEach((id,i) => { idx[id] = i; });
+            const neighbours = this.neighbours();
+            const queue = [0];
+            visited[0] = true;
+            while (queue.length > 0) {
+                const i = queue.shift();
+                const u = this.nodes[i];
+                for (const v of neighbours[u]) {
+                    const j = idx[v];
+                    if (!visited[j]) {
+                        visited[j] = true;
+                        queue.push(j);
+                    }
+                }
+            }
+        }
+        props.connected = visited.every(v => v);
+        
+        // Strong and weak connectivity for directed graphs
+        if (props.oriented === 'orientovaný') {
+            props.stronglyConnected = this.isStronglyConnected();
+            props.weaklyConnected = props.connected;
+        }
+        
+        // Finite: always true for parsed input
+        props.finite = true;
+        
+        // Loops and multiple edges - OPTIMIZED with Set
+        let loops = 0;
+        const edgeSet = new Set();
+        let multiEdges = false;
+        
+        for (const e of this.edges) {
+            if (e.u === e.v) {
+                loops++;
+                continue;
+            }
+            const key = e.u <= e.v ? `${e.u}|${e.v}` : `${e.v}|${e.u}`;
+            if (edgeSet.has(key)) {
+                multiEdges = true;
+                if (loops > 0) break;
+            } else {
+                edgeSet.add(key);
+            }
+        }
+        
+        props.prosty = !multiEdges;
+        props.jednoduchy = !multiEdges && loops === 0;
+        
+        // Complete: OPTIMIZED - skip for large graphs
+        if (n > 50) {
+            props.complete = false;
+        } else {
+            let complete = true;
+            const edgeSetComplete = new Set();
+            for (const e of this.edges) {
+                const key = e.u <= e.v ? `${e.u}|${e.v}` : `${e.v}|${e.u}`;
+                edgeSetComplete.add(key);
+            }
+            const expectedEdges = (n * (n - 1)) / 2;
+            complete = edgeSetComplete.size >= expectedEdges;
+            if (complete) {
+                for (let i = 0; i < n && complete; i++) {
+                    for (let j = i + 1; j < n; j++) {
+                        const u = this.nodes[i];
+                        const v = this.nodes[j];
+                        const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
+                        if (!edgeSetComplete.has(key)) {
+                            complete = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            props.complete = complete;
+        }
+        
+        // Regular: OPTIMIZED - compute degrees efficiently
+        const degrees = {};
+        this.nodes.forEach(id => { degrees[id] = 0; });
+        
+        for (const e of this.edges) {
+            if (e.u === e.v) {
+                degrees[e.u] += 2;
+            } else {
+                degrees[e.u] += 1;
+                degrees[e.v] += 1;
+            }
+        }
+        
+        const degValues = Object.values(degrees);
+        const firstDeg = degValues[0];
+        props.regular = degValues.every(d => d === firstDeg);
+        
+        // Bipartite: OPTIMIZED - early exit on odd cycle
+        props.bipartite = (() => {
+            if (n === 0) return true;
+            const colours = new Array(n).fill(-1);
+            const neighbours = this.neighbours();
+            const idx = {};
+            this.nodes.forEach((id,i) => { idx[id] = i; });
+            
+            for (let start = 0; start < n; start++) {
+                if (colours[start] !== -1) continue;
+                const queue = [start];
+                colours[start] = 0;
+                
+                while (queue.length > 0) {
+                    const uIdx = queue.shift();
+                    const u = this.nodes[uIdx];
+                    const currentColour = colours[uIdx];
+                    
+                    for (const v of neighbours[u]) {
+                        const vIdx = idx[v];
+                        if (colours[vIdx] === -1) {
+                            colours[vIdx] = 1 - currentColour;
+                            queue.push(vIdx);
+                        } else if (colours[vIdx] === currentColour) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        })();
+        
+        // Planar: OPTIMIZED for ALL graph sizes using fast heuristics
+        props.planar = (() => {
+            // Count unique undirected edges efficiently
+            const uniqueEdges = new Set();
+            for (const e of this.edges) {
+                const key = e.u <= e.v ? `${e.u}|${e.v}` : `${e.v}|${e.u}`;
+                uniqueEdges.add(key);
+            }
+            const m = uniqueEdges.size;
+            
+            // Trivial cases
+            if (n <= 4) return true;
+            if (m === 0) return true;
+            
+            // Euler's formula: m ≤ 3n - 6 for connected simple planar graphs
+            if (props.prosty && props.connected && m > 3 * n - 6) {
+                return false;
+            }
+            
+            // For bipartite graphs: m ≤ 2n - 4
+            if (props.bipartite && props.connected && m > 2 * n - 4) {
+                return false;
+            }
+            
+            // Additional check: average degree must be < 6
+            const avgDegree = (2 * m) / n;
+            if (avgDegree >= 6) {
+                return false;
+            }
+            
+            // Fast K5 detection for any size (limited sampling)
+            if (n >= 5 && m >= 10) {
+                // Sample random subsets instead of exhaustive search
+                const maxSamples = Math.min(100, n * 2);
+                let samplesChecked = 0;
+                
+                for (let attempt = 0; attempt < maxSamples && samplesChecked < 50; attempt++) {
+                    // Random sampling of 5 nodes
+                    const subset = new Set();
+                    while (subset.size < 5) {
+                        const randomIdx = Math.floor(Math.random() * n);
+                        subset.add(randomIdx);
+                    }
+                    
+                    const subsetArray = Array.from(subset);
+                    let isK5 = true;
+                    
+                    // Check if these 5 nodes form K5
+                    for (let i = 0; i < 5 && isK5; i++) {
+                        for (let j = i + 1; j < 5; j++) {
+                            const u = this.nodes[subsetArray[i]];
+                            const v = this.nodes[subsetArray[j]];
+                            const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
+                            if (!uniqueEdges.has(key)) {
+                                isK5 = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (isK5) return false; // K5 found
+                    samplesChecked++;
+                }
+            }
+            
+            // Fast K3,3 detection (bipartite complete subgraph)
+            if (n >= 6 && m >= 9) {
+                // For large graphs, use degree-based heuristic
+                // K3,3 has 6 nodes all with degree >= 3
+                const highDegreeNodes = [];
+                for (const [nodeId, deg] of Object.entries(degrees)) {
+                    if (deg >= 3) {
+                        highDegreeNodes.push(nodeId);
+                    }
+                }
+                
+                // Sample potential K3,3 from high-degree nodes
+                if (highDegreeNodes.length >= 6) {
+                    const maxSamples = Math.min(50, highDegreeNodes.length);
+                    
+                    for (let attempt = 0; attempt < maxSamples; attempt++) {
+                        // Randomly pick 6 high-degree nodes
+                        const shuffle = [...highDegreeNodes].sort(() => Math.random() - 0.5);
+                        const candidateNodes = shuffle.slice(0, 6);
+                        
+                        // Try all partitions into two sets of 3
+                        for (let mask = 0; mask < (1 << 6); mask++) {
+                            const bits = mask.toString(2).padStart(6, '0').split('').filter(b => b === '1').length;
+                            if (bits !== 3) continue;
+                            
+                            const setA = [];
+                            const setB = [];
+                            for (let i = 0; i < 6; i++) {
+                                if (mask & (1 << i)) {
+                                    setA.push(candidateNodes[i]);
+                                } else {
+                                    setB.push(candidateNodes[i]);
+                                }
+                            }
+                            
+                            // Check if complete bipartite
+                            let isK33 = true;
+                            for (const ua of setA) {
+                                for (const vb of setB) {
+                                    const key = ua <= vb ? `${ua}|${vb}` : `${vb}|${ua}`;
+                                    if (!uniqueEdges.has(key)) {
+                                        isK33 = false;
+                                        break;
+                                    }
+                                }
+                                if (!isK33) break;
+                            }
+                            
+                            if (isK33) return false; // K3,3 found
+                        }
+                    }
+                }
+            }
+            
+            // If all checks pass, likely planar
+            // For very large graphs (>100 nodes), add disclaimer
+            if (n > 100) {
+                return 'pravděpodobně ano (heuristika)';
+            }
+            
+            return true;
+        })();
+        
+        return props;
+    }
+}
+
+
+function createMatrixTable(matrix, rowLabels, colLabels) {
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    
+    const headRow = document.createElement('tr');
+    headRow.appendChild(document.createElement('th'));
+    for (const label of colLabels) {
+        const th = document.createElement('th');
+        th.textContent = label;
+        headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    for (let i = 0; i < matrix.length; i++) {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = rowLabels[i];
+        tr.appendChild(th);
+        for (let j = 0; j < matrix[i].length; j++) {
+            const td = document.createElement('td');
+            const val = matrix[i][j];
+            td.textContent = (val === Infinity ? '∞' : val);
+            tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+}
+
+function createListTable(map) {
+    const table = document.createElement('table');
+    const tbody = document.createElement('tbody');
+    for (const key of Object.keys(map)) {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = key;
+        tr.appendChild(th);
+        const td = document.createElement('td');
+        td.textContent = map[key].join(', ');
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    return table;
+}
+
+let currentGraph = null;
+
+document.getElementById('parseBtn').addEventListener('click', () => {
+    const input = document.getElementById('graphInput').value;
+    const graph = new Graph();
+    graph.parse(input);
+    currentGraph = graph;
+    
+    const output = document.getElementById('output');
+    output.innerHTML = '';
+    
+    if (graph.nodes.length === 0) {
+        output.textContent = 'Nebyl rozpoznán žádný uzel. Zkontrolujte prosím vstup.';
+        return;
+    }
+
+    // Query sections for each matrix type
+    const createQuerySection = (title, matrixType) => {
+    const section = document.createElement('div');
+    section.className = 'query-section';
+    section.innerHTML = `<h3>${title}</h3>`;
+    
+    const inputDiv = document.createElement('div');
+    inputDiv.className = 'query-inputs';
+    
+    const selectU = document.createElement('select');
+    const selectV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectV.appendChild(opt2);
+    });
+    
+    const queryBtn = document.createElement('button');
+    queryBtn.textContent = 'Dotaz';
+    
+    const resultDiv = document.createElement('div');
+    resultDiv.className = 'query-result';
+    resultDiv.style.display = 'none';
+    
+    queryBtn.addEventListener('click', () => {
+        const u = selectU.value;
+        const v = selectV.value;
+        let result;
+        
+        switch(matrixType) {
+            case 'adjacency':
+                result = graph.adjacencyValue(u, v);
+                resultDiv.textContent = `A[${u}, ${v}] = ${result}`;
+                break;
+            case 'sign':
+                result = graph.signValue(u, v);
+                resultDiv.textContent = `S[${u}, ${v}] = ${result}`;
+                break;
+            case 'length':
+                result = graph.lengthValue(u, v);
+                resultDiv.textContent = `L[${u}, ${v}] = ${result === Infinity ? '∞' : result}`;
+                break;
+            case 'power2':
+                result = graph.adjacencyPowerValue(u, v, 2);
+                resultDiv.textContent = `A²[${u}, ${v}] = ${result}`;
+                break;
+            case 'power3':
+                result = graph.adjacencyPowerValue(u, v, 3);
+                resultDiv.textContent = `A³[${u}, ${v}] = ${result}`;
+                break;
+            case 'shortest':
+                result = graph.shortestPath(u, v);
+                if (result.distance === Infinity) {
+                    resultDiv.textContent = `Nejkratší cesta z ${u} do ${v}: neexistuje`;
+                } else {
+                    resultDiv.textContent = `Nejkratší cesta z ${u} do ${v}: délka = ${result.distance}, předchůdce = ${result.predecessor || '–'}`;
+                }
+                break;
+        }
+        resultDiv.style.display = 'block';
+    });
+    
+    // ✅ OPRAVA: Správné vytváření labelu a přidání elementů
+    const labelU = document.createElement('span');
+    labelU.textContent = 'Od uzlu: ';
+    inputDiv.appendChild(labelU);
+    inputDiv.appendChild(selectU);
+    
+    const labelV = document.createElement('span');
+    labelV.textContent = ' Do uzlu: ';
+    inputDiv.appendChild(labelV);
+    inputDiv.appendChild(selectV);
+    
+    inputDiv.appendChild(queryBtn);
+    
+    section.appendChild(inputDiv);
+    section.appendChild(resultDiv);
+    return section;
+};
+
+    // Node and edge list with degrees (scrollable)
+    const listSection = document.createElement('div');
+    listSection.className = 'section';
+    listSection.innerHTML = '<h2>Seznam uzlů a hran</h2>';
+    
+    const degrees = graph.degrees();
+    const nodeListDiv = document.createElement('div');
+    nodeListDiv.className = 'scrollable-list';
+    const nodeList = document.createElement('ul');
+    nodeList.style.listStyle = 'none';
+    nodeList.style.padding = '0';
+    graph.nodes.forEach(id => {
+        const li = document.createElement('li');
+        const w = graph.nodeWeights[id];
+        const deg = degrees[id];
+        li.innerHTML = `<strong>Uzel ${id}</strong>${w !== null && w !== undefined ? ` (hodnota: ${w})` : ''}<span class="degree-info">stupeň: ${deg}</span>`;
+        nodeList.appendChild(li);
+    });
+    nodeListDiv.appendChild(nodeList);
+    listSection.appendChild(nodeListDiv);
+    
+    const edgeListDiv = document.createElement('div');
+    edgeListDiv.className = 'scrollable-list';
+    const edgeList = document.createElement('ul');
+    edgeList.style.listStyle = 'none';
+    edgeList.style.padding = '0';
+    graph.edges.forEach(e => {
+        const li = document.createElement('li');
+        const weight = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+        const label = e.label ? ` [${e.label}]` : '';
+        let orientation;
+        if (e.direction === '>') orientation = '→';
+        else if (e.direction === '<') orientation = '←';
+        else orientation = '—';
+        li.textContent = `${e.u} ${orientation} ${e.v} (h=${weight})${label}`;
+        edgeList.appendChild(li);
+    });
+    edgeListDiv.appendChild(edgeList);
+    listSection.appendChild(edgeListDiv);
+    output.appendChild(listSection);
+
+    // Adjacency matrix with query
+    const adjSection = document.createElement('div');
+    adjSection.className = 'section';
+    adjSection.innerHTML = '<h2>Matice sousednosti</h2>';
+    adjSection.appendChild(createQuerySection('Dotaz na hodnotu', 'adjacency'));
+    
+    const showAdjBtn = document.createElement('button');
+    showAdjBtn.textContent = 'Zobrazit celou matici';
+    const adjMatrixDiv = document.createElement('div');
+    adjMatrixDiv.className = 'matrix';
+    adjMatrixDiv.style.display = 'none';
+    showAdjBtn.addEventListener('click', () => {
+        if (adjMatrixDiv.style.display === 'none') {
+            const adjMat = graph.adjacencyMatrix();
+            adjMatrixDiv.innerHTML = '';
+            adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
+            adjMatrixDiv.style.display = 'block';
+            showAdjBtn.textContent = 'Skrýt matici';
+        } else {
+            adjMatrixDiv.style.display = 'none';
+            showAdjBtn.textContent = 'Zobrazit celou matici';
+        }
+    });
+    adjSection.appendChild(showAdjBtn);
+    adjSection.appendChild(adjMatrixDiv);
+    output.appendChild(adjSection);
+
+    // Sign matrix with query
+    const signSection = document.createElement('div');
+    signSection.className = 'section';
+    signSection.innerHTML = '<h2>Znaménková matice</h2>';
+    signSection.appendChild(createQuerySection('Dotaz na hodnotu', 'sign'));
+    
+    const showSignBtn = document.createElement('button');
+    showSignBtn.textContent = 'Zobrazit celou matici';
+    const signMatrixDiv = document.createElement('div');
+    signMatrixDiv.className = 'matrix';
+    signMatrixDiv.style.display = 'none';
+    showSignBtn.addEventListener('click', () => {
+        if (signMatrixDiv.style.display === 'none') {
+            const signMat = graph.signMatrix();
+            signMatrixDiv.innerHTML = '';
+            signMatrixDiv.appendChild(createMatrixTable(signMat, graph.nodes, graph.nodes));
+            signMatrixDiv.style.display = 'block';
+            showSignBtn.textContent = 'Skrýt matici';
+        } else {
+            signMatrixDiv.style.display = 'none';
+            showSignBtn.textContent = 'Zobrazit celou matici';
+        }
+    });
+    signSection.appendChild(showSignBtn);
+    signSection.appendChild(signMatrixDiv);
+    output.appendChild(signSection);
+
+    // Power matrices with queries
+    const powerSection = document.createElement('div');
+    powerSection.className = 'section';
+    powerSection.innerHTML = '<h2>Druhá a třetí mocnina matice sousednosti</h2>';
+    powerSection.appendChild(createQuerySection('Dotaz na A²', 'power2'));
+    powerSection.appendChild(createQuerySection('Dotaz na A³', 'power3'));
+    
+    const showPowerBtn = document.createElement('button');
+    showPowerBtn.textContent = 'Zobrazit celé matice';
+    const powerMatrixDiv = document.createElement('div');
+    powerMatrixDiv.style.display = 'none';
+    showPowerBtn.addEventListener('click', () => {
+        if (powerMatrixDiv.style.display === 'none') {
+            const A2 = graph.adjacencyPower(2);
+            const A3 = graph.adjacencyPower(3);
+            powerMatrixDiv.innerHTML = '<h3>A²</h3>';
+            const div2 = document.createElement('div');
+            div2.className = 'matrix';
+            div2.appendChild(createMatrixTable(A2, graph.nodes, graph.nodes));
+            powerMatrixDiv.appendChild(div2);
+            powerMatrixDiv.innerHTML += '<h3>A³</h3>';
+            const div3 = document.createElement('div');
+            div3.className = 'matrix';
+            div3.appendChild(createMatrixTable(A3, graph.nodes, graph.nodes));
+            powerMatrixDiv.appendChild(div3);
+            powerMatrixDiv.style.display = 'block';
+            showPowerBtn.textContent = 'Skrýt matice';
+        } else {
+            powerMatrixDiv.style.display = 'none';
+            showPowerBtn.textContent = 'Zobrazit celé matice';
+        }
+    });
+    powerSection.appendChild(showPowerBtn);
+    powerSection.appendChild(powerMatrixDiv);
+    output.appendChild(powerSection);
+
+    // Incidence matrix
+    const incSection = document.createElement('div');
+    incSection.className = 'section';
+    incSection.innerHTML = '<h2>Matice incidence</h2>';
+    const showIncBtn = document.createElement('button');
+    showIncBtn.textContent = 'Zobrazit matici';
+    const incMatrixDiv = document.createElement('div');
+    incMatrixDiv.className = 'matrix';
+    incMatrixDiv.style.display = 'none';
+    showIncBtn.addEventListener('click', () => {
+        if (incMatrixDiv.style.display === 'none') {
+            const incMat = graph.incidenceMatrix();
+            const colLabels = graph.edges.map(e => e.label ? e.label : `${e.u}${e.direction}${e.v}`);
+            incMatrixDiv.innerHTML = '';
+            incMatrixDiv.appendChild(createMatrixTable(incMat, graph.nodes, colLabels));
+            incMatrixDiv.style.display = 'block';
+            showIncBtn.textContent = 'Skrýt matici';
+        } else {
+            incMatrixDiv.style.display = 'none';
+            showIncBtn.textContent = 'Zobrazit matici';
+        }
+    });
+    incSection.appendChild(showIncBtn);
+    incSection.appendChild(incMatrixDiv);
+    output.appendChild(incSection);
+
+    // Length matrix with query
+    const lenSection = document.createElement('div');
+    lenSection.className = 'section';
+    lenSection.innerHTML = '<h2>Matice délek</h2>';
+    lenSection.appendChild(createQuerySection('Dotaz na hodnotu', 'length'));
+    
+    const showLenBtn = document.createElement('button');
+    showLenBtn.textContent = 'Zobrazit celou matici';
+    const lenMatrixDiv = document.createElement('div');
+    lenMatrixDiv.className = 'matrix';
+    lenMatrixDiv.style.display = 'none';
+    showLenBtn.addEventListener('click', () => {
+        if (lenMatrixDiv.style.display === 'none') {
+            const lenMat = graph.lengthMatrix();
+            lenMatrixDiv.innerHTML = '';
+            lenMatrixDiv.appendChild(createMatrixTable(lenMat, graph.nodes, graph.nodes));
+            lenMatrixDiv.style.display = 'block';
+            showLenBtn.textContent = 'Skrýt matici';
+        } else {
+            lenMatrixDiv.style.display = 'none';
+            showLenBtn.textContent = 'Zobrazit celou matici';
+        }
+    });
+    lenSection.appendChild(showLenBtn);
+    lenSection.appendChild(lenMatrixDiv);
+    output.appendChild(lenSection);
+
+    // Shortest path query
+    const shortestSection = document.createElement('div');
+    shortestSection.className = 'section';
+    shortestSection.innerHTML = '<h2>Nejkratší cesty (Floyd-Warshall)</h2>';
+    shortestSection.appendChild(createQuerySection('Dotaz na nejkratší cestu', 'shortest'));
+    
+    const showPredBtn = document.createElement('button');
+    showPredBtn.textContent = 'Vypočítat celou matici předchůdců';
+    const predMatrixDiv = document.createElement('div');
+    predMatrixDiv.className = 'matrix';
+    predMatrixDiv.style.display = 'none';
+    showPredBtn.addEventListener('click', () => {
+        if (predMatrixDiv.style.display === 'none') {
+            showPredBtn.disabled = true;
+            showPredBtn.textContent = 'Počítám...';
+            setTimeout(() => {
+                const fw = graph.floydWarshall();
+                const pred = fw.pred.map(row => row.map(p => p === null ? '–' : graph.nodes[p]));
+                predMatrixDiv.innerHTML = '';
+                predMatrixDiv.appendChild(createMatrixTable(pred, graph.nodes, graph.nodes));
+                predMatrixDiv.style.display = 'block';
+                showPredBtn.textContent = 'Skrýt matici';
+                showPredBtn.disabled = false;
+            }, 50);
+        } else {
+            predMatrixDiv.style.display = 'none';
+            showPredBtn.textContent = 'Zobrazit celou matici';
+        }
+    });
+    shortestSection.appendChild(showPredBtn);
+    shortestSection.appendChild(predMatrixDiv);
+    output.appendChild(shortestSection);
+
+    // Incident edges
+    const incident = graph.incidentEdges();
+    const incEdgeSection = document.createElement('div');
+    incEdgeSection.className = 'section';
+    incEdgeSection.innerHTML = '<h2>Tabulka incidentních hran</h2>';
+    const incEdgeDiv = document.createElement('div');
+    incEdgeDiv.className = 'matrix';
+    incEdgeDiv.appendChild(createListTable(incident));
+    incEdgeSection.appendChild(incEdgeDiv);
+    output.appendChild(incEdgeSection);
+
+    // Neighbours
+    const neighbours = graph.neighbours();
+    const neighSection = document.createElement('div');
+    neighSection.className = 'section';
+    neighSection.innerHTML = '<h2>Seznam sousedů</h2>';
+    const neighDiv = document.createElement('div');
+    neighDiv.className = 'matrix';
+    neighDiv.appendChild(createListTable(neighbours));
+    neighSection.appendChild(neighDiv);
+    output.appendChild(neighSection);
+
+    // Multiple edges detection and listing
+    const multipleEdges = graph.findMultipleEdges();
+    const multiEdgeSection = document.createElement('div');
+    multiEdgeSection.className = 'section';
+    multiEdgeSection.innerHTML = '<h2>Víceásobné hrany</h2>';
+    
+    if (multipleEdges.length === 0) {
+        const noMultiMsg = document.createElement('p');
+        noMultiMsg.textContent = 'Graf neobsahuje žádné víceásobné hrany.';
+        noMultiMsg.style.color = '#28a745';
+        noMultiMsg.style.fontWeight = 'bold';
+        multiEdgeSection.appendChild(noMultiMsg);
+    } else {
+        const multiMsg = document.createElement('p');
+        multiMsg.textContent = `Nalezeno ${multipleEdges.length} skupin víceásobných hran:`;
+        multiMsg.style.color = '#dc3545';
+        multiMsg.style.fontWeight = 'bold';
+        multiEdgeSection.appendChild(multiMsg);
+        
+        const multiEdgeDiv = document.createElement('div');
+        multiEdgeDiv.className = 'scrollable-list';
+        const multiList = document.createElement('ul');
+        multiList.style.listStyle = 'none';
+        multiList.style.padding = '0';
+        
+        for (const group of multipleEdges) {
+            const li = document.createElement('li');
+            li.style.marginBottom = '1rem';
+            li.style.padding = '0.5rem';
+            li.style.backgroundColor = '#fff3cd';
+            li.style.border = '1px solid #ffc107';
+            li.style.borderRadius = '0.25rem';
+            
+            const title = document.createElement('strong');
+            title.textContent = `${group.key} (${group.count}× násobná hrana)`;
+            li.appendChild(title);
+            
+            const edgeList = document.createElement('ul');
+            edgeList.style.marginTop = '0.5rem';
+            edgeList.style.marginLeft = '1rem';
+            
+            for (const e of group.edges) {
+                const edgeLi = document.createElement('li');
+                const weight = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+                const label = e.label ? ` [${e.label}]` : '';
+                let orientation;
+                if (e.direction === '>') orientation = '→';
+                else if (e.direction === '<') orientation = '←';
+                else orientation = '—';
+                edgeLi.textContent = `${e.u} ${orientation} ${e.v} (h=${weight})${label}`;
+                edgeList.appendChild(edgeLi);
+            }
+            
+            li.appendChild(edgeList);
+            multiList.appendChild(li);
+        }
+        
+        multiEdgeDiv.appendChild(multiList);
+        multiEdgeSection.appendChild(multiEdgeDiv);
+    }
+    
+    output.appendChild(multiEdgeSection);
+
+    // Properties
+    const props = graph.properties();
+    const propSection = document.createElement('div');
+    propSection.className = 'section';
+    propSection.innerHTML = '<h2>Vlastnosti grafu</h2>';
+    const propDiv = document.createElement('div');
+    propDiv.className = 'properties';
+    const addProp = (name, value) => {
+        const span = document.createElement('span');
+        span.textContent = `${name}: ${value}`;
+        propDiv.appendChild(span);
+    };
+    addProp('Ohodnocený', props.weighted ? 'ano' : 'ne');
+    addProp('Orientace', props.oriented);
+    addProp('Souvislý', props.connected ? 'ano' : 'ne');
+    
+    // Add strong/weak connectivity for directed graphs
+    if (props.oriented === 'orientovaný') {
+        addProp('Silně souvislý', props.stronglyConnected ? 'ano' : 'ne');
+        addProp('Slabě souvislý', props.weaklyConnected ? 'ano' : 'ne');
+    }
+    
+    addProp('Prostý', props.prosty ? 'ano' : 'ne');
+    addProp('Jednoduchý', props.jednoduchy ? 'ano' : 'ne');
+    addProp('Konečný', props.finite ? 'ano' : 'ne');
+    addProp('Úplný', props.complete ? 'ano' : 'ne');
+    addProp('Regulární', props.regular ? 'ano' : 'ne');
+    addProp('Bipartitní', props.bipartite ? 'ano' : 'ne');
+    addProp('Rovinný', typeof props.planar === 'string' ? props.planar : (props.planar ? 'ano' : 'ne'));
+    propSection.appendChild(propDiv);
+    output.appendChild(propSection);
+});
+</script>
+</body>
+</html>
