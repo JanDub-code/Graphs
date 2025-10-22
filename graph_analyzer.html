@@ -438,9 +438,20 @@ class Graph {
             }
         }
         
+        // Reconstruct path
+        const path = [];
+        if (dist[vIdx] < Infinity) {
+            let current = vIdx;
+            while (current !== null) {
+                path.unshift(this.nodes[current]);
+                current = pred[current];
+            }
+        }
+        
         return {
             distance: dist[vIdx],
-            predecessor: pred[vIdx] !== null ? this.nodes[pred[vIdx]] : null
+            predecessor: pred[vIdx] !== null ? this.nodes[pred[vIdx]] : null,
+            path: path
         };
     }
 
@@ -1072,7 +1083,10 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 if (result.distance === Infinity) {
                     resultDiv.textContent = `Nejkratší cesta z ${u} do ${v}: neexistuje`;
                 } else {
-                    resultDiv.textContent = `Nejkratší cesta z ${u} do ${v}: délka = ${result.distance}, předchůdce = ${result.predecessor || '–'}`;
+                    const pathStr = result.path.join(' → ');
+                    resultDiv.innerHTML = `Nejkratší cesta z <strong>${u}</strong> do <strong>${v}</strong>:<br>
+                        Délka: <strong>${result.distance}</strong><br>
+                        Sled: <strong>${pathStr}</strong>`;
                 }
                 break;
         }
