@@ -141,6 +141,14 @@ h F &gt; H 7 :h13;
 h G &lt; H 7 :h14;</textarea>
 <button id="parseBtn">Analyzovat graf</button>
 
+<div id="counters" style="margin: 1rem 0; padding: 1rem; background-color: #e7f3ff; border: 1px solid #0d6efd; border-radius: 0.25rem; display: none;">
+    <h3 style="margin-top: 0; color: #0d6efd;">Základní statistiky</h3>
+    <div style="display: flex; gap: 2rem; font-size: 1.1rem;">
+        <div><strong>Počet uzlů:</strong> <span id="nodeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
+        <div><strong>Počet hran:</strong> <span id="edgeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
+    </div>
+</div>
+
 <div id="output"></div>
 
 <script>
@@ -949,8 +957,14 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     if (graph.nodes.length === 0) {
         output.textContent = 'Nebyl rozpoznán žádný uzel. Zkontrolujte prosím vstup.';
+        document.getElementById('counters').style.display = 'none';
         return;
     }
+
+    // Update counters
+    document.getElementById('nodeCount').textContent = graph.nodes.length;
+    document.getElementById('edgeCount').textContent = graph.edges.length;
+    document.getElementById('counters').style.display = 'block';
 
     // Query sections for each matrix type
     const createQuerySection = (title, matrixType) => {
