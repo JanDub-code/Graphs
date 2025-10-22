@@ -1247,6 +1247,103 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     powerSection.appendChild(createQuerySection('Dotaz na A²', 'power2'));
     powerSection.appendChild(createQuerySection('Dotaz na A³', 'power3'));
     
+    // Custom power query section
+    const customPowerDiv = document.createElement('div');
+    customPowerDiv.className = 'query-section';
+    customPowerDiv.innerHTML = '<h3>Libovolná mocnina matice sousednosti</h3>';
+    
+    // Add legend
+    const powerLegendDiv = document.createElement('div');
+    powerLegendDiv.style.backgroundColor = '#fff3cd';
+    powerLegendDiv.style.padding = '0.75rem';
+    powerLegendDiv.style.borderRadius = '0.25rem';
+    powerLegendDiv.style.marginBottom = '1rem';
+    powerLegendDiv.style.border = '1px solid #ffc107';
+    powerLegendDiv.innerHTML = `
+        <strong>📖 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• <strong>A<sup>k</sup>[u, v]</strong> udává počet cest <strong>délky k</strong> z uzlu <strong>u</strong> do uzlu <strong>v</strong></span><br>
+        <span style="margin-left: 1rem;">• Například A<sup>3</sup>[A, C] = 5 znamená, že existuje <strong>5 různých cest délky 3</strong> z uzlu A do uzlu C</span><br>
+        <span style="margin-left: 1rem;">• Délka cesty = počet hran v cestě (ne počet uzlů!)</span>
+    `;
+    customPowerDiv.appendChild(powerLegendDiv);
+    
+    const customPowerInputDiv = document.createElement('div');
+    customPowerInputDiv.className = 'query-inputs';
+    
+    const selectPowerU = document.createElement('select');
+    const selectPowerV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectPowerU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectPowerV.appendChild(opt2);
+    });
+    
+    const powerInput = document.createElement('input');
+    powerInput.type = 'number';
+    powerInput.min = '1';
+    powerInput.max = '20';
+    powerInput.value = '4';
+    powerInput.style.width = '80px';
+    powerInput.style.padding = '0.5rem';
+    powerInput.style.border = '1px solid #ced4da';
+    powerInput.style.borderRadius = '0.25rem';
+    
+    const customPowerBtn = document.createElement('button');
+    customPowerBtn.textContent = 'Vypočítat';
+    
+    const customPowerResultDiv = document.createElement('div');
+    customPowerResultDiv.className = 'query-result';
+    customPowerResultDiv.style.display = 'none';
+    
+    customPowerBtn.addEventListener('click', () => {
+        const u = selectPowerU.value;
+        const v = selectPowerV.value;
+        const k = parseInt(powerInput.value);
+        
+        if (k < 1 || k > 20) {
+            customPowerResultDiv.textContent = 'Mocnina musí být mezi 1 a 20';
+            customPowerResultDiv.style.display = 'block';
+            return;
+        }
+        
+        customPowerBtn.disabled = true;
+        customPowerBtn.textContent = 'Počítám...';
+        
+        setTimeout(() => {
+            const result = graph.adjacencyPowerValue(u, v, k);
+            customPowerResultDiv.textContent = `A^${k}[${u}, ${v}] = ${result}`;
+            customPowerResultDiv.style.display = 'block';
+            customPowerBtn.disabled = false;
+            customPowerBtn.textContent = 'Vypočítat';
+        }, 50);
+    });
+    
+    const labelPowerU = document.createElement('span');
+    labelPowerU.textContent = 'Od uzlu: ';
+    customPowerInputDiv.appendChild(labelPowerU);
+    customPowerInputDiv.appendChild(selectPowerU);
+    
+    const labelPowerV = document.createElement('span');
+    labelPowerV.textContent = ' Do uzlu: ';
+    customPowerInputDiv.appendChild(labelPowerV);
+    customPowerInputDiv.appendChild(selectPowerV);
+    
+    const labelPower = document.createElement('span');
+    labelPower.textContent = ' Mocnina: ';
+    customPowerInputDiv.appendChild(labelPower);
+    customPowerInputDiv.appendChild(powerInput);
+    customPowerInputDiv.appendChild(customPowerBtn);
+    
+    customPowerDiv.appendChild(customPowerInputDiv);
+    customPowerDiv.appendChild(customPowerResultDiv);
+    powerSection.appendChild(customPowerDiv);
+    
     const showPowerBtn = document.createElement('button');
     showPowerBtn.textContent = 'Zobrazit celé matice';
     const powerMatrixDiv = document.createElement('div');
