@@ -340,6 +340,85 @@ class Graph {
         return result[uIdx][vIdx];
     }
 
+    // Laplacian matrix L = D - A
+    laplacianMatrix() {
+        const A = this.adjacencyMatrix();
+        const n = A.length;
+        const L = Array.from({ length: n }, () => Array(n).fill(0));
+        
+        // Compute degree for each node
+        for (let i = 0; i < n; i++) {
+            let degree = 0;
+            for (let j = 0; j < n; j++) {
+                degree += A[i][j];
+            }
+            L[i][i] = degree; // Diagonal: degree
+            for (let j = 0; j < n; j++) {
+                if (i !== j) {
+                    L[i][j] = -A[i][j]; // Off-diagonal: -A[i][j]
+                }
+            }
+        }
+        return L;
+    }
+
+    // Get single value from Laplacian matrix
+    laplacianValue(nodeU, nodeV) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        if (uIdx === vIdx) {
+            // Diagonal: degree of node
+            let degree = 0;
+            for (const e of this.edges) {
+                if (e.u === nodeU || e.v === nodeU) {
+                    if (e.u === e.v) degree += 2; // Loop counts twice
+                    else degree += 1;
+                }
+            }
+            return degree;
+        } else {
+            // Off-diagonal: -A[i][j]
+            return -this.adjacencyValue(nodeU, nodeV);
+        }
+    }
+
+    // Sum of all walks from length 1 to k
+    sumWalksValue(nodeU, nodeV, k) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        const A = this.adjacencyMatrix();
+        let sum = 0;
+        let currentPower = A;
+        
+        for (let i = 1; i <= k; i++) {
+            sum += currentPower[uIdx][vIdx];
+            if (i < k) {
+                currentPower = Graph.multiplyMatrices(currentPower, A);
+            }
+        }
+        return sum;
+    }
+
+    // Multiplicity: count all edges between U and V (regardless of direction for undirected)
+    multiplicityValue(nodeU, nodeV) {
+        const uIdx = this.nodes.indexOf(nodeU);
+        const vIdx = this.nodes.indexOf(nodeV);
+        if (uIdx === -1 || vIdx === -1) return null;
+        
+        let count = 0;
+        for (const e of this.edges) {
+            // Count all edges connecting these two nodes
+            if ((e.u === nodeU && e.v === nodeV) || (e.u === nodeV && e.v === nodeU)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     incidenceMatrix() {
         const n = this.nodes.length;
         const m = this.edges.length;
@@ -1078,6 +1157,16 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 result = graph.adjacencyPowerValue(u, v, 3);
                 resultDiv.textContent = `A³[${u}, ${v}] = ${result}`;
                 break;
+            case 'laplacian':
+                result = graph.laplacianValue(u, v);
+                resultDiv.innerHTML = `Laplaciánská matice <strong>L[${u}, ${v}] = ${result}</strong><br>
+                    <small>L = D - A (D = matice stupňů, A = matice sousednosti)</small>`;
+                break;
+            case 'multiplicity':
+                result = graph.multiplicityValue(u, v);
+                resultDiv.innerHTML = `Multiplicita hran mezi <strong>${u}</strong> a <strong>${v}</strong>: <strong>${result}</strong><br>
+                    <small>Počet všech hran (včetně paralelních) spojujících tyto uzly</small>`;
+                break;
             case 'shortest':
                 result = graph.shortestPath(u, v);
                 if (result.distance === Infinity) {
@@ -1254,6 +1343,41 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     signSection.appendChild(signStatsDiv);
     output.appendChild(signSection);
 
+    // Laplacian matrix with query
+    const laplacianSection = document.createElement('div');
+    laplacianSection.className = 'section';
+    laplacianSection.innerHTML = '<h2>Laplaciánská matice (L = D - A)</h2>';
+    laplacianSection.appendChild(createQuerySection('Dotaz na hodnotu L[U,V]', 'laplacian'));
+    
+    const showLaplacianBtn = document.createElement('button');
+    showLaplacianBtn.textContent = 'Zobrazit celou matici';
+    const laplacianMatrixDiv = document.createElement('div');
+    laplacianMatrixDiv.className = 'matrix';
+    laplacianMatrixDiv.style.display = 'none';
+    
+    showLaplacianBtn.addEventListener('click', () => {
+        if (laplacianMatrixDiv.style.display === 'none') {
+            const laplacianMat = graph.laplacianMatrix();
+            laplacianMatrixDiv.innerHTML = '';
+            laplacianMatrixDiv.appendChild(createMatrixTable(laplacianMat, graph.nodes, graph.nodes));
+            laplacianMatrixDiv.style.display = 'block';
+            showLaplacianBtn.textContent = 'Skrýt matici';
+        } else {
+            laplacianMatrixDiv.style.display = 'none';
+            showLaplacianBtn.textContent = 'Zobrazit celou matici';
+        }
+    });
+    laplacianSection.appendChild(showLaplacianBtn);
+    laplacianSection.appendChild(laplacianMatrixDiv);
+    output.appendChild(laplacianSection);
+
+    // Multiplicity query section
+    const multiplicitySection = document.createElement('div');
+    multiplicitySection.className = 'section';
+    multiplicitySection.innerHTML = '<h2>Multiplicita hran (počet paralelních hran)</h2>';
+    multiplicitySection.appendChild(createQuerySection('Dotaz na multiplicitu', 'multiplicity'));
+    output.appendChild(multiplicitySection);
+
     // Power matrices with queries
     const powerSection = document.createElement('div');
     powerSection.className = 'section';
@@ -1386,6 +1510,109 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     powerSection.appendChild(showPowerBtn);
     powerSection.appendChild(powerMatrixDiv);
     output.appendChild(powerSection);
+
+    // Sum of walks query section
+    const sumWalksSection = document.createElement('div');
+    sumWalksSection.className = 'section';
+    sumWalksSection.innerHTML = '<h2>Suma všech procházek (∑ A¹ + A² + ... + Aᵏ)</h2>';
+    
+    const sumWalksDiv = document.createElement('div');
+    sumWalksDiv.className = 'query-section';
+    sumWalksDiv.innerHTML = '<h3>Dotaz na celkový počet procházek délek 1 až k</h3>';
+    
+    // Add legend
+    const sumWalksLegendDiv = document.createElement('div');
+    sumWalksLegendDiv.style.backgroundColor = '#e7f3ff';
+    sumWalksLegendDiv.style.padding = '0.75rem';
+    sumWalksLegendDiv.style.borderRadius = '0.25rem';
+    sumWalksLegendDiv.style.marginBottom = '1rem';
+    sumWalksLegendDiv.style.border = '1px solid #0d6efd';
+    sumWalksLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• Sečte počet všech procházek délek 1, 2, 3, ..., až k mezi uzly U a V</span><br>
+        <span style="margin-left: 1rem;">• Např. pro k=3: počítá cesty délky 1 + cesty délky 2 + cesty délky 3</span><br>
+        <span style="margin-left: 1rem;">• Užitečné pro analýzu celkové propojitelnosti uzlů</span>
+    `;
+    sumWalksDiv.appendChild(sumWalksLegendDiv);
+    
+    const sumWalksInputDiv = document.createElement('div');
+    sumWalksInputDiv.className = 'query-inputs';
+    
+    const selectSumU = document.createElement('select');
+    const selectSumV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectSumU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectSumV.appendChild(opt2);
+    });
+    
+    const sumKInput = document.createElement('input');
+    sumKInput.type = 'number';
+    sumKInput.min = '1';
+    sumKInput.max = '10';
+    sumKInput.value = '3';
+    sumKInput.style.width = '80px';
+    sumKInput.style.padding = '0.5rem';
+    sumKInput.style.border = '1px solid #ced4da';
+    sumKInput.style.borderRadius = '0.25rem';
+    
+    const sumWalksBtn = document.createElement('button');
+    sumWalksBtn.textContent = 'Vypočítat';
+    
+    const sumWalksResultDiv = document.createElement('div');
+    sumWalksResultDiv.className = 'query-result';
+    sumWalksResultDiv.style.display = 'none';
+    
+    sumWalksBtn.addEventListener('click', () => {
+        const u = selectSumU.value;
+        const v = selectSumV.value;
+        const k = parseInt(sumKInput.value);
+        
+        if (k < 1 || k > 10) {
+            sumWalksResultDiv.textContent = 'Hodnota k musí být mezi 1 a 10';
+            sumWalksResultDiv.style.display = 'block';
+            return;
+        }
+        
+        sumWalksBtn.disabled = true;
+        sumWalksBtn.textContent = 'Počítám...';
+        
+        setTimeout(() => {
+            const result = graph.sumWalksValue(u, v, k);
+            sumWalksResultDiv.innerHTML = `∑ procházek (délky 1..${k}) z <strong>${u}</strong> do <strong>${v}</strong>: <strong>${result}</strong><br>
+                <small>Celkový počet všech cest délek 1 až ${k}</small>`;
+            sumWalksResultDiv.style.display = 'block';
+            sumWalksBtn.disabled = false;
+            sumWalksBtn.textContent = 'Vypočítat';
+        }, 50);
+    });
+    
+    const labelSumU = document.createElement('span');
+    labelSumU.textContent = 'Od uzlu: ';
+    sumWalksInputDiv.appendChild(labelSumU);
+    sumWalksInputDiv.appendChild(selectSumU);
+    
+    const labelSumV = document.createElement('span');
+    labelSumV.textContent = ' Do uzlu: ';
+    sumWalksInputDiv.appendChild(labelSumV);
+    sumWalksInputDiv.appendChild(selectSumV);
+    
+    const labelSumK = document.createElement('span');
+    labelSumK.textContent = ' Max. délka k: ';
+    sumWalksInputDiv.appendChild(labelSumK);
+    sumWalksInputDiv.appendChild(sumKInput);
+    sumWalksInputDiv.appendChild(sumWalksBtn);
+    
+    sumWalksDiv.appendChild(sumWalksInputDiv);
+    sumWalksDiv.appendChild(sumWalksResultDiv);
+    sumWalksSection.appendChild(sumWalksDiv);
+    output.appendChild(sumWalksSection);
 
     // Incidence matrix
     const incSection = document.createElement('div');
