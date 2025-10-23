@@ -143,9 +143,10 @@ h G &lt; H 7 :h14;</textarea>
 
 <div id="counters" style="margin: 1rem 0; padding: 1rem; background-color: #e7f3ff; border: 1px solid #0d6efd; border-radius: 0.25rem; display: none;">
     <h3 style="margin-top: 0; color: #0d6efd;">Základní statistiky</h3>
-    <div style="display: flex; gap: 2rem; font-size: 1.1rem;">
+    <div style="display: flex; gap: 2rem; font-size: 1.1rem; flex-wrap: wrap;">
         <div><strong>Počet uzlů:</strong> <span id="nodeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
         <div><strong>Počet hran:</strong> <span id="edgeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
+        <div><strong>Počet komponent:</strong> <span id="componentCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
     </div>
 </div>
 
@@ -160,6 +161,7 @@ class Graph {
         this.edges = [];
         this._cachedAdjMatrix = null;
         this._cachedDegrees = null;
+        this._cachedProperties = null; // ⚡ CACHE pro properties()
     }
 
     parse(text) {
@@ -168,6 +170,7 @@ class Graph {
         this.edges = [];
         this._cachedAdjMatrix = null;
         this._cachedDegrees = null;
+        this._cachedProperties = null; // ⚡ Invalidate cache při změně
         
         const lines = text.split(/\r?\n/);
         const nodePattern = /^u\s+([^\s;]+)(?:\s+([-+]?[0-9]*\.?[0-9]+))?\s*;/i;
@@ -806,64 +809,62 @@ class Graph {
     }
 
     // Check if directed graph is strongly connected using Kosaraju's algorithm
+    // ⚡ VYLEPŠENÍ 12: Optimalizovaná strongly connected detection
     isStronglyConnected() {
         const n = this.nodes.length;
         if (n === 0) return true;
+        if (n === 1) return true; // ⚡ Single node is trivially strongly connected
         
         const idx = {};
         this.nodes.forEach((id, i) => { idx[id] = i; });
         
-        // Build directed adjacency list
+        // ⚡ Build adjacency list AND reverse graph v jednom průchodu!
         const adjList = Array.from({ length: n }, () => []);
+        const reverseAdj = Array.from({ length: n }, () => []);
+        
         for (const e of this.edges) {
             const i = idx[e.u];
             const j = idx[e.v];
             if (e.direction === '>') {
                 adjList[i].push(j);
+                reverseAdj[j].push(i); // ⚡ Build reverse současně
             } else if (e.direction === '<') {
                 adjList[j].push(i);
+                reverseAdj[i].push(j);
             } else {
                 // Undirected edge - add both directions
                 adjList[i].push(j);
                 adjList[j].push(i);
+                reverseAdj[i].push(j);
+                reverseAdj[j].push(i);
             }
         }
         
-        // DFS from first node
+        // DFS from first node - inline pro rychlost
         const visited = new Array(n).fill(false);
-        const dfs = (start) => {
-            const stack = [start];
-            visited[start] = true;
-            let count = 1;
-            
-            while (stack.length > 0) {
-                const u = stack.pop();
-                for (const v of adjList[u]) {
-                    if (!visited[v]) {
-                        visited[v] = true;
-                        stack.push(v);
-                        count++;
-                    }
-                }
-            }
-            return count;
-        };
-        
-        if (dfs(0) !== n) return false;
-        
-        // Build reverse graph
-        const reverseAdj = Array.from({ length: n }, () => []);
-        for (let u = 0; u < n; u++) {
-            for (const v of adjList[u]) {
-                reverseAdj[v].push(u);
-            }
-        }
-        
-        // DFS on reverse graph
-        visited.fill(false);
         const stack = [0];
         visited[0] = true;
         let count = 1;
+        
+        while (stack.length > 0) {
+            const u = stack.pop();
+            for (const v of adjList[u]) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    stack.push(v);
+                    count++;
+                }
+            }
+        }
+        
+        if (count !== n) return false; // ⚡ Early exit
+        
+        // DFS on reverse graph - již máme reverseAdj!
+        visited.fill(false);
+        stack.length = 0; // ⚡ Reuse array
+        stack.push(0);
+        visited[0] = true;
+        count = 1;
         
         while (stack.length > 0) {
             const u = stack.pop();
@@ -877,6 +878,44 @@ class Graph {
         }
         
         return count === n;
+    }
+
+    // ⚡ VYLEPŠENÍ 14: Počítání komponent grafu (slabé komponenty)
+    countComponents() {
+        const n = this.nodes.length;
+        if (n === 0) return 0;
+        
+        const visited = new Set();
+        let components = 0;
+        
+        // Build adjacency list (ignoruj orientaci hran)
+        const adj = {};
+        this.nodes.forEach(id => adj[id] = new Set());
+        for (const e of this.edges) {
+            adj[e.u].add(e.v);
+            adj[e.v].add(e.u); // Obousměrně pro slabé komponenty
+        }
+        
+        // BFS pro každou komponentu
+        for (const start of this.nodes) {
+            if (visited.has(start)) continue;
+            
+            components++;
+            const queue = [start];
+            visited.add(start);
+            
+            while (queue.length) {
+                const u = queue.shift();
+                for (const v of adj[u]) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        queue.push(v);
+                    }
+                }
+            }
+        }
+        
+        return components;
     }
 
     // Find all multiple edges in the graph
@@ -918,6 +957,9 @@ class Graph {
 
     
     properties() {
+        // ⚡ VYLEPŠENÍ 10: Memoizace properties() - obrovský speedup!
+        if (this._cachedProperties) return this._cachedProperties;
+        
         const props = {};
         const n = this.nodes.length;
         
@@ -972,29 +1014,42 @@ class Graph {
         }
         props.connected = visited.every(v => v);
         
-        // Strong and weak connectivity for directed graphs
+        // ⚡ OPRAVA: Strong a weak connectivity pro orientované grafy
+        // Pokud je silně souvislý → automaticky slabě souvislý (zobrazíme jen "silně")
+        // Pokud není silně, ale je weakly → zobrazíme "slabě"
         if (props.oriented === 'orientovaný') {
             props.stronglyConnected = this.isStronglyConnected();
-            props.weaklyConnected = props.connected;
+            // Weakly connected = connected v podkladovém neorientovaném grafu
+            // ALE zobrazíme jen pokud není strongly connected
+            props.weaklyConnected = !props.stronglyConnected && props.connected;
         }
         
         // Finite: always true for parsed input
         props.finite = true;
         
-        // Loops and multiple edges - OPTIMIZED with Set
+        // ⚡ VYLEPŠENÍ 11: Loops + multiple edges + degrees v JEDNOM průchodu
         let loops = 0;
         const edgeSet = new Set();
         let multiEdges = false;
+        const degrees = {};
+        this.nodes.forEach(id => { degrees[id] = 0; });
         
         for (const e of this.edges) {
+            // Počítej stupně současně
             if (e.u === e.v) {
                 loops++;
+                degrees[e.u] += 2; // Smyčka přidá stupeň 2
                 continue;
             }
+            
+            degrees[e.u] += 1;
+            degrees[e.v] += 1;
+            
+            // Check multiple edges
             const key = e.u <= e.v ? `${e.u}|${e.v}` : `${e.v}|${e.u}`;
             if (edgeSet.has(key)) {
                 multiEdges = true;
-                if (loops > 0) break;
+                // Nekončíme - musíme dopočítat degrees!
             } else {
                 edgeSet.add(key);
             }
@@ -1003,47 +1058,16 @@ class Graph {
         props.prosty = !multiEdges;
         props.jednoduchy = !multiEdges && loops === 0;
         
-        // Complete: OPTIMIZED - skip for large graphs
+        // ⚡ VYLEPŠENÍ 13: Complete graph - využij už existující edgeSet!
         if (n > 50) {
             props.complete = false;
         } else {
-            let complete = true;
-            const edgeSetComplete = new Set();
-            for (const e of this.edges) {
-                const key = e.u <= e.v ? `${e.u}|${e.v}` : `${e.v}|${e.u}`;
-                edgeSetComplete.add(key);
-            }
+            // edgeSet už máme z výpočtu multiple edges výše!
             const expectedEdges = (n * (n - 1)) / 2;
-            complete = edgeSetComplete.size >= expectedEdges;
-            if (complete) {
-                for (let i = 0; i < n && complete; i++) {
-                    for (let j = i + 1; j < n; j++) {
-                        const u = this.nodes[i];
-                        const v = this.nodes[j];
-                        const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
-                        if (!edgeSetComplete.has(key)) {
-                            complete = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            props.complete = complete;
+            props.complete = (edgeSet.size === expectedEdges) && !multiEdges && loops === 0;
         }
         
-        // Regular: OPTIMIZED - compute degrees efficiently
-        const degrees = {};
-        this.nodes.forEach(id => { degrees[id] = 0; });
-        
-        for (const e of this.edges) {
-            if (e.u === e.v) {
-                degrees[e.u] += 2;
-            } else {
-                degrees[e.u] += 1;
-                degrees[e.v] += 1;
-            }
-        }
-        
+        // ⚡ Regular: degrees už máme spočítané výše!
         const degValues = Object.values(degrees);
         const firstDeg = degValues[0];
         props.regular = degValues.every(d => d === firstDeg);
@@ -1340,6 +1364,8 @@ class Graph {
             return true;
         })();
         
+        // ⚡ Cachuj výsledek pro budoucí volání
+        this._cachedProperties = props;
         return props;
     }
 }
@@ -1458,6 +1484,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     // Update counters
     document.getElementById('nodeCount').textContent = graph.nodes.length;
     document.getElementById('edgeCount').textContent = graph.edges.length;
+    document.getElementById('componentCount').textContent = graph.countComponents();
     document.getElementById('counters').style.display = 'block';
 
     // Query sections for each matrix type
@@ -2541,10 +2568,18 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     addProp('Orientace', props.oriented);
     addProp('Souvislý', props.connected ? 'ano' : 'ne');
     
-    // Add strong/weak connectivity for directed graphs
+    // ⚡ OPRAVA: Zobraz strong/weak connectivity chytře
     if (props.oriented === 'orientovaný') {
-        addProp('Silně souvislý', props.stronglyConnected ? 'ano' : 'ne');
-        addProp('Slabě souvislý', props.weaklyConnected ? 'ano' : 'ne');
+        if (props.stronglyConnected) {
+            addProp('Silně souvislý', 'ano');
+            // Slabě souvislý nemusíme zobrazovat - je implicitní!
+        } else if (props.weaklyConnected) {
+            addProp('Silně souvislý', 'ne');
+            addProp('Slabě souvislý', 'ano');
+        } else {
+            addProp('Silně souvislý', 'ne');
+            addProp('Slabě souvislý', 'ne');
+        }
     }
     
     addProp('Prostý', props.prosty ? 'ano' : 'ne');

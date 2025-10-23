@@ -1,0 +1,32 @@
+u A;
+u B;
+u C;
+u D;
+u E;
+h A > B 1;
+h B > C 2;
+h C > A 3;
+h A > D 1;
+h D > E 2;
+
+u F;
+u G;
+u H;
+u I;
+h F > G 1;
+h G > H 2;
+h H > I 3;
+h I > F 4;
+
+u J;
+u K;
+u L;
+u M;
+u N;
+u O;
+h J - K 1;
+h K - L 2;
+h L - M 3;
+h M - N 4;
+h N - O 5;
+h O - J 6;
