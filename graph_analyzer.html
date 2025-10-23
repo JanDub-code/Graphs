@@ -142,11 +142,14 @@ h G &lt; H 7 :h14;</textarea>
 <button id="parseBtn">Analyzovat graf</button>
 
 <div id="counters" style="margin: 1rem 0; padding: 1rem; background-color: #e7f3ff; border: 1px solid #0d6efd; border-radius: 0.25rem; display: none;">
-    <h3 style="margin-top: 0; color: #0d6efd;">Základní statistiky</h3>
+    <h3 style="margin-top: 0; color: #0d6efd;">📊 Základní statistiky</h3>
     <div style="display: flex; gap: 2rem; font-size: 1.1rem; flex-wrap: wrap;">
         <div><strong>Počet uzlů:</strong> <span id="nodeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
         <div><strong>Počet hran:</strong> <span id="edgeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
         <div><strong>Počet komponent:</strong> <span id="componentCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
+    </div>
+    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #b6d4fe; font-size: 0.9rem; color: #084298;">
+        💡 <strong>Komponenta</strong> = oddělená část grafu (1 komponenta = graf je souvislý)
     </div>
 </div>
 
@@ -917,6 +920,52 @@ class Graph {
         
         return components;
     }
+    
+    // Vrací detailní informace o komponentách (reprezentant + seznam uzlů)
+    getComponents() {
+        const n = this.nodes.length;
+        if (n === 0) return [];
+        
+        const visited = new Set();
+        const components = [];
+        
+        // Build adjacency list (ignoruj orientaci hran)
+        const adj = {};
+        this.nodes.forEach(id => adj[id] = new Set());
+        for (const e of this.edges) {
+            adj[e.u].add(e.v);
+            adj[e.v].add(e.u); // Obousměrně pro slabé komponenty
+        }
+        
+        // BFS pro každou komponentu
+        for (const start of this.nodes) {
+            if (visited.has(start)) continue;
+            
+            const componentNodes = [];
+            const queue = [start];
+            visited.add(start);
+            componentNodes.push(start);
+            
+            while (queue.length) {
+                const u = queue.shift();
+                for (const v of adj[u]) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        queue.push(v);
+                        componentNodes.push(v);
+                    }
+                }
+            }
+            
+            components.push({
+                root: start,  // První nalezený uzel (reprezentant)
+                nodes: componentNodes.sort(),
+                size: componentNodes.length
+            });
+        }
+        
+        return components.sort((a, b) => b.size - a.size); // Seřaď podle velikosti
+    }
 
     // Find all multiple edges in the graph
     findMultipleEdges() {
@@ -1639,10 +1688,14 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     adjLegendDiv.style.marginBottom = '1rem';
     adjLegendDiv.style.border = '1px solid #0d6efd';
     adjLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• <strong>Počtová verze:</strong> v buňce (i,j) je počet hran z uzlu i do j (zobrazuje multiplicitu)</span><br>
-        <span style="margin-left: 1rem;">• <strong>Binární verze:</strong> hodnota 1 existuje-li alespoň jedna hrana i→j, jinak 0</span><br>
-        <span style="margin-left: 1rem;">• U neorientovaných hran se zapisuje do obou směrů</span>
+        <strong>📊 Vysvětlení - Matice sousednosti:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Co to je:</strong> Matice A[i,j] udává počet hran z uzlu i do uzlu j<br>
+            • <strong>Počtová verze:</strong> Zobrazuje přesný počet hran (včetně násobných hran)<br>
+            • <strong>Binární verze:</strong> Hodnota 1 = existuje alespoň 1 hrana, 0 = neexistuje hrana<br>
+            • <strong>Orientované grafy:</strong> A[i,j] může být jiné než A[j,i]<br>
+            • <strong>Neorientované grafy:</strong> Matice je symetrická (A[i,j] = A[j,i])
+        </div>
     `;
     adjSection.appendChild(adjLegendDiv);
     
@@ -1718,6 +1771,31 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const signSection = document.createElement('div');
     signSection.className = 'section';
     signSection.innerHTML = '<h2>Znaménková matice</h2>';
+    
+    // Přidej vysvětlivku
+    const signLegendDiv = document.createElement('div');
+    signLegendDiv.style.backgroundColor = '#e7f3ff';
+    signLegendDiv.style.padding = '0.75rem';
+    signLegendDiv.style.borderRadius = '0.25rem';
+    signLegendDiv.style.marginBottom = '1rem';
+    signLegendDiv.style.border = '1px solid #0d6efd';
+    signLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení - Znaménková matice:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Vzorec:</strong> S[i,j] = A[i,j] - A[j,i] (rozdíl počtu hran v obou směrech)<br>
+            • <strong>Kladná hodnota:</strong> Více hran z i do j než z j do i<br>
+            • <strong>Záporná hodnota:</strong> Více hran z j do i než z i do j<br>
+            • <strong>Nula:</strong> Stejný počet hran v obou směrech (nebo žádné hrany)<br>
+            <br>
+            <strong>🎯 Co tím zjistím o grafu:</strong><br>
+            • <strong>Asymetrii:</strong> Pokud S≠0, graf má nerovnoměrné směry hran mezi uzly<br>
+            • <strong>Orientaci:</strong> Pokud S=0 všude, graf je buď neorientovaný nebo perfektně symetrický<br>
+            • <strong>Dominantní směry:</strong> Vysoké kladné/záporné hodnoty ukazují silnou preferenci směru<br>
+            • <strong>Vyváženost uzlů:</strong> Součet řádku (+) = uzel posílá víc než přijímá, (-) = přijímá víc než posílá
+        </div>
+    `;
+    signSection.appendChild(signLegendDiv);
+    
     signSection.appendChild(createQuerySection('Dotaz na hodnotu', 'sign'));
     
     const showSignBtn = document.createElement('button');
@@ -1773,6 +1851,33 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const laplacianSection = document.createElement('div');
     laplacianSection.className = 'section';
     laplacianSection.innerHTML = '<h2>Laplaciánská matice (L = D - A)</h2>';
+    
+    // Přidej vysvětlivku
+    const laplacianLegendDiv = document.createElement('div');
+    laplacianLegendDiv.style.backgroundColor = '#e7f3ff';
+    laplacianLegendDiv.style.padding = '0.75rem';
+    laplacianLegendDiv.style.borderRadius = '0.25rem';
+    laplacianLegendDiv.style.marginBottom = '1rem';
+    laplacianLegendDiv.style.border = '1px solid #0d6efd';
+    laplacianLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení - Laplaciánská matice:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Vzorec:</strong> L = D - A, kde D = matice stupňů (diagonální), A = matice sousednosti<br>
+            • <strong>Diagonála:</strong> L[i,i] = stupeň uzlu i (počet hran incidentních s i)<br>
+            • <strong>Mimo diagonálu:</strong> L[i,j] = -A[i,j] (záporný počet hran mezi i a j)<br>
+            • <strong>Vlastnost:</strong> Součet každého řádku = 0 (vždy!)<br>
+            <br>
+            <strong>🎯 Co tím zjistím o grafu:</strong><br>
+            • <strong>Počet komponent:</strong> Vlastní čísla (eigenvalues) - násobnost λ=0 říká, kolik má graf oddělených částí<br>
+            • <strong>Konektivita:</strong> Druhé nejmenší vlastní číslo (algebraická konektivita) měří, jak "pevně" je graf spojen<br>
+            • <strong>Rozdělitelnost:</strong> Nízká algebraická konektivita = graf se snadno rozpadne na části<br>
+            • <strong>Spektrální klastry:</strong> Vlastní vektory odhalí přirozené skupiny uzlů (komunity)<br>
+            • <strong>Difúze:</strong> L popisuje, jak rychle se informace/energie šíří po grafu<br>
+            • <strong>Vyvážení:</strong> Vysoké L[i,i] = důležitý hub; záporné L[i,j] = silné spojení mezi i a j
+        </div>
+    `;
+    laplacianSection.appendChild(laplacianLegendDiv);
+    
     laplacianSection.appendChild(createQuerySection('Dotaz na hodnotu L[U,V]', 'laplacian'));
     
     const showLaplacianBtn = document.createElement('button');
@@ -1801,6 +1906,26 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const multiplicitySection = document.createElement('div');
     multiplicitySection.className = 'section';
     multiplicitySection.innerHTML = '<h2>Multiplicita hran (počet paralelních hran)</h2>';
+    
+    // Přidej vysvětlivku
+    const multiplicityLegendDiv = document.createElement('div');
+    multiplicityLegendDiv.style.backgroundColor = '#e7f3ff';
+    multiplicityLegendDiv.style.padding = '0.75rem';
+    multiplicityLegendDiv.style.borderRadius = '0.25rem';
+    multiplicityLegendDiv.style.marginBottom = '1rem';
+    multiplicityLegendDiv.style.border = '1px solid #0d6efd';
+    multiplicityLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení - Multiplicita hran:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Co to je:</strong> Počet všech hran mezi dvěma uzly (v obou směrech dohromady)<br>
+            • <strong>Prostý graf:</strong> Multiplicita mezi libovolnými dvěma uzly ≤ 1<br>
+            • <strong>Multigraf:</strong> Může existovat více paralelních hran mezi stejnými uzly<br>
+            • <strong>Rozdíl od matice sousednosti:</strong> Multiplicita počítá hrany bez ohledu na směr<br>
+            • <strong>Příklad:</strong> Pokud existují hrany A→B a B→A, multiplicita(A,B) = 2
+        </div>
+    `;
+    multiplicitySection.appendChild(multiplicityLegendDiv);
+    
     multiplicitySection.appendChild(createQuerySection('Dotaz na multiplicitu', 'multiplicity'));
     output.appendChild(multiplicitySection);
 
@@ -2112,35 +2237,202 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     reachLegendDiv.style.marginBottom = '1rem';
     reachLegendDiv.style.border = '1px solid #0d6efd';
     reachLegendDiv.innerHTML = `
-        <strong>🔄 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• Uzávěr dosažitelnosti na binární matici sousednosti</span><br>
-        <span style="margin-left: 1rem;">• Hodnota 1 znamená, že existuje cesta z uzlu i do uzlu j libovolné délky</span><br>
-        <span style="margin-left: 1rem;">• Hodnota 0 znamená, že uzel j není dosažitelný z uzlu i</span><br>
-        <span style="margin-left: 1rem;">• Vypočteno pomocí Floyd-Warshall algoritmu na binární matici</span>
+        <strong>🔄 Vysvětlení - Dosažitelnost:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Co zjistím:</strong> Které uzly jsou navzájem dosažitelné (existuje cesta)<br>
+            • <strong>Algoritmus:</strong> Floyd-Warshall na binární matici (transitivní uzávěr)<br>
+            • <strong>Pro velké grafy:</strong> Zobrazíme statistiky místo celé matice (700×700 je nepřehledné!)
+        </div>
     `;
     reachSection.appendChild(reachLegendDiv);
     
-    const showReachBtn = document.createElement('button');
-    showReachBtn.textContent = 'Zobrazit matici dosažitelnosti';
-    const reachMatrixDiv = document.createElement('div');
-    reachMatrixDiv.className = 'matrix';
-    reachMatrixDiv.style.display = 'none';
+    // Query interface
+    const reachQueryDiv = document.createElement('div');
+    reachQueryDiv.className = 'query-section';
+    reachQueryDiv.innerHTML = '<h3>Dotaz na dosažitelnost</h3>';
     
-    showReachBtn.addEventListener('click', () => {
-        if (reachMatrixDiv.style.display === 'none') {
+    const reachInputDiv = document.createElement('div');
+    reachInputDiv.className = 'query-inputs';
+    
+    const selectReachU = document.createElement('select');
+    const selectReachV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectReachU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectReachV.appendChild(opt2);
+    });
+    
+    const reachQueryBtn = document.createElement('button');
+    reachQueryBtn.textContent = 'Je dosažitelný?';
+    
+    const reachQueryResult = document.createElement('div');
+    reachQueryResult.className = 'query-result';
+    reachQueryResult.style.display = 'none';
+    
+    reachQueryBtn.addEventListener('click', () => {
+        const u = selectReachU.value;
+        const v = selectReachV.value;
+        const reachMat = graph.reachability();
+        const uIdx = graph.nodes.indexOf(u);
+        const vIdx = graph.nodes.indexOf(v);
+        const isReachable = reachMat[uIdx][vIdx] === 1;
+        
+        reachQueryResult.innerHTML = `<strong>${u} → ${v}:</strong> ${isReachable ? '✅ ANO (dosažitelný)' : '❌ NE (nedosažitelný)'}`;
+        reachQueryResult.style.display = 'block';
+    });
+    
+    const labelReachU = document.createElement('span');
+    labelReachU.textContent = 'Z uzlu: ';
+    reachInputDiv.appendChild(labelReachU);
+    reachInputDiv.appendChild(selectReachU);
+    
+    const labelReachV = document.createElement('span');
+    labelReachV.textContent = ' Do uzlu: ';
+    reachInputDiv.appendChild(labelReachV);
+    reachInputDiv.appendChild(selectReachV);
+    reachInputDiv.appendChild(reachQueryBtn);
+    
+    reachQueryDiv.appendChild(reachInputDiv);
+    reachQueryDiv.appendChild(reachQueryResult);
+    reachSection.appendChild(reachQueryDiv);
+    
+    // Statistics button
+    const showReachStatsBtn = document.createElement('button');
+    showReachStatsBtn.textContent = 'Zobrazit statistiky dosažitelnosti';
+    showReachStatsBtn.style.marginTop = '1rem';
+    const reachStatsDiv = document.createElement('div');
+    reachStatsDiv.style.display = 'none';
+    reachStatsDiv.style.marginTop = '1rem';
+    
+    showReachStatsBtn.addEventListener('click', () => {
+        if (reachStatsDiv.style.display === 'none') {
             const reachMat = graph.reachability();
-            reachMatrixDiv.innerHTML = '';
-            reachMatrixDiv.appendChild(createMatrixTable(reachMat, graph.nodes, graph.nodes));
-            reachMatrixDiv.style.display = 'block';
-            showReachBtn.textContent = 'Skrýt matici';
+            const n = graph.nodes.length;
+            const components = graph.getComponents();
+            
+            // Calculate statistics
+            const reachableFrom = {}; // kolik uzlů je dosažitelných z každého uzlu
+            const reachableBy = {};   // z kolika uzlů je každý uzel dosažitelný
+            let totalReachable = 0;
+            
+            for (let i = 0; i < n; i++) {
+                reachableFrom[graph.nodes[i]] = 0;
+                reachableBy[graph.nodes[i]] = 0;
+            }
+            
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (i !== j && reachMat[i][j] === 1) {
+                        reachableFrom[graph.nodes[i]]++;
+                        reachableBy[graph.nodes[j]]++;
+                        totalReachable++;
+                    }
+                }
+            }
+            
+            const maxPossible = n * (n - 1);
+            const reachabilityPercent = ((totalReachable / maxPossible) * 100).toFixed(1);
+            
+            // Isolated nodes (cannot reach anyone, no one can reach them)
+            const isolated = graph.nodes.filter(node => 
+                reachableFrom[node] === 0 && reachableBy[node] === 0
+            );
+            
+            reachStatsDiv.innerHTML = `
+                <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.25rem; border: 1px solid #dee2e6;">
+                    <h3 style="margin-top: 0; color: #0d6efd;">📈 Statistiky dosažitelnosti a komponent</h3>
+                    
+                    <div style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+                        <strong>Celková dosažitelnost:</strong><br>
+                        • <strong>${totalReachable}</strong> z ${maxPossible} možných spojení (${reachabilityPercent}%)<br>
+                        • Průměrně každý uzel dosáhne <strong>${(totalReachable / n).toFixed(1)}</strong> uzlů<br>
+                        • Graf má <strong>${components.length}</strong> ${components.length === 1 ? 'komponentu' : components.length < 5 ? 'komponenty' : 'komponent'}
+                    </div>
+                    
+                    ${isolated.length > 0 ? `
+                    <div style="background-color: #fff3cd; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem; border: 1px solid #ffc107;">
+                        <strong>⚠️ Izolované uzly (${isolated.length}):</strong><br>
+                        <span style="font-size: 0.9rem;">Tyto uzly nemají žádné spojení s ostatními:</span><br>
+                        <code style="background-color: #fff; padding: 0.25rem 0.5rem; border-radius: 0.25rem; display: inline-block; margin-top: 0.25rem;">
+                            ${isolated.slice(0, 30).join(', ')}${isolated.length > 30 ? ` ... a dalších ${isolated.length - 30}` : ''}
+                        </code>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+                        <strong>🔗 Komponenty grafu (${components.length}):</strong><br>
+                        <span style="font-size: 0.9rem; color: #666;">Každá komponenta má reprezentanta (kořenový uzel) - použij ho pro BFS:</span><br>
+                        <div style="margin-top: 0.5rem;">
+                            ${components.map((comp, idx) => `
+                                <div style="background-color: ${idx % 2 === 0 ? '#f8f9fa' : '#fff'}; padding: 0.5rem; margin-top: 0.25rem; border-radius: 0.25rem; border-left: 3px solid ${idx === 0 ? '#0d6efd' : idx === 1 ? '#198754' : '#dc3545'};">
+                                    <strong>Komponenta ${idx + 1}</strong> (${comp.size} ${comp.size === 1 ? 'uzel' : comp.size < 5 ? 'uzly' : 'uzlů'}):
+                                    <br>
+                                    <span style="font-size: 0.9rem;">
+                                        🎯 <strong>Reprezentant (root):</strong> <code style="background-color: #e7f3ff; padding: 0.1rem 0.4rem; border-radius: 0.2rem; font-weight: bold;">${comp.root}</code>
+                                        ${comp.size <= 20 ? `<br>📦 Uzly: ${comp.nodes.join(', ')}` : `<br>📦 První uzly: ${comp.nodes.slice(0, 20).join(', ')} ... (celkem ${comp.size})`}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            reachStatsDiv.style.display = 'block';
+            showReachStatsBtn.textContent = 'Skrýt statistiky';
         } else {
-            reachMatrixDiv.style.display = 'none';
-            showReachBtn.textContent = 'Zobrazit matici dosažitelnosti';
+            reachStatsDiv.style.display = 'none';
+            showReachStatsBtn.textContent = 'Zobrazit statistiky dosažitelnosti';
         }
     });
     
-    reachSection.appendChild(showReachBtn);
-    reachSection.appendChild(reachMatrixDiv);
+    reachSection.appendChild(showReachStatsBtn);
+    reachSection.appendChild(reachStatsDiv);
+    
+    // Full matrix (only for small graphs)
+    if (graph.nodes.length <= 50) {
+        const showReachMatrixBtn = document.createElement('button');
+        showReachMatrixBtn.textContent = 'Zobrazit celou matici';
+        showReachMatrixBtn.style.marginTop = '0.5rem';
+        const reachMatrixDiv = document.createElement('div');
+        reachMatrixDiv.className = 'matrix';
+        reachMatrixDiv.style.display = 'none';
+        
+        showReachMatrixBtn.addEventListener('click', () => {
+            if (reachMatrixDiv.style.display === 'none') {
+                const reachMat = graph.reachability();
+                reachMatrixDiv.innerHTML = '';
+                reachMatrixDiv.appendChild(createMatrixTable(reachMat, graph.nodes, graph.nodes));
+                reachMatrixDiv.style.display = 'block';
+                showReachMatrixBtn.textContent = 'Skrýt matici';
+            } else {
+                reachMatrixDiv.style.display = 'none';
+                showReachMatrixBtn.textContent = 'Zobrazit celou matici';
+            }
+        });
+        
+        reachSection.appendChild(showReachMatrixBtn);
+        reachSection.appendChild(reachMatrixDiv);
+    } else {
+        const warningDiv = document.createElement('div');
+        warningDiv.style.marginTop = '1rem';
+        warningDiv.style.padding = '0.75rem';
+        warningDiv.style.backgroundColor = '#fff3cd';
+        warningDiv.style.borderRadius = '0.25rem';
+        warningDiv.style.border = '1px solid #ffc107';
+        warningDiv.innerHTML = `
+            <strong>ℹ️ Poznámka:</strong> Graf má ${graph.nodes.length} uzlů - matice ${graph.nodes.length}×${graph.nodes.length} by byla nepřehledná. 
+            Použijte dotaz nebo statistiky výše.
+        `;
+        reachSection.appendChild(warningDiv);
+    }
+    
     output.appendChild(reachSection);
 
     // BFS Layers
@@ -2411,6 +2703,26 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const lenSection = document.createElement('div');
     lenSection.className = 'section';
     lenSection.innerHTML = '<h2>Matice délek</h2>';
+    
+    // Přidej vysvětlivku
+    const lenLegendDiv = document.createElement('div');
+    lenLegendDiv.style.backgroundColor = '#e7f3ff';
+    lenLegendDiv.style.padding = '0.75rem';
+    lenLegendDiv.style.borderRadius = '0.25rem';
+    lenLegendDiv.style.marginBottom = '1rem';
+    lenLegendDiv.style.border = '1px solid #0d6efd';
+    lenLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení - Matice délek:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Co to je:</strong> L[i,j] udává váhu/délku nejkratší hrany z uzlu i do j<br>
+            • <strong>Přímé spojení:</strong> Pokud existuje hrana i→j, L[i,j] = váha této hrany<br>
+            • <strong>Žádné spojení:</strong> L[i,j] = ∞ (není přímá hrana)<br>
+            • <strong>Diagonála:</strong> L[i,i] = 0 (vzdálenost uzlu k sobě samému)<br>
+            • <strong>Poznámka:</strong> Toto NENÍ matice nejkratších cest (pouze přímých hran)
+        </div>
+    `;
+    lenSection.appendChild(lenLegendDiv);
+    
     lenSection.appendChild(createQuerySection('Dotaz na hodnotu', 'length'));
     
     const showLenBtn = document.createElement('button');
@@ -2557,6 +2869,32 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const propSection = document.createElement('div');
     propSection.className = 'section';
     propSection.innerHTML = '<h2>Vlastnosti grafu</h2>';
+    
+    // ⚡ Přidej vysvětlivky pro uživatele
+    const legendDiv = document.createElement('div');
+    legendDiv.style.backgroundColor = '#fff3cd';
+    legendDiv.style.padding = '1rem';
+    legendDiv.style.borderRadius = '0.25rem';
+    legendDiv.style.marginBottom = '1rem';
+    legendDiv.style.border = '1px solid #ffc107';
+    legendDiv.innerHTML = `
+        <strong>📖 Vysvětlení pojmů:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.8;">
+            <strong>Ohodnocený:</strong> Graf má přiřazené číselné hodnoty (váhy) na hranách nebo uzlech<br>
+            <strong>Orientovaný:</strong> Hrany mají směr (šipky), neorientovaný = obousměrné hrany<br>
+            <strong>Souvislý:</strong> Z každého uzlu lze dostat do každého jiného uzlu<br>
+            <strong>Silně souvislý:</strong> (Orientovaný graf) Z každého uzlu lze dostat do každého po orientovaných hranách<br>
+            <strong>Slabě souvislý:</strong> (Orientovaný graf) Související, pokud ignorujeme orientaci hran<br>
+            <strong>Prostý:</strong> Mezi dvěma uzly existuje max. 1 hrana (žádné násobné hrany)<br>
+            <strong>Jednoduchý:</strong> Prostý graf bez smyček (hrana z uzlu do sebe sama)<br>
+            <strong>Úplný:</strong> Každý uzel je spojen s každým jiným uzlem<br>
+            <strong>Regulární:</strong> Všechny uzly mají stejný stupeň (počet incidentních hran)<br>
+            <strong>Bipartitní:</strong> Uzly lze rozdělit do 2 skupin, hrany jen mezi skupinami<br>
+            <strong>Rovinný:</strong> Graf lze nakreslit v rovině bez křížení hran
+        </div>
+    `;
+    propSection.appendChild(legendDiv);
+    
     const propDiv = document.createElement('div');
     propDiv.className = 'properties';
     const addProp = (name, value) => {

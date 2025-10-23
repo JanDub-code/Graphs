@@ -1,0 +1,121 @@
+// Testovací graf: 7 komponent, 50 uzlů
+// Komponenta 1: Hustá síť (15 uzlů) - největší komponenta
+u A1;
+u A2;
+u A3;
+u A4;
+u A5;
+u A6;
+u A7;
+u A8;
+u A9;
+u A10;
+u A11;
+u A12;
+u A13;
+u A14;
+u A15;
+h A1 - A2 1;
+h A1 - A3 1;
+h A2 - A3 1;
+h A2 - A4 1;
+h A3 - A5 1;
+h A4 - A5 1;
+h A4 - A6 1;
+h A5 - A6 1;
+h A5 - A7 1;
+h A6 - A8 1;
+h A7 - A8 1;
+h A7 - A9 1;
+h A8 - A9 1;
+h A9 - A10 1;
+h A10 - A11 1;
+h A11 - A12 1;
+h A12 - A13 1;
+h A13 - A14 1;
+h A14 - A15 1;
+h A15 - A1 1;
+
+// Komponenta 2: Řetěz (10 uzlů)
+u B1;
+u B2;
+u B3;
+u B4;
+u B5;
+u B6;
+u B7;
+u B8;
+u B9;
+u B10;
+h B1 - B2 2;
+h B2 - B3 2;
+h B3 - B4 2;
+h B4 - B5 2;
+h B5 - B6 2;
+h B6 - B7 2;
+h B7 - B8 2;
+h B8 - B9 2;
+h B9 - B10 2;
+
+// Komponenta 3: Hvězda (8 uzlů)
+u C1;
+u C2;
+u C3;
+u C4;
+u C5;
+u C6;
+u C7;
+u C8;
+h C1 - C2 3;
+h C1 - C3 3;
+h C1 - C4 3;
+h C1 - C5 3;
+h C1 - C6 3;
+h C1 - C7 3;
+h C1 - C8 3;
+
+// Komponenta 4: Kompletní graf K5 (5 uzlů)
+u D1;
+u D2;
+u D3;
+u D4;
+u D5;
+h D1 - D2 4;
+h D1 - D3 4;
+h D1 - D4 4;
+h D1 - D5 4;
+h D2 - D3 4;
+h D2 - D4 4;
+h D2 - D5 4;
+h D3 - D4 4;
+h D3 - D5 4;
+h D4 - D5 4;
+
+// Komponenta 5: Trojúhelník (3 uzly)
+u E1;
+u E2;
+u E3;
+h E1 - E2 5;
+h E2 - E3 5;
+h E3 - E1 5;
+
+// Komponenta 6: Dvojice (2 uzly)
+u F1;
+u F2;
+h F1 - F2 6;
+
+// Komponenta 7: Orientovaný cyklus (7 uzlů)
+u G1;
+u G2;
+u G3;
+u G4;
+u G5;
+u G6;
+u G7;
+h G1 > G2 7;
+h G2 > G3 7;
+h G3 > G4 7;
+h G4 > G5 7;
+h G5 > G6 7;
+h G6 > G7 7;
+h G7 > G1 7;
