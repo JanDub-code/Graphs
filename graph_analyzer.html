@@ -1493,6 +1493,39 @@ class Graph {
             distribution: this._degreeDistribution(degreeValues)
         };
         
+        // ⚡ NOVÉ: Pro orientované grafy přidej IN/OUT stupně
+        const props = this.properties();
+        if (props.oriented === 'orientovaný') {
+            const inDegrees = {};
+            const outDegrees = {};
+            this.nodes.forEach(id => { inDegrees[id] = 0; outDegrees[id] = 0; });
+            
+            for (const e of this.edges) {
+                if (e.direction === '>') {
+                    outDegrees[e.u]++;
+                    inDegrees[e.v]++;
+                } else if (e.direction === '<') {
+                    inDegrees[e.u]++;
+                    outDegrees[e.v]++;
+                }
+            }
+            
+            const inValues = Object.values(inDegrees);
+            const outValues = Object.values(outDegrees);
+            
+            stats.inDegrees = {
+                min: Math.min(...inValues),
+                max: Math.max(...inValues),
+                avg: inValues.reduce((a, b) => a + b, 0) / n
+            };
+            
+            stats.outDegrees = {
+                min: Math.min(...outValues),
+                max: Math.max(...outValues),
+                avg: outValues.reduce((a, b) => a + b, 0) / n
+            };
+        }
+        
         // Izolované uzly (stupeň 0)
         stats.isolatedNodes = this.nodes.filter(id => degrees[id] === 0);
         
@@ -1759,6 +1792,19 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             // 🎯 Stupně uzlů
             const degDistKeys = Object.keys(stats.degrees.distribution).map(Number).sort((a, b) => a - b);
             const degDistStr = degDistKeys.slice(0, 10).map(deg => `${deg}: ${stats.degrees.distribution[deg]}×`).join(', ');
+            
+            // ⚡ NOVÉ: Pro orientované grafy zobraz IN/OUT stupně
+            let degreeDetailsHTML = '';
+            if (stats.inDegrees && stats.outDegrees) {
+                degreeDetailsHTML = `
+                    <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #dee2e6;">
+                    <strong style="color: #0d6efd;">IN-degree:</strong><br>
+                    <span style="margin-left: 1rem;">Min: ${stats.inDegrees.min} | Max: ${stats.inDegrees.max} | Ø ${stats.inDegrees.avg.toFixed(2)}</span><br>
+                    <strong style="color: #dc3545;">OUT-degree:</strong><br>
+                    <span style="margin-left: 1rem;">Min: ${stats.outDegrees.min} | Max: ${stats.outDegrees.max} | Ø ${stats.outDegrees.avg.toFixed(2)}</span>
+                `;
+            }
+            
             html += `
                 <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #198754;">
                     <h3 style="margin-top: 0; color: #198754;">🎯 Stupně uzlů</h3>
@@ -1767,6 +1813,8 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                         <strong>Max:</strong> ${stats.degrees.max}<br>
                         <strong>Průměr:</strong> ${stats.degrees.avg.toFixed(2)}<br>
                         <strong>Medián:</strong> ${stats.degrees.median}<br>
+                        ${degreeDetailsHTML}
+                        <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid #dee2e6;">
                         <strong>Distribuce:</strong><br>
                         <span style="font-size: 0.9rem; color: #666;">${degDistStr}${degDistKeys.length > 10 ? '...' : ''}</span>
                     </div>
@@ -1998,11 +2046,39 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const nodeList = document.createElement('ul');
     nodeList.style.listStyle = 'none';
     nodeList.style.padding = '0';
+    
+    // ⚡ VYLEPŠENÍ: Pro orientované grafy zobraz IN/OUT stupně
+    const showDirectedDegrees = props.oriented === 'orientovaný';
+    
     graph.nodes.forEach(id => {
         const li = document.createElement('li');
         const w = graph.nodeWeights[id];
         const deg = degrees[id];
-        li.innerHTML = `<strong>Uzel ${id}</strong>${w !== null && w !== undefined ? ` (hodnota: ${w})` : ''}<span class="degree-info">stupeň: ${deg}</span>`;
+        
+        let degreeInfo = '';
+        if (showDirectedDegrees) {
+            // Pro orientované: spočítej in/out degree
+            let inDegree = 0;
+            let outDegree = 0;
+            for (const e of graph.edges) {
+                if (e.direction === '>' && e.u === id) outDegree++;
+                else if (e.direction === '>' && e.v === id) inDegree++;
+                else if (e.direction === '<' && e.u === id) inDegree++;
+                else if (e.direction === '<' && e.v === id) outDegree++;
+                else if (e.direction === '-') {
+                    // Neorientované hrany v mixed grafu
+                    if (e.u === id || e.v === id) {
+                        if (e.u === e.v) { inDegree++; outDegree++; } // Smyčka
+                        else { inDegree++; outDegree++; }
+                    }
+                }
+            }
+            degreeInfo = `<span class="degree-info">in: ${inDegree} | out: ${outDegree} | celkem: ${deg}</span>`;
+        } else {
+            degreeInfo = `<span class="degree-info">stupeň: ${deg}</span>`;
+        }
+        
+        li.innerHTML = `<strong>Uzel ${id}</strong>${w !== null && w !== undefined ? ` (hodnota: ${w})` : ''}${degreeInfo}`;
         nodeList.appendChild(li);
     });
     nodeListDiv.appendChild(nodeList);
