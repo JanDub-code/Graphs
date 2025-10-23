@@ -197,8 +197,8 @@ class Graph {
         this.edges = this.edges.filter(e => this.nodes.includes(e.u) && this.nodes.includes(e.v));
     }
 
-    adjacencyMatrix() {
-        if (this._cachedAdjMatrix) return this._cachedAdjMatrix;
+    adjacencyMatrix(binary = false) {
+        if (!binary && this._cachedAdjMatrix) return this._cachedAdjMatrix;
         
         const n = this.nodes.length;
         const idx = {};
@@ -217,7 +217,17 @@ class Graph {
                 mat[j][i] += 1;
             }
         }
-        this._cachedAdjMatrix = mat;
+        
+        if (binary) {
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    mat[i][j] = mat[i][j] > 0 ? 1 : 0;
+                }
+            }
+        } else {
+            this._cachedAdjMatrix = mat;
+        }
+        
         return mat;
     }
 
@@ -419,7 +429,214 @@ class Graph {
         return count;
     }
 
-    incidenceMatrix() {
+    // Reachability matrix (transitive closure)
+    reachability() {
+        const A = this.adjacencyMatrix();
+        const n = A.length;
+        const R = A.map(row => row.map(v => v > 0 ? 1 : 0));
+        
+        // Floyd-Warshall on binary matrix
+        for (let k = 0; k < n; k++) {
+            for (let i = 0; i < n; i++) {
+                if (R[i][k] === 1) {
+                    for (let j = 0; j < n; j++) {
+                        if (R[k][j] === 1) R[i][j] = 1;
+                    }
+                }
+            }
+        }
+        return R;
+    }
+
+    // BFS Layers from start node
+    bfsLayers(startNode) {
+        const idx = this.nodes.indexOf(startNode);
+        if (idx === -1) return {};
+        
+        const n = this.nodes.length;
+        const adjList = Array.from({ length: n }, () => []);
+        
+        // Build adjacency list
+        for (const e of this.edges) {
+            const i = this.nodes.indexOf(e.u);
+            const j = this.nodes.indexOf(e.v);
+            if (e.direction === '>') {
+                adjList[i].push(j);
+            } else if (e.direction === '<') {
+                adjList[j].push(i);
+            } else {
+                adjList[i].push(j);
+                adjList[j].push(i);
+            }
+        }
+        
+        const layers = { 0: [startNode] };
+        const seen = new Set([idx]);
+        let frontier = [idx];
+        let k = 0;
+        
+        while (frontier.length) {
+            const next = [];
+            for (const u of frontier) {
+                for (const v of adjList[u]) {
+                    if (!seen.has(v)) {
+                        seen.add(v);
+                        next.push(v);
+                    }
+                }
+            }
+            if (!next.length) break;
+            k++;
+            layers[k] = next.map(i => this.nodes[i]).sort();
+            frontier = next;
+        }
+        return layers;
+    }
+
+    // All shortest paths (unweighted BFS)
+    allShortestPathsUnweighted(src, dst) {
+        const srcIdx = this.nodes.indexOf(src);
+        const dstIdx = this.nodes.indexOf(dst);
+        if (srcIdx === -1 || dstIdx === -1) return [];
+        
+        const n = this.nodes.length;
+        const adjList = Array.from({ length: n }, () => []);
+        
+        // Build adjacency list (outgoing edges)
+        for (const e of this.edges) {
+            const i = this.nodes.indexOf(e.u);
+            const j = this.nodes.indexOf(e.v);
+            if (e.direction === '>') {
+                adjList[i].push(j);
+            } else if (e.direction === '<') {
+                adjList[j].push(i);
+            } else {
+                adjList[i].push(j);
+                adjList[j].push(i);
+            }
+        }
+        
+        const dist = Array(n).fill(Infinity);
+        dist[srcIdx] = 0;
+        const parents = Array.from({ length: n }, () => []);
+        const queue = [srcIdx];
+        
+        while (queue.length) {
+            const u = queue.shift();
+            for (const v of adjList[u]) {
+                if (dist[v] === Infinity) {
+                    dist[v] = dist[u] + 1;
+                    parents[v].push(u);
+                    queue.push(v);
+                } else if (dist[v] === dist[u] + 1) {
+                    parents[v].push(u);
+                }
+            }
+        }
+        
+        if (dist[dstIdx] === Infinity) return [];
+        
+        // Reconstruct all paths
+        const paths = [];
+        const stack = [dstIdx];
+        
+        const reconstruct = (v) => {
+            if (v === srcIdx) {
+                paths.push(stack.slice().reverse().map(i => this.nodes[i]));
+                return;
+            }
+            for (const p of parents[v]) {
+                stack.push(p);
+                reconstruct(p);
+                stack.pop();
+            }
+        };
+        
+        reconstruct(dstIdx);
+        return paths;
+    }
+
+    // Simple paths up to length K (no repeated nodes)
+    simplePathsUpTo(srcNode, dstNode, K = null, cap = 10000) {
+        const srcIdx = this.nodes.indexOf(srcNode);
+        const dstIdx = this.nodes.indexOf(dstNode);
+        if (srcIdx === -1 || dstIdx === -1) return { count: 0, paths: [] };
+        
+        const n = this.nodes.length;
+        const adjList = Array.from({ length: n }, () => []);
+        
+        // Build adjacency list
+        for (const e of this.edges) {
+            const i = this.nodes.indexOf(e.u);
+            const j = this.nodes.indexOf(e.v);
+            if (e.direction === '>') {
+                adjList[i].push(j);
+            } else if (e.direction === '<') {
+                adjList[j].push(i);
+            } else {
+                adjList[i].push(j);
+                adjList[j].push(i);
+            }
+        }
+        
+        const maxLen = (K === null) ? (n - 1) : K;
+        const paths = [];
+        let count = 0;
+        const visited = new Set();
+        
+        const dfs = (u, depth, acc) => {
+            if (count >= cap) return;
+            if (u === dstIdx) {
+                paths.push(acc.map(i => this.nodes[i]));
+                count++;
+                return;
+            }
+            if (depth === 0) return;
+            
+            for (const w of adjList[u]) {
+                if (visited.has(w)) continue;
+                visited.add(w);
+                acc.push(w);
+                dfs(w, depth - 1, acc);
+                acc.pop();
+                visited.delete(w);
+            }
+        };
+        
+        visited.add(srcIdx);
+        dfs(srcIdx, maxLen, [srcIdx]);
+        visited.delete(srcIdx);
+        
+        return { count, paths };
+    }
+
+    // Neighbor sets by direction
+    neighborSets(nodeU) {
+        const out = new Set();
+        const inn = new Set();
+        const und = new Set();
+        
+        for (const e of this.edges) {
+            if (e.direction === '>') {
+                if (e.u === nodeU) out.add(e.v);
+                if (e.v === nodeU) inn.add(e.u);
+            } else if (e.direction === '<') {
+                if (e.v === nodeU) out.add(e.u);
+                if (e.u === nodeU) inn.add(e.v);
+            } else {
+                if (e.u === nodeU) und.add(e.v);
+                if (e.v === nodeU) und.add(e.u);
+            }
+        }
+        
+        return {
+            out: [...out].sort(),
+            inn: [...inn].sort(),
+            und: [...und].sort()
+        };
+    }
+
+    incidenceMatrix(signed = true) {
         const n = this.nodes.length;
         const m = this.edges.length;
         const idx = {};
@@ -430,11 +647,21 @@ class Graph {
             const i = idx[e.u];
             const j = idx[e.v];
             if (e.direction === '>') {
-                inc[i][ci] = -1;
-                inc[j][ci] = 1;
+                if (signed) {
+                    inc[i][ci] = -1;
+                    inc[j][ci] = 1;
+                } else {
+                    inc[i][ci] = 1;
+                    inc[j][ci] = 1;
+                }
             } else if (e.direction === '<') {
-                inc[j][ci] = 1;
-                inc[i][ci] = -1;
+                if (signed) {
+                    inc[j][ci] = 1;
+                    inc[i][ci] = -1;
+                } else {
+                    inc[i][ci] = 1;
+                    inc[j][ci] = 1;
+                }
             } else {
                 inc[i][ci] = 1;
                 inc[j][ci] = 1;
@@ -1241,10 +1468,30 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     listSection.appendChild(edgeListDiv);
     output.appendChild(listSection);
 
-    // Adjacency matrix with query
+    // Adjacency matrix with query and binary/count toggle
     const adjSection = document.createElement('div');
     adjSection.className = 'section';
     adjSection.innerHTML = '<h2>Matice sousednosti</h2>';
+    
+    const adjLegendDiv = document.createElement('div');
+    adjLegendDiv.style.backgroundColor = '#e7f3ff';
+    adjLegendDiv.style.padding = '0.75rem';
+    adjLegendDiv.style.borderRadius = '0.25rem';
+    adjLegendDiv.style.marginBottom = '1rem';
+    adjLegendDiv.style.border = '1px solid #0d6efd';
+    adjLegendDiv.innerHTML = `
+        <strong>📊 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• <strong>Počtová verze:</strong> v buňce (i,j) je počet hran z uzlu i do j (zobrazuje multiplicitu)</span><br>
+        <span style="margin-left: 1rem;">• <strong>Binární verze:</strong> hodnota 1 existuje-li alespoň jedna hrana i→j, jinak 0</span><br>
+        <span style="margin-left: 1rem;">• U neorientovaných hran se zapisuje do obou směrů</span>
+    `;
+    adjSection.appendChild(adjLegendDiv);
+    
+    const adjToggleDiv = document.createElement('div');
+    adjToggleDiv.style.marginBottom = '1rem';
+    adjToggleDiv.innerHTML = '<label><input type="checkbox" id="adjBinary" /> Binární verze (0/1)</label>';
+    adjSection.appendChild(adjToggleDiv);
+    
     adjSection.appendChild(createQuerySection('Dotaz na hodnotu', 'adjacency'));
     
     const showAdjBtn = document.createElement('button');
@@ -1261,7 +1508,8 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     showAdjBtn.addEventListener('click', () => {
         if (adjMatrixDiv.style.display === 'none') {
-            const adjMat = graph.adjacencyMatrix();
+            const binary = document.getElementById('adjBinary').checked;
+            const adjMat = graph.adjacencyMatrix(binary);
             adjMatrixDiv.innerHTML = '';
             adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
             
@@ -1283,6 +1531,25 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             showAdjBtn.textContent = 'Zobrazit celou matici';
         }
     });
+    
+    // Re-render on checkbox change
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'adjBinary' && adjMatrixDiv.style.display === 'block') {
+            const binary = e.target.checked;
+            const adjMat = graph.adjacencyMatrix(binary);
+            adjMatrixDiv.innerHTML = '';
+            adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
+            
+            const { colStats, totalZeros, totalOnes } = countBinaryMatrix(adjMat);
+            adjStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Celková statistika hodnot 0 a 1:</h4>';
+            adjStatsDiv.innerHTML += `<div style="display: flex; gap: 2rem; margin-top: 0.5rem;">`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #0b5ed7; font-weight: bold;">Počet 1:</span> ${totalOnes}×</div>`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #dc3545; font-weight: bold;">Počet 0:</span> ${totalZeros}×</div>`;
+            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="font-weight: bold;">Celkem:</span> ${totalOnes + totalZeros}</div>`;
+            adjStatsDiv.innerHTML += `</div>`;
+        }
+    });
+    
     adjSection.appendChild(showAdjBtn);
     adjSection.appendChild(adjMatrixDiv);
     adjSection.appendChild(adjStatsDiv);
@@ -1614,18 +1881,40 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     sumWalksSection.appendChild(sumWalksDiv);
     output.appendChild(sumWalksSection);
 
-    // Incidence matrix
+    // Incidence matrix with signed/unsigned toggle
     const incSection = document.createElement('div');
     incSection.className = 'section';
     incSection.innerHTML = '<h2>Matice incidence</h2>';
+    
+    const incLegendDiv = document.createElement('div');
+    incLegendDiv.style.backgroundColor = '#e7f3ff';
+    incLegendDiv.style.padding = '0.75rem';
+    incLegendDiv.style.borderRadius = '0.25rem';
+    incLegendDiv.style.marginBottom = '1rem';
+    incLegendDiv.style.border = '1px solid #0d6efd';
+    incLegendDiv.innerHTML = `
+        <strong>📖 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• <strong>Podepsaná</strong> varianta: u orientované hrany dává -1 do ocasu a +1 do hlavy; u neorientované 1/1</span><br>
+        <span style="margin-left: 1rem;">• <strong>Nepodepsaná</strong> varianta: má v příslušných uzlech u hrany hodnotu 1 (nezávisle na směru)</span><br>
+        <span style="margin-left: 1rem;">• Popisuje vztah uzel–hrana (které hrany jsou incidentní s kterými uzly)</span>
+    `;
+    incSection.appendChild(incLegendDiv);
+    
+    const incToggleDiv = document.createElement('div');
+    incToggleDiv.style.marginBottom = '1rem';
+    incToggleDiv.innerHTML = '<label><input type="checkbox" id="incSigned" checked /> Podepsaná (signed)</label>';
+    incSection.appendChild(incToggleDiv);
+    
     const showIncBtn = document.createElement('button');
     showIncBtn.textContent = 'Zobrazit matici';
     const incMatrixDiv = document.createElement('div');
     incMatrixDiv.className = 'matrix';
     incMatrixDiv.style.display = 'none';
+    
     showIncBtn.addEventListener('click', () => {
         if (incMatrixDiv.style.display === 'none') {
-            const incMat = graph.incidenceMatrix();
+            const signed = document.getElementById('incSigned').checked;
+            const incMat = graph.incidenceMatrix(signed);
             const colLabels = graph.edges.map(e => e.label ? e.label : `${e.u}${e.direction}${e.v}`);
             incMatrixDiv.innerHTML = '';
             incMatrixDiv.appendChild(createMatrixTable(incMat, graph.nodes, colLabels));
@@ -1636,9 +1925,328 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             showIncBtn.textContent = 'Zobrazit matici';
         }
     });
+    
+    // Re-render on checkbox change
+    document.addEventListener('change', (e) => {
+        if (e.target && e.target.id === 'incSigned' && incMatrixDiv.style.display === 'block') {
+            const signed = e.target.checked;
+            const incMat = graph.incidenceMatrix(signed);
+            const colLabels = graph.edges.map(e => e.label ? e.label : `${e.u}${e.direction}${e.v}`);
+            incMatrixDiv.innerHTML = '';
+            incMatrixDiv.appendChild(createMatrixTable(incMat, graph.nodes, colLabels));
+        }
+    });
+    
     incSection.appendChild(showIncBtn);
     incSection.appendChild(incMatrixDiv);
     output.appendChild(incSection);
+
+    // Reachability matrix (transitive closure)
+    const reachSection = document.createElement('div');
+    reachSection.className = 'section';
+    reachSection.innerHTML = '<h2>Dosažitelnost (transitivní uzávěr)</h2>';
+    
+    const reachLegendDiv = document.createElement('div');
+    reachLegendDiv.style.backgroundColor = '#e7f3ff';
+    reachLegendDiv.style.padding = '0.75rem';
+    reachLegendDiv.style.borderRadius = '0.25rem';
+    reachLegendDiv.style.marginBottom = '1rem';
+    reachLegendDiv.style.border = '1px solid #0d6efd';
+    reachLegendDiv.innerHTML = `
+        <strong>🔄 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• Uzávěr dosažitelnosti na binární matici sousednosti</span><br>
+        <span style="margin-left: 1rem;">• Hodnota 1 znamená, že existuje cesta z uzlu i do uzlu j libovolné délky</span><br>
+        <span style="margin-left: 1rem;">• Hodnota 0 znamená, že uzel j není dosažitelný z uzlu i</span><br>
+        <span style="margin-left: 1rem;">• Vypočteno pomocí Floyd-Warshall algoritmu na binární matici</span>
+    `;
+    reachSection.appendChild(reachLegendDiv);
+    
+    const showReachBtn = document.createElement('button');
+    showReachBtn.textContent = 'Zobrazit matici dosažitelnosti';
+    const reachMatrixDiv = document.createElement('div');
+    reachMatrixDiv.className = 'matrix';
+    reachMatrixDiv.style.display = 'none';
+    
+    showReachBtn.addEventListener('click', () => {
+        if (reachMatrixDiv.style.display === 'none') {
+            const reachMat = graph.reachability();
+            reachMatrixDiv.innerHTML = '';
+            reachMatrixDiv.appendChild(createMatrixTable(reachMat, graph.nodes, graph.nodes));
+            reachMatrixDiv.style.display = 'block';
+            showReachBtn.textContent = 'Skrýt matici';
+        } else {
+            reachMatrixDiv.style.display = 'none';
+            showReachBtn.textContent = 'Zobrazit matici dosažitelnosti';
+        }
+    });
+    
+    reachSection.appendChild(showReachBtn);
+    reachSection.appendChild(reachMatrixDiv);
+    output.appendChild(reachSection);
+
+    // BFS Layers
+    const bfsSection = document.createElement('div');
+    bfsSection.className = 'section';
+    bfsSection.innerHTML = '<h2>BFS Vrstvy (Breadth-First Search Layers)</h2>';
+    
+    const bfsLegendDiv = document.createElement('div');
+    bfsLegendDiv.style.backgroundColor = '#e7f3ff';
+    bfsLegendDiv.style.padding = '0.75rem';
+    bfsLegendDiv.style.borderRadius = '0.25rem';
+    bfsLegendDiv.style.marginBottom = '1rem';
+    bfsLegendDiv.style.border = '1px solid #0d6efd';
+    bfsLegendDiv.innerHTML = `
+        <strong>🌊 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• Uzly rozložené do vrstev podle vzdálenosti od startovního uzlu</span><br>
+        <span style="margin-left: 1rem;">• Vrstva 0: startovní uzel</span><br>
+        <span style="margin-left: 1rem;">• Vrstva k: uzly dostupné v k krocích ze startu</span><br>
+        <span style="margin-left: 1rem;">• Užitečné pro vizualizaci šíření informace v grafu</span>
+    `;
+    bfsSection.appendChild(bfsLegendDiv);
+    
+    const bfsControlDiv = document.createElement('div');
+    bfsControlDiv.style.marginBottom = '1rem';
+    bfsControlDiv.innerHTML = '<label>Startovní uzel: <select id="bfsStart"></select></label> <button id="bfsBtn" class="btn" style="margin-left: 0.5rem;">Spočítat vrstvy</button>';
+    bfsSection.appendChild(bfsControlDiv);
+    
+    const bfsStartSelect = document.createElement('select');
+    bfsStartSelect.id = 'bfsStartSelect';
+    graph.nodes.forEach(node => {
+        const opt = document.createElement('option');
+        opt.value = node;
+        opt.textContent = node;
+        bfsStartSelect.appendChild(opt);
+    });
+    bfsControlDiv.querySelector('label').appendChild(bfsStartSelect);
+    
+    const bfsResultDiv = document.createElement('div');
+    bfsResultDiv.className = 'scroll';
+    bfsResultDiv.style.display = 'none';
+    bfsSection.appendChild(bfsResultDiv);
+    
+    bfsControlDiv.querySelector('#bfsBtn').addEventListener('click', () => {
+        const start = bfsStartSelect.value;
+        const layers = graph.bfsLayers(start);
+        let html = '<h4>Vrstvy uzlů:</h4>';
+        for (const [k, nodes] of Object.entries(layers)) {
+            html += `<div style="margin: 0.5rem 0;"><strong>Vrstva ${k}:</strong> ${nodes.join(', ')}</div>`;
+        }
+        bfsResultDiv.innerHTML = html;
+        bfsResultDiv.style.display = 'block';
+    });
+    
+    output.appendChild(bfsSection);
+
+    // All shortest paths (unweighted)
+    const allPathsSection = document.createElement('div');
+    allPathsSection.className = 'section';
+    allPathsSection.innerHTML = '<h2>Všechny nejkratší cesty (neohodnocené)</h2>';
+    
+    const allPathsLegendDiv = document.createElement('div');
+    allPathsLegendDiv.style.backgroundColor = '#e7f3ff';
+    allPathsLegendDiv.style.padding = '0.75rem';
+    allPathsLegendDiv.style.borderRadius = '0.25rem';
+    allPathsLegendDiv.style.marginBottom = '1rem';
+    allPathsLegendDiv.style.border = '1px solid #0d6efd';
+    allPathsLegendDiv.innerHTML = `
+        <strong>🛤️ Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• Najde VŠECHNY stejně krátké cesty mezi U a V při délce hrany = 1</span><br>
+        <span style="margin-left: 1rem;">• Používá BFS (Breadth-First Search) pro neohodnocený graf</span><br>
+        <span style="margin-left: 1rem;">• Zobrazí maximálně prvních 200 cest</span><br>
+        <span style="margin-left: 1rem;">• Při velkých grafech může být výsledků hodně</span>
+    `;
+    allPathsSection.appendChild(allPathsLegendDiv);
+    
+    const allPathsControlDiv = document.createElement('div');
+    allPathsControlDiv.className = 'query-inputs';
+    
+    const selectAllU = document.createElement('select');
+    const selectAllV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectAllU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectAllV.appendChild(opt2);
+    });
+    
+    const allPathsBtn = document.createElement('button');
+    allPathsBtn.textContent = 'Najít všechny cesty';
+    
+    allPathsControlDiv.innerHTML = '<span>Od uzlu: </span>';
+    allPathsControlDiv.appendChild(selectAllU);
+    const labelAllV = document.createElement('span');
+    labelAllV.textContent = ' Do uzlu: ';
+    allPathsControlDiv.appendChild(labelAllV);
+    allPathsControlDiv.appendChild(selectAllV);
+    allPathsControlDiv.appendChild(allPathsBtn);
+    
+    allPathsSection.appendChild(allPathsControlDiv);
+    
+    const allPathsResultDiv = document.createElement('div');
+    allPathsResultDiv.className = 'scroll';
+    allPathsResultDiv.style.display = 'none';
+    allPathsSection.appendChild(allPathsResultDiv);
+    
+    allPathsBtn.addEventListener('click', () => {
+        const u = selectAllU.value;
+        const v = selectAllV.value;
+        const paths = graph.allShortestPathsUnweighted(u, v);
+        
+        if (paths.length === 0) {
+            allPathsResultDiv.textContent = 'Nenalezena žádná cesta.';
+        } else {
+            let html = `<div style="margin-bottom: 1rem; font-weight: bold; color: #0d6efd;">Počet nejkratších cest: ${paths.length}</div>`;
+            html += paths.slice(0, 200).map((p, i) => `${i + 1}) ${p.join(' → ')}`).join('<br/>');
+            if (paths.length > 200) html += '<br/>… další nezobrazeny (limit 200)';
+            allPathsResultDiv.innerHTML = html;
+        }
+        allPathsResultDiv.style.display = 'block';
+    });
+    
+    output.appendChild(allPathsSection);
+
+    // Simple paths up to K
+    const simplePathsSection = document.createElement('div');
+    simplePathsSection.className = 'section';
+    simplePathsSection.innerHTML = '<h2>Jednoduché cesty U→V do délky K</h2>';
+    
+    const simplePathsLegendDiv = document.createElement('div');
+    simplePathsLegendDiv.style.backgroundColor = '#e7f3ff';
+    simplePathsLegendDiv.style.padding = '0.75rem';
+    simplePathsLegendDiv.style.borderRadius = '0.25rem';
+    simplePathsLegendDiv.style.marginBottom = '1rem';
+    simplePathsLegendDiv.style.border = '1px solid #0d6efd';
+    simplePathsLegendDiv.innerHTML = `
+        <strong>🎯 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• Jednoduchá cesta neprochází žádný uzel vícekrát</span><br>
+        <span style="margin-left: 1rem;">• Hledá cesty s maximálně K hranami</span><br>
+        <span style="margin-left: 1rem;">• Pokud K není zadáno, hledá do délky |V|-1</span><br>
+        <span style="margin-left: 1rem;">• Limit 10,000 výsledků kvůli výkonu (zobrazí se max 200)</span>
+    `;
+    simplePathsSection.appendChild(simplePathsLegendDiv);
+    
+    const simplePathsControlDiv = document.createElement('div');
+    simplePathsControlDiv.className = 'query-inputs';
+    
+    const selectSimpleU = document.createElement('select');
+    const selectSimpleV = document.createElement('select');
+    graph.nodes.forEach(node => {
+        const opt1 = document.createElement('option');
+        opt1.value = node;
+        opt1.textContent = node;
+        selectSimpleU.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = node;
+        opt2.textContent = node;
+        selectSimpleV.appendChild(opt2);
+    });
+    
+    const simpleKInput = document.createElement('input');
+    simpleKInput.type = 'number';
+    simpleKInput.min = '1';
+    simpleKInput.placeholder = 'K (prázdné = |V|-1)';
+    simpleKInput.style.width = '150px';
+    simpleKInput.style.padding = '0.5rem';
+    simpleKInput.style.border = '1px solid #ced4da';
+    simpleKInput.style.borderRadius = '0.25rem';
+    
+    const simplePathsBtn = document.createElement('button');
+    simplePathsBtn.textContent = 'Najít cesty';
+    
+    simplePathsControlDiv.innerHTML = '<span>Od uzlu: </span>';
+    simplePathsControlDiv.appendChild(selectSimpleU);
+    const labelSimpleV = document.createElement('span');
+    labelSimpleV.textContent = ' Do uzlu: ';
+    simplePathsControlDiv.appendChild(labelSimpleV);
+    simplePathsControlDiv.appendChild(selectSimpleV);
+    const labelSimpleK = document.createElement('span');
+    labelSimpleK.textContent = ' Max délka K: ';
+    simplePathsControlDiv.appendChild(labelSimpleK);
+    simplePathsControlDiv.appendChild(simpleKInput);
+    simplePathsControlDiv.appendChild(simplePathsBtn);
+    
+    simplePathsSection.appendChild(simplePathsControlDiv);
+    
+    const simplePathsResultDiv = document.createElement('div');
+    simplePathsResultDiv.className = 'scroll';
+    simplePathsResultDiv.style.display = 'none';
+    simplePathsSection.appendChild(simplePathsResultDiv);
+    
+    simplePathsBtn.addEventListener('click', () => {
+        const u = selectSimpleU.value;
+        const v = selectSimpleV.value;
+        const K = simpleKInput.value ? parseInt(simpleKInput.value, 10) : null;
+        const result = graph.simplePathsUpTo(u, v, K, 10000);
+        
+        const more = (result.count > result.paths.length) ? ' (zastaveno na limitu 10,000)' : '';
+        let html = `<div style="margin-bottom: 1rem; font-weight: bold; color: #0d6efd;">Počet: ${result.count}${more}</div>`;
+        html += result.paths.slice(0, 200).map((p, i) => `${i + 1}) ${p.join(' → ')}`).join('<br/>');
+        if (result.count > 200) html += '<br/>… další nezobrazeny (limit 200)';
+        
+        simplePathsResultDiv.innerHTML = html;
+        simplePathsResultDiv.style.display = 'block';
+    });
+    
+    output.appendChild(simplePathsSection);
+
+    // Neighbor sets by direction
+    const neighborSection = document.createElement('div');
+    neighborSection.className = 'section';
+    neighborSection.innerHTML = '<h2>Sousedé podle směru</h2>';
+    
+    const neighborLegendDiv = document.createElement('div');
+    neighborLegendDiv.style.backgroundColor = '#e7f3ff';
+    neighborLegendDiv.style.padding = '0.75rem';
+    neighborLegendDiv.style.borderRadius = '0.25rem';
+    neighborLegendDiv.style.marginBottom = '1rem';
+    neighborLegendDiv.style.border = '1px solid #0d6efd';
+    neighborLegendDiv.innerHTML = `
+        <strong>👥 Vysvětlení:</strong><br>
+        <span style="margin-left: 1rem;">• <strong>OUT (odchozí):</strong> uzly, do kterých vede hrana z daného uzlu</span><br>
+        <span style="margin-left: 1rem;">• <strong>IN (příchozí):</strong> uzly, ze kterých vede hrana do daného uzlu</span><br>
+        <span style="margin-left: 1rem;">• <strong>Neorientovaní:</strong> uzly spojené neorientovanou hranou</span>
+    `;
+    neighborSection.appendChild(neighborLegendDiv);
+    
+    const neighborControlDiv = document.createElement('div');
+    neighborControlDiv.style.marginBottom = '1rem';
+    neighborControlDiv.innerHTML = '<label>Uzel: <select id="neighborSelect"></select></label> <button id="neighborBtn" style="margin-left: 0.5rem;">Zobrazit sousedy</button>';
+    neighborSection.appendChild(neighborControlDiv);
+    
+    const neighborSelect = document.createElement('select');
+    neighborSelect.id = 'neighborSelectActual';
+    graph.nodes.forEach(node => {
+        const opt = document.createElement('option');
+        opt.value = node;
+        opt.textContent = node;
+        neighborSelect.appendChild(opt);
+    });
+    neighborControlDiv.querySelector('label').appendChild(neighborSelect);
+    
+    const neighborResultDiv = document.createElement('div');
+    neighborResultDiv.className = 'scroll';
+    neighborResultDiv.style.display = 'none';
+    neighborSection.appendChild(neighborResultDiv);
+    
+    neighborControlDiv.querySelector('#neighborBtn').addEventListener('click', () => {
+        const node = neighborSelect.value;
+        const neighbors = graph.neighborSets(node);
+        let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+        html += `<div style="padding: 0.5rem; background-color: #d1ecf1; border-radius: 0.25rem;"><strong>OUT (odchozí):</strong> ${neighbors.out.join(', ') || '∅'}</div>`;
+        html += `<div style="padding: 0.5rem; background-color: #d4edda; border-radius: 0.25rem;"><strong>IN (příchozí):</strong> ${neighbors.inn.join(', ') || '∅'}</div>`;
+        html += `<div style="padding: 0.5rem; background-color: #fff3cd; border-radius: 0.25rem;"><strong>Neorientovaní:</strong> ${neighbors.und.join(', ') || '∅'}</div>`;
+        html += '</div>';
+        neighborResultDiv.innerHTML = html;
+        neighborResultDiv.style.display = 'block';
+    });
+    
+    output.appendChild(neighborSection);
 
     // Length matrix with query
     const lenSection = document.createElement('div');
