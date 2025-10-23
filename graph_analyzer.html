@@ -362,12 +362,26 @@ class Graph {
         const n = A.length;
         const L = Array.from({ length: n }, () => Array(n).fill(0));
         
+        // ⚡ OPRAVA: Pro orientované grafy použij OUT-degree!
+        const props = this.properties();
+        const isDirected = props.oriented === 'orientovaný';
+        
         // Compute degree for each node
         for (let i = 0; i < n; i++) {
             let degree = 0;
-            for (let j = 0; j < n; j++) {
-                degree += A[i][j];
+            
+            if (isDirected) {
+                // ✅ OUT-degree pro orientované (jen hrany ven)
+                for (let j = 0; j < n; j++) {
+                    degree += A[i][j]; // Součet řádku = out-degree
+                }
+            } else {
+                // ✅ Celkový stupeň pro neorientované
+                for (let j = 0; j < n; j++) {
+                    degree += A[i][j];
+                }
             }
+            
             L[i][i] = degree; // Diagonal: degree
             for (let j = 0; j < n; j++) {
                 if (i !== j) {
@@ -385,12 +399,25 @@ class Graph {
         if (uIdx === -1 || vIdx === -1) return null;
         
         if (uIdx === vIdx) {
-            // Diagonal: degree of node
+            // ⚡ OPRAVA: Diagonal = out-degree pro orientované grafy
+            const props = this.properties();
+            const isDirected = props.oriented === 'orientovaný';
+            
             let degree = 0;
             for (const e of this.edges) {
-                if (e.u === nodeU || e.v === nodeU) {
-                    if (e.u === e.v) degree += 2; // Loop counts twice
-                    else degree += 1;
+                if (isDirected) {
+                    // ✅ Počítej jen hrany VYCHÁZEJÍCÍ z nodeU
+                    if (e.direction === '>' && e.u === nodeU) degree++;
+                    else if (e.direction === '<' && e.v === nodeU) degree++;
+                    // Smyčka v orientovaném grafu
+                    else if (e.direction === '-' && e.u === nodeU && e.v === nodeU) degree += 2;
+                    else if (e.direction === '-' && (e.u === nodeU || e.v === nodeU)) degree++;
+                } else {
+                    // ✅ Pro neorientované počítej všechny dotýkající se hrany
+                    if (e.u === nodeU || e.v === nodeU) {
+                        if (e.u === e.v) degree += 2; // Loop counts twice
+                        else degree += 1;
+                    }
                 }
             }
             return degree;
@@ -1107,6 +1134,12 @@ class Graph {
         props.prosty = !multiEdges;
         props.jednoduchy = !multiEdges && loops === 0;
         
+        // ⚡ NOVÉ: Multigraf (existují násobné hrany)
+        props.multigraph = multiEdges;
+        
+        // ⚡ NOVÉ: Diskrétní graf (žádné hrany)
+        props.discrete = this.edges.length === 0;
+        
         // ⚡ VYLEPŠENÍ 13: Complete graph - využij už existující edgeSet!
         if (n > 50) {
             props.complete = false;
@@ -1413,6 +1446,26 @@ class Graph {
             return true;
         })();
         
+        // ⚡ NOVÉ: Symetrizace (všechny orientované hrany mají i opačnou hranu)
+        props.symmetric = (() => {
+            if (!props.oriented) return true; // Neorientovaný graf je vždy symetrický
+            
+            // Pro orientované grafy: kontrola, že každá hrana má protějšek
+            for (const e of this.edges) {
+                if (e.direction === '-') continue; // Neorientované hrany ignoruj
+                
+                // Hledej opačnou hranu
+                const oppositeExists = this.edges.some(e2 => 
+                    e2.u === e.v && e2.v === e.u && (e2.direction === '<' || e2.direction === '>' || e2.direction === '-')
+                );
+                
+                if (!oppositeExists) {
+                    return false; // Našli jsme hranu bez protějšku
+                }
+            }
+            return true;
+        })();
+        
         // ⚡ Cachuj výsledek pro budoucí volání
         this._cachedProperties = props;
         return props;
@@ -1649,6 +1702,9 @@ document.getElementById('parseBtn').addEventListener('click', () => {
         document.getElementById('counters').style.display = 'none';
         return;
     }
+
+    // ⚡ DŮLEŽITÉ: Získej properties() hned na začátku, používá se to všude!
+    const props = graph.properties();
 
     // Update counters
     document.getElementById('nodeCount').textContent = graph.nodes.length;
@@ -2148,12 +2204,15 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     laplacianLegendDiv.style.borderRadius = '0.25rem';
     laplacianLegendDiv.style.marginBottom = '1rem';
     laplacianLegendDiv.style.border = '1px solid #0d6efd';
+    
+    // ⚡ DYNAMICKÁ vysvětlivka podle typu grafu
+    const isDirected = props.oriented === 'orientovaný';
     laplacianLegendDiv.innerHTML = `
         <strong>📊 Laplaciánská matice L = D - A:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
             • <strong>L[U,V] = 0:</strong> Uzly U a V nejsou spojeny<br>
             • <strong>L[U,V] = -1:</strong> Uzly U a V jsou přímo spojeny hranou<br>
-            • <strong>L[U,U]:</strong> Stupeň uzlu U (počet hran vedoucích z něj)<br>
+            • <strong>L[U,U]:</strong> ${isDirected ? '<strong style="color: #0d6efd;">Výstupní stupeň</strong> (počet hran VYCHÁZEJÍCÍCH z U)' : '<strong>Stupeň uzlu</strong> (počet hran dotýkajících se U)'}<br>
             • <strong>Vlastnost:</strong> Součet každého řádku = 0
         </div>
     `;
@@ -3175,8 +3234,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     output.appendChild(multiEdgeSection);
 
-    // Properties
-    const props = graph.properties();
+    // Properties (props už je definované na začátku)
     const propSection = document.createElement('div');
     propSection.className = 'section';
     propSection.innerHTML = '<h2>Vlastnosti grafu</h2>';
@@ -3227,7 +3285,10 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     addProp('Prostý', props.prosty ? 'ano' : 'ne');
     addProp('Jednoduchý', props.jednoduchy ? 'ano' : 'ne');
+    addProp('Multigraf', props.multigraph ? 'ano' : 'ne');
+    addProp('Diskrétní', props.discrete ? 'ano (bez hran)' : 'ne');
     addProp('Konečný', props.finite ? 'ano' : 'ne');
+    addProp('Symetrizovaný', props.symmetric ? 'ano' : 'ne');
     addProp('Úplný', props.complete ? 'ano' : 'ne');
     addProp('Regulární', props.regular ? 'ano' : 'ne');
     addProp('Bipartitní', props.bipartite ? 'ano' : 'ne');
