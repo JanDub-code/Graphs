@@ -1688,13 +1688,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     adjLegendDiv.style.marginBottom = '1rem';
     adjLegendDiv.style.border = '1px solid #0d6efd';
     adjLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení - Matice sousednosti:</strong><br>
+        <strong>📊 Matice sousednosti A[i,j]:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Co to je:</strong> Matice A[i,j] udává počet hran z uzlu i do uzlu j<br>
-            • <strong>Počtová verze:</strong> Zobrazuje přesný počet hran (včetně násobných hran)<br>
-            • <strong>Binární verze:</strong> Hodnota 1 = existuje alespoň 1 hrana, 0 = neexistuje hrana<br>
-            • <strong>Orientované grafy:</strong> A[i,j] může být jiné než A[j,i]<br>
-            • <strong>Neorientované grafy:</strong> Matice je symetrická (A[i,j] = A[j,i])
+            • <strong>A[i,j] = 0:</strong> Bez hrany z i do j<br>
+            • <strong>A[i,j] = 1:</strong> Existuje hrana z i do j<br>
+            • <strong>A[i,j] ≥ 2:</strong> Více paralelních hran (multigraf)<br>
+            • <strong>Symetrická matice:</strong> Graf je neorientovaný
         </div>
     `;
     adjSection.appendChild(adjLegendDiv);
@@ -1780,18 +1779,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     signLegendDiv.style.marginBottom = '1rem';
     signLegendDiv.style.border = '1px solid #0d6efd';
     signLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení - Znaménková matice:</strong><br>
+        <strong>📊 Znaménková matice S[i,j] = A[i,j] - A[j,i]:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Vzorec:</strong> S[i,j] = A[i,j] - A[j,i] (rozdíl počtu hran v obou směrech)<br>
-            • <strong>Kladná hodnota:</strong> Více hran z i do j než z j do i<br>
-            • <strong>Záporná hodnota:</strong> Více hran z j do i než z i do j<br>
-            • <strong>Nula:</strong> Stejný počet hran v obou směrech (nebo žádné hrany)<br>
-            <br>
-            <strong>🎯 Co tím zjistím o grafu:</strong><br>
-            • <strong>Asymetrii:</strong> Pokud S≠0, graf má nerovnoměrné směry hran mezi uzly<br>
-            • <strong>Orientaci:</strong> Pokud S=0 všude, graf je buď neorientovaný nebo perfektně symetrický<br>
-            • <strong>Dominantní směry:</strong> Vysoké kladné/záporné hodnoty ukazují silnou preferenci směru<br>
-            • <strong>Vyváženost uzlů:</strong> Součet řádku (+) = uzel posílá víc než přijímá, (-) = přijímá víc než posílá
+            • <strong>S[i,j] > 0:</strong> Více hran z i do j než z j do i<br>
+            • <strong>S[i,j] < 0:</strong> Více hran z j do i než z i do j<br>
+            • <strong>S[i,j] = 0:</strong> Symetricky nebo bez hran<br>
+            • <strong>Zjišťuješ:</strong> Asymetrii a vyvážení směrů v grafu
         </div>
     `;
     signSection.appendChild(signLegendDiv);
@@ -1860,20 +1853,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     laplacianLegendDiv.style.marginBottom = '1rem';
     laplacianLegendDiv.style.border = '1px solid #0d6efd';
     laplacianLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení - Laplaciánská matice:</strong><br>
+        <strong>📊 Laplaciánská matice L = D - A:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Vzorec:</strong> L = D - A, kde D = matice stupňů (diagonální), A = matice sousednosti<br>
-            • <strong>Diagonála:</strong> L[i,i] = stupeň uzlu i (počet hran incidentních s i)<br>
-            • <strong>Mimo diagonálu:</strong> L[i,j] = -A[i,j] (záporný počet hran mezi i a j)<br>
-            • <strong>Vlastnost:</strong> Součet každého řádku = 0 (vždy!)<br>
-            <br>
-            <strong>🎯 Co tím zjistím o grafu:</strong><br>
-            • <strong>Počet komponent:</strong> Vlastní čísla (eigenvalues) - násobnost λ=0 říká, kolik má graf oddělených částí<br>
-            • <strong>Konektivita:</strong> Druhé nejmenší vlastní číslo (algebraická konektivita) měří, jak "pevně" je graf spojen<br>
-            • <strong>Rozdělitelnost:</strong> Nízká algebraická konektivita = graf se snadno rozpadne na části<br>
-            • <strong>Spektrální klastry:</strong> Vlastní vektory odhalí přirozené skupiny uzlů (komunity)<br>
-            • <strong>Difúze:</strong> L popisuje, jak rychle se informace/energie šíří po grafu<br>
-            • <strong>Vyvážení:</strong> Vysoké L[i,i] = důležitý hub; záporné L[i,j] = silné spojení mezi i a j
+            • <strong>L[U,V] = 0:</strong> Uzly U a V nejsou spojeny<br>
+            • <strong>L[U,V] = -1:</strong> Uzly U a V jsou přímo spojeny hranou<br>
+            • <strong>L[U,U]:</strong> Stupeň uzlu U (počet hran vedoucích z něj)<br>
+            • <strong>Vlastnost:</strong> Součet každého řádku = 0
         </div>
     `;
     laplacianSection.appendChild(laplacianLegendDiv);
@@ -1915,13 +1900,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     multiplicityLegendDiv.style.marginBottom = '1rem';
     multiplicityLegendDiv.style.border = '1px solid #0d6efd';
     multiplicityLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení - Multiplicita hran:</strong><br>
+        <strong>📊 Multiplicita hran:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Co to je:</strong> Počet všech hran mezi dvěma uzly (v obou směrech dohromady)<br>
-            • <strong>Prostý graf:</strong> Multiplicita mezi libovolnými dvěma uzly ≤ 1<br>
-            • <strong>Multigraf:</strong> Může existovat více paralelních hran mezi stejnými uzly<br>
-            • <strong>Rozdíl od matice sousednosti:</strong> Multiplicita počítá hrany bez ohledu na směr<br>
-            • <strong>Příklad:</strong> Pokud existují hrany A→B a B→A, multiplicita(A,B) = 2
+            • <strong>Multiplicita = 1:</strong> Právě 1 hrana (nebo více v jednom směru)<br>
+            • <strong>Multiplicita > 1:</strong> Více paralelních hran (multigraf)<br>
+            • <strong>Počítá obě strany:</strong> Hrany U→V a V→U se sčítají<br>
+            • <strong>Bez ohledu na váhu:</strong> Počítá jen existenci hran, ne jejich váhu
         </div>
     `;
     multiplicitySection.appendChild(multiplicityLegendDiv);
@@ -1933,6 +1917,25 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const powerSection = document.createElement('div');
     powerSection.className = 'section';
     powerSection.innerHTML = '<h2>Druhá a třetí mocnina matice sousednosti (počet sledů délky N)</h2>';
+    
+    // Přidej legend
+    const powerLegendDiv = document.createElement('div');
+    powerLegendDiv.style.backgroundColor = '#e7f3ff';
+    powerLegendDiv.style.padding = '0.75rem';
+    powerLegendDiv.style.borderRadius = '0.25rem';
+    powerLegendDiv.style.marginBottom = '1rem';
+    powerLegendDiv.style.border = '1px solid #0d6efd';
+    powerLegendDiv.innerHTML = `
+        <strong>📊 Mocnina matice A<sup>k</sup>[i,j]:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>A<sup>k</sup>[i,j] = číslo:</strong> Počet procházek délky k z i do j<br>
+            • <strong>A²:</strong> Cesty s 2 hranami (zprostředkovaní sousedé)<br>
+            • <strong>A³:</strong> Cesty s 3 hranami atd.<br>
+            • <strong>Zjišťuješ:</strong> Kolik způsobů jít z i do j přesně k kroky
+        </div>
+    `;
+    powerSection.appendChild(powerLegendDiv);
+    
     powerSection.appendChild(createQuerySection('Dotaz na A²', 'power2'));
     powerSection.appendChild(createQuerySection('Dotaz na A³', 'power3'));
     
@@ -1942,19 +1945,19 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     customPowerDiv.innerHTML = '<h3>Libovolná mocnina matice sousednosti</h3>';
     
     // Add legend
-    const powerLegendDiv = document.createElement('div');
-    powerLegendDiv.style.backgroundColor = '#fff3cd';
-    powerLegendDiv.style.padding = '0.75rem';
-    powerLegendDiv.style.borderRadius = '0.25rem';
-    powerLegendDiv.style.marginBottom = '1rem';
-    powerLegendDiv.style.border = '1px solid #ffc107';
-    powerLegendDiv.innerHTML = `
+    const customPowerLegendDiv = document.createElement('div');
+    customPowerLegendDiv.style.backgroundColor = '#fff3cd';
+    customPowerLegendDiv.style.padding = '0.75rem';
+    customPowerLegendDiv.style.borderRadius = '0.25rem';
+    customPowerLegendDiv.style.marginBottom = '1rem';
+    customPowerLegendDiv.style.border = '1px solid #ffc107';
+    customPowerLegendDiv.innerHTML = `
         <strong>📖 Vysvětlení:</strong><br>
         <span style="margin-left: 1rem;">• <strong>A<sup>k</sup>[u, v]</strong> udává počet cest <strong>délky k</strong> z uzlu <strong>u</strong> do uzlu <strong>v</strong></span><br>
         <span style="margin-left: 1rem;">• Například A<sup>3</sup>[A, C] = 5 znamená, že existuje <strong>5 různých cest délky 3</strong> z uzlu A do uzlu C</span><br>
         <span style="margin-left: 1rem;">• Délka cesty = počet hran v cestě (ne počet uzlů!)</span>
     `;
-    customPowerDiv.appendChild(powerLegendDiv);
+    customPowerDiv.appendChild(customPowerLegendDiv);
     
     const customPowerInputDiv = document.createElement('div');
     customPowerInputDiv.className = 'query-inputs';
@@ -2177,10 +2180,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     incLegendDiv.style.marginBottom = '1rem';
     incLegendDiv.style.border = '1px solid #0d6efd';
     incLegendDiv.innerHTML = `
-        <strong>📖 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• <strong>Podepsaná</strong> varianta: u orientované hrany dává -1 do ocasu a +1 do hlavy; u neorientované 1/1</span><br>
-        <span style="margin-left: 1rem;">• <strong>Nepodepsaná</strong> varianta: má v příslušných uzlech u hrany hodnotu 1 (nezávisle na směru)</span><br>
-        <span style="margin-left: 1rem;">• Popisuje vztah uzel–hrana (které hrany jsou incidentní s kterými uzly)</span>
+        <strong>� Matice incidence:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>-1 v řádku:</strong> Uzel je ocas orientované hrany (výchozí)<br>
+            • <strong>+1 v řádku:</strong> Uzel je hlava orientované hrany (cílový)<br>
+            • <strong>1 v řádku (obojí):</strong> Uzel je incidentní s neorientovanou hranou<br>
+            • <strong>0 v řádku:</strong> Uzel není incidentní s touto hranou
+        </div>
     `;
     incSection.appendChild(incLegendDiv);
     
@@ -2237,11 +2243,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     reachLegendDiv.style.marginBottom = '1rem';
     reachLegendDiv.style.border = '1px solid #0d6efd';
     reachLegendDiv.innerHTML = `
-        <strong>🔄 Vysvětlení - Dosažitelnost:</strong><br>
+        <strong>🔄 Dosažitelnost R[i,j]:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Co zjistím:</strong> Které uzly jsou navzájem dosažitelné (existuje cesta)<br>
-            • <strong>Algoritmus:</strong> Floyd-Warshall na binární matici (transitivní uzávěr)<br>
-            • <strong>Pro velké grafy:</strong> Zobrazíme statistiky místo celé matice (700×700 je nepřehledné!)
+            • <strong>R[i,j] = 1:</strong> Uzel j je dosažitelný z i (existuje cesta)<br>
+            • <strong>R[i,j] = 0:</strong> Uzel j NENÍ dosažitelný z i<br>
+            • <strong>R[i,i] = 1:</strong> Vždy (uzel dosáhne sám sebe)<br>
+            • <strong>Využití:</strong> Zjištění komponent a souvislosti
         </div>
     `;
     reachSection.appendChild(reachLegendDiv);
@@ -2447,11 +2454,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     bfsLegendDiv.style.marginBottom = '1rem';
     bfsLegendDiv.style.border = '1px solid #0d6efd';
     bfsLegendDiv.innerHTML = `
-        <strong>🌊 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• Uzly rozložené do vrstev podle vzdálenosti od startovního uzlu</span><br>
-        <span style="margin-left: 1rem;">• Vrstva 0: startovní uzel</span><br>
-        <span style="margin-left: 1rem;">• Vrstva k: uzly dostupné v k krocích ze startu</span><br>
-        <span style="margin-left: 1rem;">• Užitečné pro vizualizaci šíření informace v grafu</span>
+        <strong>🌊 BFS vrstvy:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Vrstva 0:</strong> Startovní uzel<br>
+            • <strong>Vrstva k:</strong> Uzly dostupné v k krocích ze startu<br>
+            • <strong>Každý uzel:</strong> Objeví se právě v jedné vrstvě<br>
+            • <strong>Užití:</strong> Vzdálenost od start, komponenty, šíření informace
+        </div>
     `;
     bfsSection.appendChild(bfsLegendDiv);
     
@@ -2500,11 +2509,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     allPathsLegendDiv.style.marginBottom = '1rem';
     allPathsLegendDiv.style.border = '1px solid #0d6efd';
     allPathsLegendDiv.innerHTML = `
-        <strong>🛤️ Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• Najde VŠECHNY stejně krátké cesty mezi U a V při délce hrany = 1</span><br>
-        <span style="margin-left: 1rem;">• Používá BFS (Breadth-First Search) pro neohodnocený graf</span><br>
-        <span style="margin-left: 1rem;">• Zobrazí maximálně prvních 200 cest</span><br>
-        <span style="margin-left: 1rem;">• Při velkých grafech může být výsledků hodně</span>
+        <strong>🛤️ Všechny nejkratší cesty:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Najde VŠECHNY:</strong> Cesty stejné délky mezi U a V<br>
+            • <strong>Algoritmus:</strong> BFS (délka = počet hran)<br>
+            • <strong>Limit 200:</strong> Zobrazí max 200 cest (může jich být hodně!)<br>
+            • <strong>Využití:</strong> Analýza redundance, alternativní trasy
+        </div>
     `;
     allPathsSection.appendChild(allPathsLegendDiv);
     
@@ -2573,11 +2584,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     simplePathsLegendDiv.style.marginBottom = '1rem';
     simplePathsLegendDiv.style.border = '1px solid #0d6efd';
     simplePathsLegendDiv.innerHTML = `
-        <strong>🎯 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• Jednoduchá cesta neprochází žádný uzel vícekrát</span><br>
-        <span style="margin-left: 1rem;">• Hledá cesty s maximálně K hranami</span><br>
-        <span style="margin-left: 1rem;">• Pokud K není zadáno, hledá do délky |V|-1</span><br>
-        <span style="margin-left: 1rem;">• Limit 10,000 výsledků kvůli výkonu (zobrazí se max 200)</span>
+        <strong>🎯 Jednoduché cesty (do délky K):</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>Jednoduchá cesta:</strong> Neprochází žádný uzel vícekrát<br>
+            • <strong>Max délka K:</strong> Obsahuje max K hran<br>
+            • <strong>Bez limitu K:</strong> Hledá až do délky |V|-1<br>
+            • <strong>Limit 10,000:</strong> Maximálně 10,000 výsledků kvůli výkonu
+        </div>
     `;
     simplePathsSection.appendChild(simplePathsLegendDiv);
     
@@ -2658,10 +2671,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     neighborLegendDiv.style.marginBottom = '1rem';
     neighborLegendDiv.style.border = '1px solid #0d6efd';
     neighborLegendDiv.innerHTML = `
-        <strong>👥 Vysvětlení:</strong><br>
-        <span style="margin-left: 1rem;">• <strong>OUT (odchozí):</strong> uzly, do kterých vede hrana z daného uzlu</span><br>
-        <span style="margin-left: 1rem;">• <strong>IN (příchozí):</strong> uzly, ze kterých vede hrana do daného uzlu</span><br>
-        <span style="margin-left: 1rem;">• <strong>Neorientovaní:</strong> uzly spojené neorientovanou hranou</span>
+        <strong>👥 Sousedé podle typu hrany:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem;">
+            • <strong>OUT (→):</strong> Uzly, do kterých vede hrana ven<br>
+            • <strong>IN (←):</strong> Uzly, ze kterých vede hrana dovnitř<br>
+            • <strong>UND (—):</strong> Uzly spojené neorientovanou hranou<br>
+            • <strong>Stupeň uzlu:</strong> |OUT| + |IN| + |UND| (s korekcí)
+        </div>
     `;
     neighborSection.appendChild(neighborLegendDiv);
     
@@ -2712,13 +2728,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     lenLegendDiv.style.marginBottom = '1rem';
     lenLegendDiv.style.border = '1px solid #0d6efd';
     lenLegendDiv.innerHTML = `
-        <strong>📊 Vysvětlení - Matice délek:</strong><br>
+        <strong>📊 Matice délek L[i,j]:</strong><br>
         <div style="margin-left: 1rem; margin-top: 0.5rem;">
-            • <strong>Co to je:</strong> L[i,j] udává váhu/délku nejkratší hrany z uzlu i do j<br>
-            • <strong>Přímé spojení:</strong> Pokud existuje hrana i→j, L[i,j] = váha této hrany<br>
-            • <strong>Žádné spojení:</strong> L[i,j] = ∞ (není přímá hrana)<br>
-            • <strong>Diagonála:</strong> L[i,i] = 0 (vzdálenost uzlu k sobě samému)<br>
-            • <strong>Poznámka:</strong> Toto NENÍ matice nejkratších cest (pouze přímých hran)
+            • <strong>L[i,j] = číslo:</strong> Váha/délka přímé hrany<br>
+            • <strong>L[i,j] = ∞:</strong> Bez přímého spojení<br>
+            • <strong>L[i,i] = 0:</strong> Vzdálenost k sobě samému<br>
+            • <strong>Poznámka:</strong> Jen přímé hrany, ne nejkratší cesty
         </div>
     `;
     lenSection.appendChild(lenLegendDiv);
@@ -2870,7 +2885,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     propSection.className = 'section';
     propSection.innerHTML = '<h2>Vlastnosti grafu</h2>';
     
-    // ⚡ Přidej vysvětlivky pro uživatele
+    // Přidej vysvětlivky pro uživatele
     const legendDiv = document.createElement('div');
     legendDiv.style.backgroundColor = '#fff3cd';
     legendDiv.style.padding = '1rem';
@@ -2878,19 +2893,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     legendDiv.style.marginBottom = '1rem';
     legendDiv.style.border = '1px solid #ffc107';
     legendDiv.innerHTML = `
-        <strong>📖 Vysvětlení pojmů:</strong><br>
-        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.8;">
-            <strong>Ohodnocený:</strong> Graf má přiřazené číselné hodnoty (váhy) na hranách nebo uzlech<br>
-            <strong>Orientovaný:</strong> Hrany mají směr (šipky), neorientovaný = obousměrné hrany<br>
-            <strong>Souvislý:</strong> Z každého uzlu lze dostat do každého jiného uzlu<br>
-            <strong>Silně souvislý:</strong> (Orientovaný graf) Z každého uzlu lze dostat do každého po orientovaných hranách<br>
-            <strong>Slabě souvislý:</strong> (Orientovaný graf) Související, pokud ignorujeme orientaci hran<br>
-            <strong>Prostý:</strong> Mezi dvěma uzly existuje max. 1 hrana (žádné násobné hrany)<br>
-            <strong>Jednoduchý:</strong> Prostý graf bez smyček (hrana z uzlu do sebe sama)<br>
-            <strong>Úplný:</strong> Každý uzel je spojen s každým jiným uzlem<br>
-            <strong>Regulární:</strong> Všechny uzly mají stejný stupeň (počet incidentních hran)<br>
-            <strong>Bipartitní:</strong> Uzly lze rozdělit do 2 skupin, hrany jen mezi skupinami<br>
-            <strong>Rovinný:</strong> Graf lze nakreslit v rovině bez křížení hran
+        <strong>📖 Rychlý slovník pojmů:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6; font-size: 0.95rem;">
+            • <strong>Ohodnocený:</strong> Má váhy na hranách/uzlech | <strong>Orientovaný:</strong> Hrany mají směr (→)<br>
+            • <strong>Souvislý:</strong> Z každého uzlu lze dojet do každého | <strong>Silně/Slabě:</strong> Pouze v orientovaných<br>
+            • <strong>Prostý:</strong> Max 1 hrana mezi uzly | <strong>Jednoduchý:</strong> Prostý bez smyček<br>
+            • <strong>Úplný:</strong> Všechny uzly spojeny | <strong>Regulární:</strong> Všechny uzly stejný stupeň<br>
+            • <strong>Bipartitní:</strong> Uzly v 2 skupinách, hrany jen mezi | <strong>Rovinný:</strong> Nakreslitelný bez křížení
         </div>
     `;
     propSection.appendChild(legendDiv);
