@@ -1417,6 +1417,126 @@ class Graph {
         this._cachedProperties = props;
         return props;
     }
+
+    // 📊 Kompletní statistický přehled grafu
+    getStatistics() {
+        const stats = {};
+        const n = this.nodes.length;
+        const m = this.edges.length;
+        
+        // Základní počty
+        stats.nodeCount = n;
+        stats.edgeCount = m;
+        stats.componentCount = this.countComponents();
+        
+        // Stupně uzlů
+        const degrees = this.degrees();
+        const degreeValues = Object.values(degrees);
+        stats.degrees = {
+            min: Math.min(...degreeValues),
+            max: Math.max(...degreeValues),
+            avg: degreeValues.reduce((a, b) => a + b, 0) / n,
+            median: this._median(degreeValues),
+            distribution: this._degreeDistribution(degreeValues)
+        };
+        
+        // Izolované uzly (stupeň 0)
+        stats.isolatedNodes = this.nodes.filter(id => degrees[id] === 0);
+        
+        // Smyčky (self-loops)
+        stats.loops = this.edges.filter(e => e.u === e.v).length;
+        
+        // Násobné hrany
+        const multipleEdges = this.findMultipleEdges();
+        stats.multipleEdgeGroups = multipleEdges.length;
+        stats.totalMultipleEdges = multipleEdges.reduce((sum, g) => sum + g.count, 0);
+        
+        // Hustota grafu (0 = řídký, 1 = úplný)
+        const maxEdges = (n * (n - 1)) / 2;
+        stats.density = maxEdges > 0 ? m / maxEdges : 0;
+        
+        // Průměr a poloměr grafu (pokud je souvislý a ne moc velký)
+        if (n > 0 && n <= 100 && this.properties().connected) {
+            const diameterInfo = this._computeDiameterAndRadius();
+            stats.diameter = diameterInfo.diameter;
+            stats.radius = diameterInfo.radius;
+            stats.centerNodes = diameterInfo.centerNodes;
+            stats.peripheralNodes = diameterInfo.peripheralNodes;
+        } else {
+            stats.diameter = null;
+            stats.radius = null;
+        }
+        
+        // Komponenty
+        const components = this.getComponents();
+        if (components.length > 0) {
+            stats.largestComponent = Math.max(...components.map(c => c.size));
+            stats.smallestComponent = Math.min(...components.map(c => c.size));
+            stats.componentSizes = components.map(c => c.size).sort((a, b) => b - a);
+        }
+        
+        // Orientace hran
+        let directedCount = 0;
+        let undirectedCount = 0;
+        for (const e of this.edges) {
+            if (e.direction === '-') undirectedCount++;
+            else directedCount++;
+        }
+        stats.directedEdges = directedCount;
+        stats.undirectedEdges = undirectedCount;
+        
+        // Ohodnocení
+        stats.weightedEdges = this.edges.filter(e => e.weight !== null && e.weight !== undefined).length;
+        stats.weightedNodes = this.nodes.filter(id => this.nodeWeights[id] !== null && this.nodeWeights[id] !== undefined).length;
+        
+        return stats;
+    }
+
+    _median(arr) {
+        if (arr.length === 0) return 0;
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    }
+
+    _degreeDistribution(degreeValues) {
+        const dist = {};
+        for (const deg of degreeValues) {
+            dist[deg] = (dist[deg] || 0) + 1;
+        }
+        return dist;
+    }
+
+    _computeDiameterAndRadius() {
+        const n = this.nodes.length;
+        const fw = this.floydWarshall();
+        const dist = fw.dist;
+        
+        // Excentricita každého uzlu = max vzdálenost k ostatním
+        const eccentricities = [];
+        for (let i = 0; i < n; i++) {
+            let maxDist = 0;
+            for (let j = 0; j < n; j++) {
+                if (i !== j && dist[i][j] < Infinity) {
+                    maxDist = Math.max(maxDist, dist[i][j]);
+                }
+            }
+            eccentricities.push(maxDist);
+        }
+        
+        const diameter = Math.max(...eccentricities); // max excentricita
+        const radius = Math.min(...eccentricities);   // min excentricita
+        
+        // Centrální uzly (excentricita = poloměr)
+        const centerNodes = [];
+        const peripheralNodes = [];
+        for (let i = 0; i < n; i++) {
+            if (eccentricities[i] === radius) centerNodes.push(this.nodes[i]);
+            if (eccentricities[i] === diameter) peripheralNodes.push(this.nodes[i]);
+        }
+        
+        return { diameter, radius, centerNodes, peripheralNodes };
+    }
 }
 
 
@@ -1535,6 +1655,182 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     document.getElementById('edgeCount').textContent = graph.edges.length;
     document.getElementById('componentCount').textContent = graph.countComponents();
     document.getElementById('counters').style.display = 'block';
+
+    // 📊 STATISTICKÁ SEKCE - Kompletní přehled grafu
+    const statsSection = document.createElement('div');
+    statsSection.id = 'statisticsSection';
+    statsSection.style.margin = '1rem 0';
+    statsSection.style.padding = '1rem';
+    statsSection.style.backgroundColor = '#f8f9fa';
+    statsSection.style.border = '1px solid #dee2e6';
+    statsSection.style.borderRadius = '0.25rem';
+    
+    const statsHeader = document.createElement('h2');
+    statsHeader.style.marginTop = '0';
+    statsHeader.style.color = '#0d6efd';
+    statsHeader.innerHTML = '📊 Kompletní statistický přehled';
+    statsSection.appendChild(statsHeader);
+    
+    const statsBtn = document.createElement('button');
+    statsBtn.textContent = 'Zobrazit statistiky';
+    statsBtn.style.marginBottom = '1rem';
+    
+    const statsContent = document.createElement('div');
+    statsContent.style.display = 'none';
+    
+    statsBtn.addEventListener('click', () => {
+        if (statsContent.style.display === 'none') {
+            const stats = graph.getStatistics();
+            const degrees = graph.degrees();
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">';
+            
+            // 📈 Základní metriky
+            html += `
+                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0d6efd;">
+                    <h3 style="margin-top: 0; color: #0d6efd;">📈 Základní metriky</h3>
+                    <div style="line-height: 1.8;">
+                        <strong>Uzly:</strong> ${stats.nodeCount}<br>
+                        <strong>Hrany:</strong> ${stats.edgeCount}<br>
+                        <strong>Komponenty:</strong> ${stats.componentCount}<br>
+                        <strong>Izolované uzly:</strong> ${stats.isolatedNodes.length}${stats.isolatedNodes.length > 0 ? ` (${stats.isolatedNodes.slice(0, 5).join(', ')}${stats.isolatedNodes.length > 5 ? '...' : ''})` : ''}<br>
+                        <strong>Smyčky:</strong> ${stats.loops}<br>
+                        <strong>Hustota grafu:</strong> ${(stats.density * 100).toFixed(2)}%
+                    </div>
+                </div>
+            `;
+            
+            // 🎯 Stupně uzlů
+            const degDistKeys = Object.keys(stats.degrees.distribution).map(Number).sort((a, b) => a - b);
+            const degDistStr = degDistKeys.slice(0, 10).map(deg => `${deg}: ${stats.degrees.distribution[deg]}×`).join(', ');
+            html += `
+                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #198754;">
+                    <h3 style="margin-top: 0; color: #198754;">🎯 Stupně uzlů</h3>
+                    <div style="line-height: 1.8;">
+                        <strong>Min:</strong> ${stats.degrees.min}<br>
+                        <strong>Max:</strong> ${stats.degrees.max}<br>
+                        <strong>Průměr:</strong> ${stats.degrees.avg.toFixed(2)}<br>
+                        <strong>Medián:</strong> ${stats.degrees.median}<br>
+                        <strong>Distribuce:</strong><br>
+                        <span style="font-size: 0.9rem; color: #666;">${degDistStr}${degDistKeys.length > 10 ? '...' : ''}</span>
+                    </div>
+                </div>
+            `;
+            
+            // 🔗 Hrany
+            html += `
+                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #dc3545;">
+                    <h3 style="margin-top: 0; color: #dc3545;">🔗 Hrany</h3>
+                    <div style="line-height: 1.8;">
+                        <strong>Orientované:</strong> ${stats.directedEdges}<br>
+                        <strong>Neorientované:</strong> ${stats.undirectedEdges}<br>
+                        <strong>S vahami:</strong> ${stats.weightedEdges}<br>
+                        <strong>Násobné hrany:</strong> ${stats.multipleEdgeGroups} skupin (${stats.totalMultipleEdges} hran)<br>
+                        <strong>Smyčky:</strong> ${stats.loops}
+                    </div>
+                </div>
+            `;
+            
+            // 🌳 Komponenty
+            if (stats.componentSizes) {
+                html += `
+                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #ffc107;">
+                        <h3 style="margin-top: 0; color: #f59f00;">🌳 Komponenty</h3>
+                        <div style="line-height: 1.8;">
+                            <strong>Počet komponent:</strong> ${stats.componentCount}<br>
+                            <strong>Největší:</strong> ${stats.largestComponent} uzlů<br>
+                            <strong>Nejmenší:</strong> ${stats.smallestComponent} uzlů<br>
+                            <strong>Velikosti:</strong> ${stats.componentSizes.slice(0, 10).join(', ')}${stats.componentSizes.length > 10 ? '...' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 📏 Průměr a poloměr (pokud vypočítáno)
+            if (stats.diameter !== null) {
+                html += `
+                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #6f42c1;">
+                        <h3 style="margin-top: 0; color: #6f42c1;">📏 Průměr a poloměr</h3>
+                        <div style="line-height: 1.8;">
+                            <strong>Průměr grafu:</strong> ${stats.diameter}<br>
+                            <strong>Poloměr grafu:</strong> ${stats.radius}<br>
+                            <strong>Centrální uzly:</strong> ${stats.centerNodes.slice(0, 10).join(', ')}${stats.centerNodes.length > 10 ? '...' : ''}<br>
+                            <strong>Periferní uzly:</strong> ${stats.peripheralNodes.slice(0, 10).join(', ')}${stats.peripheralNodes.length > 10 ? '...' : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (stats.nodeCount > 100) {
+                html += `
+                    <div style="background-color: #fff3cd; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #ffc107;">
+                        <h3 style="margin-top: 0; color: #856404;">📏 Průměr a poloměr</h3>
+                        <div style="line-height: 1.8;">
+                            <em>Příliš velký graf pro výpočet průměru (> 100 uzlů)</em>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 🏆 TOP uzly podle stupně
+            const topNodes = Object.entries(degrees)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 15);
+            
+            html += `
+                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #20c997; grid-column: span 1;">
+                    <h3 style="margin-top: 0; color: #20c997;">🏆 TOP uzly (nejvyšší stupeň)</h3>
+                    <div style="line-height: 1.6; font-size: 0.9rem;">
+                        ${topNodes.map(([node, deg], i) => `${i + 1}. <strong>${node}</strong> (${deg})`).join('<br>')}
+                    </div>
+                </div>
+            `;
+            
+            // 📉 Histogram stupňů (pokud ne moc uzlů)
+            if (stats.nodeCount <= 50) {
+                const maxFreq = Math.max(...Object.values(stats.degrees.distribution));
+                html += `
+                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0dcaf0; grid-column: span 2;">
+                        <h3 style="margin-top: 0; color: #0dcaf0;">📉 Histogram stupňů</h3>
+                        <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.4;">
+                `;
+                
+                for (const deg of degDistKeys) {
+                    const count = stats.degrees.distribution[deg];
+                    const barWidth = Math.round((count / maxFreq) * 40);
+                    const bar = '█'.repeat(barWidth);
+                    html += `Stupeň ${deg.toString().padStart(2)}: ${bar} ${count}<br>`;
+                }
+                
+                html += '</div></div>';
+            }
+            
+            html += '</div>';
+            
+            // Legenda
+            html += `
+                <div style="margin-top: 1rem; padding: 0.75rem; background-color: #e7f3ff; border-radius: 0.25rem; border: 1px solid #0d6efd;">
+                    <strong>💡 Vysvětlení pojmů:</strong><br>
+                    <div style="margin-left: 1rem; margin-top: 0.5rem; font-size: 0.9rem; line-height: 1.6;">
+                        • <strong>Hustota:</strong> Poměr skutečných hran k max. možným (0% = žádné hrany, 100% = úplný graf)<br>
+                        • <strong>Průměr:</strong> Maximální excentricita = nejdelší nejkratší cesta mezi libovolnými uzly<br>
+                        • <strong>Poloměr:</strong> Minimální excentricita = centrum grafu<br>
+                        • <strong>Centrální uzly:</strong> Uzly s nejmenší excentricitou (nejblíž ke všem ostatním)<br>
+                        • <strong>Periferní uzly:</strong> Uzly s největší excentricitou (nejdál od ostatních)
+                    </div>
+                </div>
+            `;
+            
+            statsContent.innerHTML = html;
+            statsContent.style.display = 'block';
+            statsBtn.textContent = 'Skrýt statistiky';
+        } else {
+            statsContent.style.display = 'none';
+            statsBtn.textContent = 'Zobrazit statistiky';
+        }
+    });
+    
+    statsSection.appendChild(statsBtn);
+    statsSection.appendChild(statsContent);
+    output.appendChild(statsSection);
 
     // Query sections for each matrix type
     const createQuerySection = (title, matrixType) => {
