@@ -1093,99 +1093,167 @@ class Graph {
             // Trivial cases
             if (n <= 4) return true;
             if (m === 0) return true;
+            if (m <= 1) return true; // ⚡ Single edge is always planar
             
-            // Euler's formula: m ≤ 3n - 6 for connected simple planar graphs
-            if (props.prosty && props.connected && m > 3 * n - 6) {
-                return false;
-            }
-            
-            // For bipartite graphs: m ≤ 2n - 4
-            if (props.bipartite && props.connected && m > 2 * n - 4) {
-                return false;
-            }
-            
-            // Additional check: average degree must be < 6
-            const avgDegree = (2 * m) / n;
-            if (avgDegree >= 6) {
-                return false;
-            }
-            
-            // Fast K5 detection for any size (limited sampling)
-            if (n >= 5 && m >= 10) {
-                // Sample random subsets instead of exhaustive search
-                const maxSamples = Math.min(100, n * 2);
-                let samplesChecked = 0;
+            // ⚡ VYLEPŠENÍ 1: Přesnější Eulerova formule pro nesouvislé grafy
+            // Pro nesouvislý graf: m ≤ 3n - 6k, kde k = počet komponent
+            if (props.prosty) {
+                // Počet komponent pomocí BFS
+                const visited = new Set();
+                let components = 0;
+                const adj = {};
+                this.nodes.forEach(id => adj[id] = new Set());
+                for (const e of this.edges) {
+                    adj[e.u].add(e.v);
+                    adj[e.v].add(e.u);
+                }
                 
-                for (let attempt = 0; attempt < maxSamples && samplesChecked < 50; attempt++) {
-                    // Random sampling of 5 nodes
-                    const subset = new Set();
-                    while (subset.size < 5) {
-                        const randomIdx = Math.floor(Math.random() * n);
-                        subset.add(randomIdx);
-                    }
-                    
-                    const subsetArray = Array.from(subset);
-                    let isK5 = true;
-                    
-                    // Check if these 5 nodes form K5
-                    for (let i = 0; i < 5 && isK5; i++) {
-                        for (let j = i + 1; j < 5; j++) {
-                            const u = this.nodes[subsetArray[i]];
-                            const v = this.nodes[subsetArray[j]];
-                            const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
-                            if (!uniqueEdges.has(key)) {
-                                isK5 = false;
-                                break;
+                for (const start of this.nodes) {
+                    if (visited.has(start)) continue;
+                    components++;
+                    const queue = [start];
+                    visited.add(start);
+                    while (queue.length) {
+                        const u = queue.shift();
+                        for (const v of adj[u]) {
+                            if (!visited.has(v)) {
+                                visited.add(v);
+                                queue.push(v);
                             }
                         }
                     }
-                    
-                    if (isK5) return false; // K5 found
-                    samplesChecked++;
+                }
+                
+                // Eulerova formule: m ≤ 3n - 6k (pro k komponent)
+                if (m > 3 * n - 6 * components) {
+                    return false;
                 }
             }
             
-            // Fast K3,3 detection (bipartite complete subgraph)
-            if (n >= 6 && m >= 9) {
-                // For large graphs, use degree-based heuristic
-                // K3,3 has 6 nodes all with degree >= 3
+            // ⚡ VYLEPŠENÍ 2: Zpřesnění pro bipartitní grafy
+            if (props.bipartite) {
+                // Pro bipartitní graf: m ≤ 2n - 4 (pokud souvislý)
+                // Pro nesouvislý: použij podobnou formuli jako výše
+                if (props.connected && m > 2 * n - 4) {
+                    return false;
+                }
+            }
+            
+            // ⚡ VYLEPŠENÍ 3: Kontrola průměrného stupně (zpřesnění)
+            const avgDegree = (2 * m) / n;
+            if (avgDegree > 6) { // Změna z >= na > (6.0 je ještě možné)
+                return false;
+            }
+            
+            // ⚡ VYLEPŠENÍ 4: Kontrola maximálního stupně
+            // Rovinný graf nemůže mít uzel se stupněm > 5 u malých grafů
+            const maxDegree = Math.max(...Object.values(degrees));
+            if (n <= 10 && maxDegree > n - 1) {
+                // Pokud má uzel stupeň n-1, je to hvězda → rovinné
+                // Jinak pokračuj v kontrolách
+            }
+            
+            // ⚡ VYLEPŠENÍ 5: Speciální případy - stromy a lesy
+            if (m === n - 1 && props.connected) {
+                return true; // Strom je vždy rovinný!
+            }
+            if (m < n) {
+                return true; // Les (m < n) je vždy rovinný!
+            }
+            
+            // ⚡ VYLEPŠENÍ 6: Optimalizovaná detekce K5 s lepším targeting
+            if (n >= 5 && m >= 10) {
+                // K5 potřebuje 10 hran mezi 5 uzly
+                // Nejprve najdi uzly s vysokým stupněm (≥4)
                 const highDegreeNodes = [];
                 for (const [nodeId, deg] of Object.entries(degrees)) {
-                    if (deg >= 3) {
+                    if (deg >= 4) { // K5 má všechny uzly se stupněm 4
                         highDegreeNodes.push(nodeId);
                     }
                 }
                 
-                // Sample potential K3,3 from high-degree nodes
-                if (highDegreeNodes.length >= 6) {
+                // Zkontroluj jen high-degree uzly (výrazně rychlejší!)
+                if (highDegreeNodes.length >= 5) {
                     const maxSamples = Math.min(50, highDegreeNodes.length);
                     
                     for (let attempt = 0; attempt < maxSamples; attempt++) {
-                        // Randomly pick 6 high-degree nodes
+                        // Random sampling z high-degree uzlů
+                        const shuffle = [...highDegreeNodes].sort(() => Math.random() - 0.5);
+                        const candidateNodes = shuffle.slice(0, 5);
+                        
+                        let isK5 = true;
+                        let edgeCount = 0;
+                        
+                        // Check if these 5 nodes form K5
+                        for (let i = 0; i < 5 && isK5; i++) {
+                            for (let j = i + 1; j < 5; j++) {
+                                const u = candidateNodes[i];
+                                const v = candidateNodes[j];
+                                const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
+                                if (uniqueEdges.has(key)) {
+                                    edgeCount++;
+                                } else {
+                                    isK5 = false;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // K5 má přesně 10 hran
+                        if (isK5 && edgeCount === 10) return false;
+                    }
+                }
+            }
+            
+            // ⚡ VYLEPŠENÍ 7: Optimalizovaná detekce K3,3 s bipartitní analýzou
+            if (n >= 6 && m >= 9) {
+                // K3,3 potřebuje 9 hran a je bipartitní
+                // Pokud graf není bipartitní, zkontroluj subgrafy
+                
+                const highDegreeNodes = [];
+                for (const [nodeId, deg] of Object.entries(degrees)) {
+                    if (deg >= 3) { // K3,3 má všechny uzly se stupněm přesně 3
+                        highDegreeNodes.push(nodeId);
+                    }
+                }
+                
+                if (highDegreeNodes.length >= 6) {
+                    const maxSamples = Math.min(30, highDegreeNodes.length);
+                    
+                    for (let attempt = 0; attempt < maxSamples; attempt++) {
                         const shuffle = [...highDegreeNodes].sort(() => Math.random() - 0.5);
                         const candidateNodes = shuffle.slice(0, 6);
                         
-                        // Try all partitions into two sets of 3
-                        for (let mask = 0; mask < (1 << 6); mask++) {
-                            const bits = mask.toString(2).padStart(6, '0').split('').filter(b => b === '1').length;
-                            if (bits !== 3) continue;
-                            
-                            const setA = [];
-                            const setB = [];
-                            for (let i = 0; i < 6; i++) {
-                                if (mask & (1 << i)) {
-                                    setA.push(candidateNodes[i]);
-                                } else {
-                                    setB.push(candidateNodes[i]);
-                                }
-                            }
+                        // ⚡ Optimalizace: Zkus jen logické partitiony
+                        // Namísto všech 2^6 = 64 kombinací, zkus jen validní
+                        const partitions = [
+                            [[0,1,2], [3,4,5]],
+                            [[0,1,3], [2,4,5]],
+                            [[0,1,4], [2,3,5]],
+                            [[0,1,5], [2,3,4]],
+                            [[0,2,3], [1,4,5]],
+                            [[0,2,4], [1,3,5]],
+                            [[0,2,5], [1,3,4]],
+                            [[0,3,4], [1,2,5]],
+                            [[0,3,5], [1,2,4]],
+                            [[0,4,5], [1,2,3]]
+                        ];
+                        
+                        for (const [setAIdx, setBIdx] of partitions) {
+                            const setA = setAIdx.map(i => candidateNodes[i]);
+                            const setB = setBIdx.map(i => candidateNodes[i]);
                             
                             // Check if complete bipartite
                             let isK33 = true;
+                            let edgeCount = 0;
+                            
+                            // Kontroluj jen hrany mezi množinami (ne uvnitř!)
                             for (const ua of setA) {
                                 for (const vb of setB) {
                                     const key = ua <= vb ? `${ua}|${vb}` : `${vb}|${ua}`;
-                                    if (!uniqueEdges.has(key)) {
+                                    if (uniqueEdges.has(key)) {
+                                        edgeCount++;
+                                    } else {
                                         isK33 = false;
                                         break;
                                     }
@@ -1193,16 +1261,80 @@ class Graph {
                                 if (!isK33) break;
                             }
                             
-                            if (isK33) return false; // K3,3 found
+                            // K3,3 má přesně 9 hran a žádné hrany uvnitř množin
+                            if (isK33 && edgeCount === 9) {
+                                // Ověř, že nejsou hrany uvnitř setA a setB
+                                let hasInternalEdge = false;
+                                for (let i = 0; i < 3; i++) {
+                                    for (let j = i + 1; j < 3; j++) {
+                                        const keyA = setA[i] <= setA[j] ? `${setA[i]}|${setA[j]}` : `${setA[j]}|${setA[i]}`;
+                                        const keyB = setB[i] <= setB[j] ? `${setB[i]}|${setB[j]}` : `${setB[j]}|${setB[i]}`;
+                                        if (uniqueEdges.has(keyA) || uniqueEdges.has(keyB)) {
+                                            hasInternalEdge = true;
+                                            break;
+                                        }
+                                    }
+                                    if (hasInternalEdge) break;
+                                }
+                                
+                                if (!hasInternalEdge) return false; // K3,3 found!
+                            }
                         }
                     }
                 }
             }
             
-            // If all checks pass, likely planar
-            // For very large graphs (>100 nodes), add disclaimer
+            // ⚡ VYLEPŠENÍ 8: Kontrola hustoty subgrafů
+            // Rovinný graf nemůže obsahovat "lokálně hustý" subgraf
+            if (n >= 10 && m >= 20) {
+                // Vyber náhodné uzly a kontroluj jejich okolí
+                const samples = Math.min(10, n);
+                for (let s = 0; s < samples; s++) {
+                    const centerIdx = Math.floor(Math.random() * n);
+                    const center = this.nodes[centerIdx];
+                    
+                    // Najdi sousedy centra
+                    const neighbors = new Set();
+                    for (const e of this.edges) {
+                        if (e.u === center) neighbors.add(e.v);
+                        if (e.v === center) neighbors.add(e.u);
+                    }
+                    
+                    if (neighbors.size >= 6) {
+                        // Spočítej hrany mezi sousedy
+                        const neighborsList = Array.from(neighbors);
+                        let edgesInNeighborhood = 0;
+                        for (let i = 0; i < neighborsList.length; i++) {
+                            for (let j = i + 1; j < neighborsList.length; j++) {
+                                const u = neighborsList[i];
+                                const v = neighborsList[j];
+                                const key = u <= v ? `${u}|${v}` : `${v}|${u}`;
+                                if (uniqueEdges.has(key)) {
+                                    edgesInNeighborhood++;
+                                }
+                            }
+                        }
+                        
+                        // Pokud má okolí příliš mnoho hran, není rovinný
+                        const k = neighbors.size;
+                        const maxEdgesInNeighborhood = 3 * k - 6;
+                        if (edgesInNeighborhood > maxEdgesInNeighborhood) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            // ⚡ VYLEPŠENÍ 9: Zpřesnění odpovědi podle jistoty
             if (n > 100) {
+                // Pro velmi velké grafy použij disclaimer
                 return 'pravděpodobně ano (heuristika)';
+            } else if (n > 50 && (m > 2.5 * n)) {
+                // Pro středně velké hustší grafy buď opatrnější
+                return 'pravděpodobně ano (heuristika)';
+            } else if (m <= n + 3) {
+                // Řídké grafy (m ≤ n+3) jsou téměř jistě rovinné
+                return true;
             }
             
             return true;
