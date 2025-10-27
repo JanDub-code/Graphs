@@ -112,6 +112,7 @@
     </style>
 </head>
 <body>
+<div id="matrix-stats-tooltip" style="position: absolute; display: none; background-color: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; pointer-events: none; z-index: 1000; font-size: 0.9em; line-height: 1.5;"></div>
 <h1>Graph Analyzer</h1>
 <p>Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje
 pomocí řádku začínajícího <code>u</code> a každá hrana pomocí řádku začínajícího
@@ -1574,6 +1575,20 @@ class Graph {
         // Ohodnocení
         stats.weightedEdges = this.edges.filter(e => e.weight !== null && e.weight !== undefined).length;
         stats.weightedNodes = this.nodes.filter(id => this.nodeWeights[id] !== null && this.nodeWeights[id] !== undefined).length;
+
+        // Edge weight stats
+        if (stats.weightedEdges > 0) {
+            const weights = this.edges.map(e => e.weight).filter(w => w !== null && w !== undefined);
+            stats.edgeWeights = {
+                min: Math.min(...weights),
+                max: Math.max(...weights),
+                avg: weights.reduce((a, b) => a + b, 0) / weights.length,
+                distribution: weights.reduce((acc, val) => {
+                    acc[val] = (acc[val] || 0) + 1;
+                    return acc;
+                }, {})
+            };
+        }
         
         return stats;
     }
@@ -1654,7 +1669,61 @@ function createMatrixTable(matrix, rowLabels, colLabels) {
         tbody.appendChild(tr);
     }
     table.appendChild(tbody);
+    table.addEventListener('mouseover', handleMatrixMouseOver(matrix));
+    table.addEventListener('mouseout', handleMatrixMouseOut);
     return table;
+}
+
+function handleMatrixMouseOver(matrix) {
+    return function(event) {
+        const cell = event.target.closest('td');
+        if (!cell) return;
+
+        const rowIndex = cell.parentNode.rowIndex - 1;
+        const colIndex = cell.cellIndex - 1;
+
+        // Row stats
+        const row = matrix[rowIndex];
+        const rowSum = row.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
+        const rowCounts = row.reduce((acc, val) => {
+            if (isFinite(val)) acc[val] = (acc[val] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Column stats
+        const col = matrix.map(r => r[colIndex]);
+        const colSum = col.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
+        const colCounts = col.reduce((acc, val) => {
+            if (isFinite(val)) acc[val] = (acc[val] || 0) + 1;
+            return acc;
+        }, {});
+
+        let statsHTML = `<strong>Row ${rowIndex + 1}:</strong> Sum = ${rowSum}<br>`;
+        statsHTML += `<strong>Col ${colIndex + 1}:</strong> Sum = ${colSum}<br>`;
+
+        // Diagonal stats
+        if (rowIndex === colIndex) {
+            const mainDiag = matrix.map((r, i) => r[i]);
+            const mainDiagSum = mainDiag.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
+            statsHTML += `<strong>Main Diag:</strong> Sum = ${mainDiagSum}<br>`;
+        }
+        if (rowIndex + colIndex === matrix.length - 1) {
+            const antiDiag = matrix.map((r, i) => r[matrix.length - 1 - i]);
+            const antiDiagSum = antiDiag.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
+            statsHTML += `<strong>Anti Diag:</strong> Sum = ${antiDiagSum}<br>`;
+        }
+
+        const tooltip = document.getElementById('matrix-stats-tooltip');
+        tooltip.innerHTML = statsHTML;
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${event.pageX + 10}px`;
+        tooltip.style.top = `${event.pageY + 10}px`;
+    };
+}
+
+function handleMatrixMouseOut(event) {
+    const tooltip = document.getElementById('matrix-stats-tooltip');
+    tooltip.style.display = 'none';
 }
 
 function countBinaryMatrix(matrix) {
@@ -1788,6 +1857,19 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                     </div>
                 </div>
             `;
+            if (stats.edgeWeights) {
+                html += `
+                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #fd7e14;">
+                        <h3 style="margin-top: 0; color: #fd7e14;">⚖️ Statistiky vah hran</h3>
+                        <div style="line-height: 1.8;">
+                            <strong>Min váha:</strong> ${stats.edgeWeights.min}<br>
+                            <strong>Max váha:</strong> ${stats.edgeWeights.max}<br>
+                            <strong>Průměrná váha:</strong> ${stats.edgeWeights.avg.toFixed(2)}<br>
+                            <strong>Distribuce:</strong> ${Object.entries(stats.edgeWeights.distribution).map(([w, c]) => `${w}: ${c}×`).join(', ')}
+                        </div>
+                    </div>
+                `;
+            }
             
             // 🎯 Stupně uzlů
             const degDistKeys = Object.keys(stats.degrees.distribution).map(Number).sort((a, b) => a - b);
@@ -1945,19 +2027,22 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const inputDiv = document.createElement('div');
     inputDiv.className = 'query-inputs';
     
-    const selectU = document.createElement('select');
-    const selectV = document.createElement('select');
+    const datalistId = `nodes-datalist-${matrixType}`;
+    const datalist = document.createElement('datalist');
+    datalist.id = datalistId;
     graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectV.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = node;
+        datalist.appendChild(option);
     });
+    section.appendChild(datalist);
+
+    const selectU = document.createElement('input');
+    selectU.setAttribute('list', datalistId);
+    selectU.className = 'node-input';
+    const selectV = document.createElement('input');
+    selectV.setAttribute('list', datalistId);
+    selectV.className = 'node-input';
     
     const queryBtn = document.createElement('button');
     queryBtn.textContent = 'Dotaz';
@@ -2132,6 +2217,24 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     adjSection.appendChild(adjToggleDiv);
     
     adjSection.appendChild(createQuerySection('Dotaz na hodnotu', 'adjacency'));
+
+    const searchAdjInput = document.createElement('input');
+    searchAdjInput.type = 'text';
+    searchAdjInput.placeholder = 'Hledat v matici...';
+    searchAdjInput.style.marginBottom = '1rem';
+    searchAdjInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const table = adjMatrixDiv.querySelector('table');
+        if (!table) return;
+        table.querySelectorAll('td').forEach(cell => {
+            if (query && cell.textContent.toLowerCase().includes(query)) {
+                cell.style.backgroundColor = '#ffc107';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+    adjSection.appendChild(searchAdjInput);
     
     const showAdjBtn = document.createElement('button');
     showAdjBtn.textContent = 'Zobrazit celou matici';
@@ -2152,14 +2255,17 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             adjMatrixDiv.innerHTML = '';
             adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
             
-            // Count 0s and 1s in adjacency matrix
-            const { colStats, totalZeros, totalOnes } = countBinaryMatrix(adjMat);
-            adjStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Celková statistika hodnot 0 a 1:</h4>';
-            adjStatsDiv.innerHTML += `<div style="display: flex; gap: 2rem; margin-top: 0.5rem;">`;
-            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #0b5ed7; font-weight: bold;">Počet 1:</span> ${totalOnes}×</div>`;
-            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="color: #dc3545; font-weight: bold;">Počet 0:</span> ${totalZeros}×</div>`;
-            adjStatsDiv.innerHTML += `<div style="font-size: 1.1rem;"><span style="font-weight: bold;">Celkem:</span> ${totalOnes + totalZeros}</div>`;
-            adjStatsDiv.innerHTML += `</div>`;
+            // Count all values in adjacency matrix
+            const { counts, total } = countMatrixValues(adjMat);
+            adjStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Statistika hodnot:</h4>';
+            const statsHTML = Object.entries(counts).map(([key, count]) => {
+                const percentage = ((count / total) * 100).toFixed(1);
+                return `<div style="display: inline-block; margin-right: 1.5rem; margin-bottom: 0.5rem;">
+                    <strong>Hodnota ${key}:</strong> ${count}× (${percentage}%)
+                </div>`;
+            }).join('');
+            adjStatsDiv.innerHTML += statsHTML;
+            adjStatsDiv.innerHTML += `<div style="margin-top: 0.5rem; font-weight: bold;">Celkem hodnot: ${total}</div>`;
             
             adjMatrixDiv.style.display = 'block';
             adjStatsDiv.style.display = 'block';
@@ -2218,6 +2324,24 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     signSection.appendChild(signLegendDiv);
     
     signSection.appendChild(createQuerySection('Dotaz na hodnotu', 'sign'));
+
+    const searchSignInput = document.createElement('input');
+    searchSignInput.type = 'text';
+    searchSignInput.placeholder = 'Hledat v matici...';
+    searchSignInput.style.marginBottom = '1rem';
+    searchSignInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const table = signMatrixDiv.querySelector('table');
+        if (!table) return;
+        table.querySelectorAll('td').forEach(cell => {
+            if (query && cell.textContent.toLowerCase().includes(query)) {
+                cell.style.backgroundColor = '#ffc107';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+    signSection.appendChild(searchSignInput);
     
     const showSignBtn = document.createElement('button');
     showSignBtn.textContent = 'Zobrazit celou matici';
@@ -2295,6 +2419,24 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     laplacianSection.appendChild(laplacianLegendDiv);
     
     laplacianSection.appendChild(createQuerySection('Dotaz na hodnotu L[U,V]', 'laplacian'));
+
+    const searchLaplacianInput = document.createElement('input');
+    searchLaplacianInput.type = 'text';
+    searchLaplacianInput.placeholder = 'Hledat v matici...';
+    searchLaplacianInput.style.marginBottom = '1rem';
+    searchLaplacianInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const table = laplacianMatrixDiv.querySelector('table');
+        if (!table) return;
+        table.querySelectorAll('td').forEach(cell => {
+            if (query && cell.textContent.toLowerCase().includes(query)) {
+                cell.style.backgroundColor = '#ffc107';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+    laplacianSection.appendChild(searchLaplacianInput);
     
     const showLaplacianBtn = document.createElement('button');
     showLaplacianBtn.textContent = 'Zobrazit celou matici';
@@ -2392,20 +2534,20 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const customPowerInputDiv = document.createElement('div');
     customPowerInputDiv.className = 'query-inputs';
-    
-    const selectPowerU = document.createElement('select');
-    const selectPowerV = document.createElement('select');
+
+    const powerDatalist = document.createElement('datalist');
+    powerDatalist.id = 'nodes-datalist-power';
     graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectPowerU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectPowerV.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = node;
+        powerDatalist.appendChild(option);
     });
+    customPowerDiv.appendChild(powerDatalist);
+
+    const selectPowerU = document.createElement('input');
+    selectPowerU.setAttribute('list', 'nodes-datalist-power');
+    const selectPowerV = document.createElement('input');
+    selectPowerV.setAttribute('list', 'nodes-datalist-power');
     
     const powerInput = document.createElement('input');
     powerInput.type = 'number';
@@ -2471,6 +2613,10 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     showPowerBtn.textContent = 'Zobrazit celé matice';
     const powerMatrixDiv = document.createElement('div');
     powerMatrixDiv.style.display = 'none';
+    const powerStatsDiv = document.createElement('div');
+    powerStatsDiv.style.display = 'none';
+    powerStatsDiv.style.marginTop = '1rem';
+
     showPowerBtn.addEventListener('click', () => {
         if (powerMatrixDiv.style.display === 'none') {
             const A2 = graph.adjacencyPower(2);
@@ -2485,15 +2631,33 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             div3.className = 'matrix';
             div3.appendChild(createMatrixTable(A3, graph.nodes, graph.nodes));
             powerMatrixDiv.appendChild(div3);
+
+            // Add stats
+            const stats2 = countMatrixValues(A2);
+            const stats3 = countMatrixValues(A3);
+            powerStatsDiv.innerHTML = `
+                <div style="padding: 1rem; background-color: #e7f3ff; border-radius: 0.25rem;">
+                    <h4 style="margin-top: 0;">Statistika hodnot A²:</h4>
+                    ${Object.entries(stats2.counts).map(([key, count]) => `<strong>${key}:</strong> ${count}×`).join(', ')}
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background-color: #e7f3ff; border-radius: 0.25rem;">
+                    <h4 style="margin-top: 0;">Statistika hodnot A³:</h4>
+                    ${Object.entries(stats3.counts).map(([key, count]) => `<strong>${key}:</strong> ${count}×`).join(', ')}
+                </div>
+            `;
+
             powerMatrixDiv.style.display = 'block';
+            powerStatsDiv.style.display = 'block';
             showPowerBtn.textContent = 'Skrýt matice';
         } else {
             powerMatrixDiv.style.display = 'none';
+            powerStatsDiv.style.display = 'none';
             showPowerBtn.textContent = 'Zobrazit celé matice';
         }
     });
     powerSection.appendChild(showPowerBtn);
     powerSection.appendChild(powerMatrixDiv);
+    powerSection.appendChild(powerStatsDiv);
     output.appendChild(powerSection);
 
     // Sum of walks query section
@@ -2522,20 +2686,20 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const sumWalksInputDiv = document.createElement('div');
     sumWalksInputDiv.className = 'query-inputs';
-    
-    const selectSumU = document.createElement('select');
-    const selectSumV = document.createElement('select');
+
+    const sumDatalist = document.createElement('datalist');
+    sumDatalist.id = 'nodes-datalist-sum';
     graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectSumU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectSumV.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = node;
+        sumDatalist.appendChild(option);
     });
+    sumWalksDiv.appendChild(sumDatalist);
+
+    const selectSumU = document.createElement('input');
+    selectSumU.setAttribute('list', 'nodes-datalist-sum');
+    const selectSumV = document.createElement('input');
+    selectSumV.setAttribute('list', 'nodes-datalist-sum');
     
     const sumKInput = document.createElement('input');
     sumKInput.type = 'number';
@@ -2625,6 +2789,24 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     incToggleDiv.style.marginBottom = '1rem';
     incToggleDiv.innerHTML = '<label><input type="checkbox" id="incSigned" checked /> Podepsaná (signed)</label>';
     incSection.appendChild(incToggleDiv);
+
+    const searchIncInput = document.createElement('input');
+    searchIncInput.type = 'text';
+    searchIncInput.placeholder = 'Hledat v matici...';
+    searchIncInput.style.marginBottom = '1rem';
+    searchIncInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const table = incMatrixDiv.querySelector('table');
+        if (!table) return;
+        table.querySelectorAll('td').forEach(cell => {
+            if (query && cell.textContent.toLowerCase().includes(query)) {
+                cell.style.backgroundColor = '#ffc107';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+    incSection.appendChild(searchIncInput);
     
     const showIncBtn = document.createElement('button');
     showIncBtn.textContent = 'Zobrazit matici';
@@ -2897,18 +3079,19 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const bfsControlDiv = document.createElement('div');
     bfsControlDiv.style.marginBottom = '1rem';
-    bfsControlDiv.innerHTML = '<label>Startovní uzel: <select id="bfsStart"></select></label> <button id="bfsBtn" class="btn" style="margin-left: 0.5rem;">Spočítat vrstvy</button>';
+    bfsControlDiv.innerHTML = '<label>Startovní uzel: <input id="bfsStart" list="nodes-datalist-bfs"></label> <button id="bfsBtn" class="btn" style="margin-left: 0.5rem;">Spočítat vrstvy</button>';
     bfsSection.appendChild(bfsControlDiv);
-    
-    const bfsStartSelect = document.createElement('select');
-    bfsStartSelect.id = 'bfsStartSelect';
+
+    const bfsDatalist = document.createElement('datalist');
+    bfsDatalist.id = 'nodes-datalist-bfs';
     graph.nodes.forEach(node => {
-        const opt = document.createElement('option');
-        opt.value = node;
-        opt.textContent = node;
-        bfsStartSelect.appendChild(opt);
+        const option = document.createElement('option');
+        option.value = node;
+        bfsDatalist.appendChild(option);
     });
-    bfsControlDiv.querySelector('label').appendChild(bfsStartSelect);
+    bfsSection.appendChild(bfsDatalist);
+
+    const bfsStartSelect = document.getElementById('bfsStart');
     
     const bfsResultDiv = document.createElement('div');
     bfsResultDiv.className = 'scroll';
@@ -2952,20 +3135,20 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const allPathsControlDiv = document.createElement('div');
     allPathsControlDiv.className = 'query-inputs';
-    
-    const selectAllU = document.createElement('select');
-    const selectAllV = document.createElement('select');
+
+    const allPathsDatalist = document.createElement('datalist');
+    allPathsDatalist.id = 'nodes-datalist-allpaths';
     graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectAllU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectAllV.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = node;
+        allPathsDatalist.appendChild(option);
     });
+    allPathsSection.appendChild(allPathsDatalist);
+
+    const selectAllU = document.createElement('input');
+    selectAllU.setAttribute('list', 'nodes-datalist-allpaths');
+    const selectAllV = document.createElement('input');
+    selectAllV.setAttribute('list', 'nodes-datalist-allpaths');
     
     const allPathsBtn = document.createElement('button');
     allPathsBtn.textContent = 'Najít všechny cesty';
@@ -3027,20 +3210,20 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const simplePathsControlDiv = document.createElement('div');
     simplePathsControlDiv.className = 'query-inputs';
-    
-    const selectSimpleU = document.createElement('select');
-    const selectSimpleV = document.createElement('select');
+
+    const simplePathsDatalist = document.createElement('datalist');
+    simplePathsDatalist.id = 'nodes-datalist-simplepaths';
     graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectSimpleU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectSimpleV.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = node;
+        simplePathsDatalist.appendChild(option);
     });
+    simplePathsSection.appendChild(simplePathsDatalist);
+
+    const selectSimpleU = document.createElement('input');
+    selectSimpleU.setAttribute('list', 'nodes-datalist-simplepaths');
+    const selectSimpleV = document.createElement('input');
+    selectSimpleV.setAttribute('list', 'nodes-datalist-simplepaths');
     
     const simpleKInput = document.createElement('input');
     simpleKInput.type = 'number';
@@ -3114,18 +3297,19 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     const neighborControlDiv = document.createElement('div');
     neighborControlDiv.style.marginBottom = '1rem';
-    neighborControlDiv.innerHTML = '<label>Uzel: <select id="neighborSelect"></select></label> <button id="neighborBtn" style="margin-left: 0.5rem;">Zobrazit sousedy</button>';
+    neighborControlDiv.innerHTML = '<label>Uzel: <input id="neighborSelect" list="nodes-datalist-neighbor"></label> <button id="neighborBtn" style="margin-left: 0.5rem;">Zobrazit sousedy</button>';
     neighborSection.appendChild(neighborControlDiv);
-    
-    const neighborSelect = document.createElement('select');
-    neighborSelect.id = 'neighborSelectActual';
+
+    const neighborDatalist = document.createElement('datalist');
+    neighborDatalist.id = 'nodes-datalist-neighbor';
     graph.nodes.forEach(node => {
-        const opt = document.createElement('option');
-        opt.value = node;
-        opt.textContent = node;
-        neighborSelect.appendChild(opt);
+        const option = document.createElement('option');
+        option.value = node;
+        neighborDatalist.appendChild(option);
     });
-    neighborControlDiv.querySelector('label').appendChild(neighborSelect);
+    neighborSection.appendChild(neighborDatalist);
+
+    const neighborSelect = document.getElementById('neighborSelect');
     
     const neighborResultDiv = document.createElement('div');
     neighborResultDiv.className = 'scroll';
@@ -3170,26 +3354,67 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     lenSection.appendChild(lenLegendDiv);
     
     lenSection.appendChild(createQuerySection('Dotaz na hodnotu', 'length'));
+
+    const searchLenInput = document.createElement('input');
+    searchLenInput.type = 'text';
+    searchLenInput.placeholder = 'Hledat v matici...';
+    searchLenInput.style.marginBottom = '1rem';
+    searchLenInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const table = lenMatrixDiv.querySelector('table');
+        if (!table) return;
+        table.querySelectorAll('td').forEach(cell => {
+            if (query && cell.textContent.toLowerCase().includes(query)) {
+                cell.style.backgroundColor = '#ffc107';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+    lenSection.appendChild(searchLenInput);
     
     const showLenBtn = document.createElement('button');
     showLenBtn.textContent = 'Zobrazit celou matici';
     const lenMatrixDiv = document.createElement('div');
     lenMatrixDiv.className = 'matrix';
     lenMatrixDiv.style.display = 'none';
+    const lenStatsDiv = document.createElement('div');
+    lenStatsDiv.style.display = 'none';
+    lenStatsDiv.style.marginTop = '1rem';
+    lenStatsDiv.style.padding = '1rem';
+    lenStatsDiv.style.backgroundColor = '#e7f3ff';
+    lenStatsDiv.style.borderRadius = '0.25rem';
+
     showLenBtn.addEventListener('click', () => {
         if (lenMatrixDiv.style.display === 'none') {
             const lenMat = graph.lengthMatrix();
             lenMatrixDiv.innerHTML = '';
             lenMatrixDiv.appendChild(createMatrixTable(lenMat, graph.nodes, graph.nodes));
+
+            // Count values in length matrix
+            const { counts, total } = countMatrixValues(lenMat);
+            lenStatsDiv.innerHTML = '<h4 style="margin-top: 0;">Statistika hodnot:</h4>';
+            const statsHTML = Object.entries(counts).map(([key, count]) => {
+                const percentage = ((count / total) * 100).toFixed(1);
+                return `<div style="display: inline-block; margin-right: 1.5rem; margin-bottom: 0.5rem;">
+                    <strong>Hodnota ${key}:</strong> ${count}× (${percentage}%)
+                </div>`;
+            }).join('');
+            lenStatsDiv.innerHTML += statsHTML;
+            lenStatsDiv.innerHTML += `<div style="margin-top: 0.5rem; font-weight: bold;">Celkem hodnot: ${total}</div>`;
+
             lenMatrixDiv.style.display = 'block';
+            lenStatsDiv.style.display = 'block';
             showLenBtn.textContent = 'Skrýt matici';
         } else {
             lenMatrixDiv.style.display = 'none';
+            lenStatsDiv.style.display = 'none';
             showLenBtn.textContent = 'Zobrazit celou matici';
         }
     });
     lenSection.appendChild(showLenBtn);
     lenSection.appendChild(lenMatrixDiv);
+    lenSection.appendChild(lenStatsDiv);
     output.appendChild(lenSection);
 
     // Shortest path query
