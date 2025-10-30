@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Integration Test - Graph Analyzer</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; border: 1px solid #28a745; }
+        .fail { background-color: #f8d7da; border: 1px solid #dc3545; }
+        h1 { color: #333; }
+        .summary { margin-top: 20px; padding: 15px; background: white; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Graph Analyzer Integration Test</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+    
+    <!-- Load the Graph class from graph_analyzer.html -->
+    <script>
+        // Extract and load Graph class from graph_analyzer.html
+        fetch('graph_analyzer.html')
+            .then(response => response.text())
+            .then(html => {
+                // Extract the script content
+                const scriptMatch = html.match(/<script>([\s\S]*)<\/script>/);
+                if (!scriptMatch) {
+                    throw new Error('Could not extract JavaScript from graph_analyzer.html');
+                }
+                
+                // Execute the script to load the Graph class
+                eval(scriptMatch[1]);
+                
+                // Now run the tests
+                runTests();
+            })
+            .catch(error => {
+                document.getElementById('results').innerHTML = 
+                    '<div class="test fail">✗ Failed to load graph_analyzer.html: ' + error.message + '</div>';
+            });
+        
+        function runTests() {
+            const results = document.getElementById('results');
+            const summary = document.getElementById('summary');
+            let passed = 0;
+            let failed = 0;
+            
+            function log(message, pass = true) {
+                const div = document.createElement('div');
+                div.className = 'test ' + (pass ? 'pass' : 'fail');
+                div.textContent = (pass ? '✓' : '✗') + ' ' + message;
+                results.appendChild(div);
+                if (pass) passed++; else failed++;
+            }
+            
+            try {
+                // Test 1: Create Graph instance
+                const graph = new Graph();
+                log('Graph class instantiation successful');
+                
+                // Test 2: Parse simple graph
+                const testGraph = `u A;
+u B;
+u C;
+h A > B 1 :h1;
+h B > C 2 :h2;
+h A > C 3 :h3;`;
+                
+                graph.parse(testGraph);
+                log('Graph parsing successful');
+                
+                // Test 3: Check nodes were parsed
+                if (graph.nodes.length === 3 && graph.nodes.includes('A')) {
+                    log('Nodes parsed correctly: ' + graph.nodes.join(', '));
+                } else {
+                    log('Node parsing failed', false);
+                }
+                
+                // Test 4: Check edges were parsed
+                if (graph.edges.length === 3) {
+                    log('Edges parsed correctly: ' + graph.edges.length + ' edges');
+                } else {
+                    log('Edge parsing failed: expected 3, got ' + graph.edges.length, false);
+                }
+                
+                // Test 5: Adjacency matrix
+                const adjMatrix = graph.adjacencyMatrix();
+                if (adjMatrix && adjMatrix.length === 3) {
+                    log('Adjacency matrix generated: ' + adjMatrix.length + 'x' + adjMatrix[0].length);
+                } else {
+                    log('Adjacency matrix generation failed', false);
+                }
+                
+                // Test 6: BFS Layers (tests the optimized queue)
+                const layers = graph.bfsLayers('A');
+                if (layers && layers[0] && layers[0][0] === 'A') {
+                    log('BFS layers working (optimized queue): Layer 0 = [A]');
+                } else {
+                    log('BFS layers failed', false);
+                }
+                
+                // Test 7: Properties calculation
+                const props = graph.properties();
+                if (props && props.oriented === 'orientovaný') {
+                    log('Properties calculation working: oriented = ' + props.oriented);
+                } else {
+                    log('Properties calculation failed', false);
+                }
+                
+                // Test 8: Shortest path (tests optimized Dijkstra)
+                const path = graph.shortestPath('A', 'C');
+                if (path && path.distance !== undefined) {
+                    log('Shortest path working: A→C distance = ' + path.distance);
+                } else {
+                    log('Shortest path calculation failed', false);
+                }
+                
+                // Test 9: Component counting (tests optimized BFS)
+                const components = graph.countComponents();
+                if (components === 1) {
+                    log('Component counting working: ' + components + ' component (connected graph)');
+                } else {
+                    log('Component counting unexpected result: ' + components, false);
+                }
+                
+                // Test 10: Floyd-Warshall (tests optimized matrix operations)
+                try {
+                    const fw = graph.floydWarshall();
+                    if (fw && fw.dist && fw.pred) {
+                        log('Floyd-Warshall working: matrices generated');
+                    } else {
+                        log('Floyd-Warshall failed', false);
+                    }
+                } catch (e) {
+                    log('Floyd-Warshall error: ' + e.message, false);
+                }
+                
+            } catch (error) {
+                log('Test execution error: ' + error.message, false);
+                console.error(error);
+            }
+            
+            // Summary
+            summary.innerHTML = `
+                <h2>Test Summary</h2>
+                <p><strong>Passed:</strong> ${passed}</p>
+                <p><strong>Failed:</strong> ${failed}</p>
+                <p><strong>Total:</strong> ${passed + failed}</p>
+                <p style="margin-top: 15px; font-size: 1.2em;">
+                    ${failed === 0 ? '✅ <strong>All tests PASSED!</strong> The optimized code works correctly.' : 
+                                     '❌ <strong>Some tests FAILED.</strong> Please review the errors above.'}
+                </p>
+            `;
+        }
+    </script>
+</body>
+</html>
