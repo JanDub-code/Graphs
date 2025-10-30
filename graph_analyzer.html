@@ -751,13 +751,19 @@ class Graph {
             }
         }
         
+        // ⚡ OPTIMIZATION: Add early skip conditions and cache array references
         for (let k = 0; k < n; k++) {
+            const distK = dist[k]; // Cache intermediate node row
             for (let i = 0; i < n; i++) {
+                const distI = dist[i]; // Cache source row
+                const distIK = distI[k];
+                if (distIK === Infinity) continue; // ⚡ Skip if no path from i to k
+                const predI = pred[i]; // Cache predecessor row
                 for (let j = 0; j < n; j++) {
-                    const alt = dist[i][k] + dist[k][j];
-                    if (alt < dist[i][j]) {
-                        dist[i][j] = alt;
-                        pred[i][j] = pred[k][j];
+                    const alt = distIK + distK[j];
+                    if (alt < distI[j]) {
+                        distI[j] = alt;
+                        predI[j] = pred[k][j];
                     }
                 }
             }
@@ -977,11 +983,13 @@ class Graph {
             if (visited.has(start)) continue;
             
             components++;
+            // ⚡ OPTIMIZATION: Use indexed queue instead of shift()
             const queue = [start];
+            let queueStart = 0;
             visited.add(start);
             
-            while (queue.length) {
-                const u = queue.shift();
+            while (queueStart < queue.length) {
+                const u = queue[queueStart++];
                 for (const v of adj[u]) {
                     if (!visited.has(v)) {
                         visited.add(v);
@@ -1015,12 +1023,14 @@ class Graph {
             if (visited.has(start)) continue;
             
             const componentNodes = [];
+            // ⚡ OPTIMIZATION: Use indexed queue instead of shift()
             const queue = [start];
+            let queueStart = 0;
             visited.add(start);
             componentNodes.push(start);
             
-            while (queue.length) {
-                const u = queue.shift();
+            while (queueStart < queue.length) {
+                const u = queue[queueStart++];
                 for (const v of adj[u]) {
                     if (!visited.has(v)) {
                         visited.add(v);
@@ -1120,10 +1130,12 @@ class Graph {
             const idx = {};
             this.nodes.forEach((id,i) => { idx[id] = i; });
             const neighbours = this.neighbours();
+            // ⚡ OPTIMIZATION: Use indexed queue instead of shift()
             const queue = [0];
+            let queueStart = 0;
             visited[0] = true;
-            while (queue.length > 0) {
-                const i = queue.shift();
+            while (queueStart < queue.length) {
+                const i = queue[queueStart++];
                 const u = this.nodes[i];
                 for (const v of neighbours[u]) {
                     const j = idx[v];
@@ -1210,11 +1222,13 @@ class Graph {
             
             for (let start = 0; start < n; start++) {
                 if (colours[start] !== -1) continue;
+                // ⚡ OPTIMIZATION: Use indexed queue instead of shift()
                 const queue = [start];
+                let queueStart = 0;
                 colours[start] = 0;
                 
-                while (queue.length > 0) {
-                    const uIdx = queue.shift();
+                while (queueStart < queue.length) {
+                    const uIdx = queue[queueStart++];
                     const u = this.nodes[uIdx];
                     const currentColour = colours[uIdx];
                     
@@ -1263,10 +1277,12 @@ class Graph {
                 for (const start of this.nodes) {
                     if (visited.has(start)) continue;
                     components++;
+                    // ⚡ OPTIMIZATION: Use indexed queue instead of shift()
                     const queue = [start];
+                    let queueStart = 0;
                     visited.add(start);
-                    while (queue.length) {
-                        const u = queue.shift();
+                    while (queueStart < queue.length) {
+                        const u = queue[queueStart++];
                         for (const v of adj[u]) {
                             if (!visited.has(v)) {
                                 visited.add(v);
