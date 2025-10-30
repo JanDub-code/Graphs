@@ -180,6 +180,9 @@ class Graph {
         const nodePattern = /^u\s+([^\s;]+)(?:\s+([-+]?[0-9]*\.?[0-9]+))?\s*;/i;
         const edgePattern = /^h\s+([^\s<>-]+)\s*([<>-])\s*([^\s<>-]+)\s*(?:([-+]?[0-9]*\.?[0-9]+))?\s*(?::([^;]+))?\s*;/i;
         
+        // ⚡ OPTIMIZATION: Use Set for O(1) lookups instead of array.includes()
+        const nodeSet = new Set();
+        
         for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
@@ -188,8 +191,9 @@ class Graph {
                 const id = m[1];
                 if (id === '*') continue;
                 const weight = m[2] !== undefined ? parseFloat(m[2]) : null;
-                if (!this.nodes.includes(id)) {
+                if (!nodeSet.has(id)) {
                     this.nodes.push(id);
+                    nodeSet.add(id);
                     this.nodeWeights[id] = weight;
                 }
             } else if ((m = edgePattern.exec(trimmed))) {
@@ -201,7 +205,8 @@ class Graph {
                 this.edges.push({ u, v, direction, weight, label });
             }
         }
-        this.edges = this.edges.filter(e => this.nodes.includes(e.u) && this.nodes.includes(e.v));
+        // ⚡ OPTIMIZATION: Use Set for O(1) lookups instead of O(n) includes
+        this.edges = this.edges.filter(e => nodeSet.has(e.u) && nodeSet.has(e.v));
     }
 
     adjacencyMatrix(binary = false) {
@@ -240,11 +245,11 @@ class Graph {
 
     // Optimized: query single cell instead of computing full matrix
     adjacencyValue(nodeU, nodeV) {
-        const uIdx = this.nodes.indexOf(nodeU);
-        const vIdx = this.nodes.indexOf(nodeV);
-        if (uIdx === -1 || vIdx === -1) return null;
+        // ⚡ OPTIMIZATION: Early exit on invalid nodes
+        if (!this.nodes.includes(nodeU) || !this.nodes.includes(nodeV)) return null;
         
         let count = 0;
+        // ⚡ OPTIMIZATION: Direct comparison without indexOf
         for (const e of this.edges) {
             if (e.direction === '>' && e.u === nodeU && e.v === nodeV) count++;
             else if (e.direction === '<' && e.u === nodeV && e.v === nodeU) count++;
@@ -280,12 +285,12 @@ class Graph {
 
     // Optimized: query single cell
     lengthValue(nodeU, nodeV) {
-        const uIdx = this.nodes.indexOf(nodeU);
-        const vIdx = this.nodes.indexOf(nodeV);
-        if (uIdx === -1 || vIdx === -1) return null;
+        // ⚡ OPTIMIZATION: Early exit on invalid nodes
+        if (!this.nodes.includes(nodeU) || !this.nodes.includes(nodeV)) return null;
         if (nodeU === nodeV) return 0;
         
         let minWeight = Infinity;
+        // ⚡ OPTIMIZATION: Direct comparison without indexOf
         for (const e of this.edges) {
             const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
             if (e.direction === '>' && e.u === nodeU && e.v === nodeV) {
@@ -322,12 +327,19 @@ class Graph {
     static multiplyMatrices(X, Y) {
         const n = X.length;
         const result = Array.from({ length: n }, () => Array(n).fill(0));
+        // ⚡ OPTIMIZATION: Skip zero multiplications - already optimized with early continue
+        // Order: i, k, j is optimal for cache locality
         for (let i = 0; i < n; i++) {
+            const Xi = X[i]; // Cache row reference
+            const Ri = result[i]; // Cache result row
             for (let k = 0; k < n; k++) {
-                if (X[i][k] === 0) continue;
+                const Xik = Xi[k];
+                if (Xik === 0) continue;
+                const Yk = Y[k]; // Cache row reference
                 for (let j = 0; j < n; j++) {
-                    if (Y[k][j] === 0) continue;
-                    result[i][j] += X[i][k] * Y[k][j];
+                    const Ykj = Yk[j];
+                    if (Ykj === 0) continue;
+                    Ri[j] += Xik * Ykj;
                 }
             }
         }
@@ -469,13 +481,15 @@ class Graph {
         const n = A.length;
         const R = A.map(row => row.map(v => v > 0 ? 1 : 0));
         
+        // ⚡ OPTIMIZATION: Floyd-Warshall with early skip when R[i][k] === 0
         // Floyd-Warshall on binary matrix
         for (let k = 0; k < n; k++) {
             for (let i = 0; i < n; i++) {
-                if (R[i][k] === 1) {
-                    for (let j = 0; j < n; j++) {
-                        if (R[k][j] === 1) R[i][j] = 1;
-                    }
+                if (R[i][k] === 0) continue; // ⚡ Skip if no path from i to k
+                const Ri = R[i]; // Cache row reference
+                const Rk = R[k]; // Cache row reference
+                for (let j = 0; j < n; j++) {
+                    if (Rk[j] === 1) Ri[j] = 1;
                 }
             }
         }
@@ -490,17 +504,23 @@ class Graph {
         const n = this.nodes.length;
         const adjList = Array.from({ length: n }, () => []);
         
-        // Build adjacency list
+        // ⚡ OPTIMIZATION: Build node index map once for O(1) lookups
+        const nodeIndex = new Map();
+        this.nodes.forEach((node, i) => nodeIndex.set(node, i));
+        
+        // Build adjacency list with optimized lookups
         for (const e of this.edges) {
-            const i = this.nodes.indexOf(e.u);
-            const j = this.nodes.indexOf(e.v);
-            if (e.direction === '>') {
-                adjList[i].push(j);
-            } else if (e.direction === '<') {
-                adjList[j].push(i);
-            } else {
-                adjList[i].push(j);
-                adjList[j].push(i);
+            const i = nodeIndex.get(e.u);
+            const j = nodeIndex.get(e.v);
+            if (i !== undefined && j !== undefined) {
+                if (e.direction === '>') {
+                    adjList[i].push(j);
+                } else if (e.direction === '<') {
+                    adjList[j].push(i);
+                } else {
+                    adjList[i].push(j);
+                    adjList[j].push(i);
+                }
             }
         }
         
@@ -536,27 +556,35 @@ class Graph {
         const n = this.nodes.length;
         const adjList = Array.from({ length: n }, () => []);
         
-        // Build adjacency list (outgoing edges)
+        // ⚡ OPTIMIZATION: Build node index map once for O(1) lookups
+        const nodeIndex = new Map();
+        this.nodes.forEach((node, i) => nodeIndex.set(node, i));
+        
+        // Build adjacency list (outgoing edges) with optimized lookups
         for (const e of this.edges) {
-            const i = this.nodes.indexOf(e.u);
-            const j = this.nodes.indexOf(e.v);
-            if (e.direction === '>') {
-                adjList[i].push(j);
-            } else if (e.direction === '<') {
-                adjList[j].push(i);
-            } else {
-                adjList[i].push(j);
-                adjList[j].push(i);
+            const i = nodeIndex.get(e.u);
+            const j = nodeIndex.get(e.v);
+            if (i !== undefined && j !== undefined) {
+                if (e.direction === '>') {
+                    adjList[i].push(j);
+                } else if (e.direction === '<') {
+                    adjList[j].push(i);
+                } else {
+                    adjList[i].push(j);
+                    adjList[j].push(i);
+                }
             }
         }
         
         const dist = Array(n).fill(Infinity);
         dist[srcIdx] = 0;
         const parents = Array.from({ length: n }, () => []);
+        // ⚡ OPTIMIZATION: Use array as deque with index tracking to avoid O(n) shift()
         const queue = [srcIdx];
+        let queueStart = 0;
         
-        while (queue.length) {
-            const u = queue.shift();
+        while (queueStart < queue.length) {
+            const u = queue[queueStart++];
             for (const v of adjList[u]) {
                 if (dist[v] === Infinity) {
                     dist[v] = dist[u] + 1;
@@ -599,17 +627,23 @@ class Graph {
         const n = this.nodes.length;
         const adjList = Array.from({ length: n }, () => []);
         
-        // Build adjacency list
+        // ⚡ OPTIMIZATION: Build node index map once for O(1) lookups
+        const nodeIndex = new Map();
+        this.nodes.forEach((node, i) => nodeIndex.set(node, i));
+        
+        // Build adjacency list with optimized lookups
         for (const e of this.edges) {
-            const i = this.nodes.indexOf(e.u);
-            const j = this.nodes.indexOf(e.v);
-            if (e.direction === '>') {
-                adjList[i].push(j);
-            } else if (e.direction === '<') {
-                adjList[j].push(i);
-            } else {
-                adjList[i].push(j);
-                adjList[j].push(i);
+            const i = nodeIndex.get(e.u);
+            const j = nodeIndex.get(e.v);
+            if (i !== undefined && j !== undefined) {
+                if (e.direction === '>') {
+                    adjList[i].push(j);
+                } else if (e.direction === '<') {
+                    adjList[j].push(i);
+                } else {
+                    adjList[i].push(j);
+                    adjList[j].push(i);
+                }
             }
         }
         
@@ -737,8 +771,29 @@ class Graph {
         const vIdx = this.nodes.indexOf(nodeV);
         if (uIdx === -1 || vIdx === -1) return null;
         
-        // Simple Dijkstra for single source-target
+        // ⚡ OPTIMIZATION: Build adjacency list once instead of scanning all edges repeatedly
         const n = this.nodes.length;
+        const adjList = Array.from({ length: n }, () => []);
+        const nodeIndex = new Map();
+        this.nodes.forEach((node, i) => nodeIndex.set(node, i));
+        
+        for (const e of this.edges) {
+            const i = nodeIndex.get(e.u);
+            const j = nodeIndex.get(e.v);
+            if (i === undefined || j === undefined) continue;
+            const w = e.weight !== null ? e.weight : 1;
+            
+            if (e.direction === '>') {
+                adjList[i].push({ to: j, weight: w });
+            } else if (e.direction === '<') {
+                adjList[j].push({ to: i, weight: w });
+            } else {
+                adjList[i].push({ to: j, weight: w });
+                adjList[j].push({ to: i, weight: w });
+            }
+        }
+        
+        // Simple Dijkstra for single source-target
         const dist = Array(n).fill(Infinity);
         const visited = Array(n).fill(false);
         const pred = Array(n).fill(null);
@@ -756,23 +811,13 @@ class Graph {
             if (u === -1 || u === vIdx) break;
             visited[u] = true;
             
-            for (const e of this.edges) {
-                const w = e.weight !== null ? e.weight : 1;
-                let vNeighbor = -1;
-                if (e.direction === '>' && e.u === this.nodes[u]) {
-                    vNeighbor = this.nodes.indexOf(e.v);
-                } else if (e.direction === '<' && e.v === this.nodes[u]) {
-                    vNeighbor = this.nodes.indexOf(e.u);
-                } else if (e.direction === '-') {
-                    if (e.u === this.nodes[u]) vNeighbor = this.nodes.indexOf(e.v);
-                    else if (e.v === this.nodes[u]) vNeighbor = this.nodes.indexOf(e.u);
-                }
-                
-                if (vNeighbor !== -1 && !visited[vNeighbor]) {
+            // ⚡ OPTIMIZATION: Use adjacency list instead of scanning all edges
+            for (const { to: v, weight: w } of adjList[u]) {
+                if (!visited[v]) {
                     const alt = dist[u] + w;
-                    if (alt < dist[vNeighbor]) {
-                        dist[vNeighbor] = alt;
-                        pred[vNeighbor] = u;
+                    if (alt < dist[v]) {
+                        dist[v] = alt;
+                        pred[v] = u;
                     }
                 }
             }
