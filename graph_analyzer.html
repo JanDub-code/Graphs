@@ -1870,7 +1870,8 @@ function calculateMatrixStats(matrix) {
     const n = matrix.length;
     if (n === 0) return {
         positiveCount: 0, negativeCount: 0, zeroCount: 0, infinityCount: 0,
-        totalCount: 0, totalSum: 0, rowSums: [], colSums: [], valueCounts: {}
+        totalCount: 0, totalSum: 0, rowSums: [], colSums: [], valueCounts: {},
+        diagonalSum: 0, diagonalCounts: {}
     };
     const m = matrix[0].length;
 
@@ -1882,6 +1883,8 @@ function calculateMatrixStats(matrix) {
     const rowSums = Array(n).fill(0);
     const colSums = Array(m).fill(0);
     const valueCounts = {};
+    let diagonalSum = 0;
+    const diagonalCounts = {};
 
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < m; j++) {
@@ -1903,9 +1906,21 @@ function calculateMatrixStats(matrix) {
         }
     }
 
+    if (n === m) {
+        for (let i = 0; i < n; i++) {
+            const val = matrix[i][i];
+            if (isFinite(val)) {
+                diagonalSum += val;
+            }
+            const key = !isFinite(val) ? '∞' : val;
+            diagonalCounts[key] = (diagonalCounts[key] || 0) + 1;
+        }
+    }
+
     return {
         positiveCount, negativeCount, zeroCount, infinityCount,
-        totalCount: n * m, totalSum, rowSums, colSums, valueCounts
+        totalCount: n * m, totalSum, rowSums, colSums, valueCounts,
+        diagonalSum, diagonalCounts
     };
 }
 
@@ -1954,8 +1969,23 @@ function createMatrixStatsHTML(stats, options = {}) {
                 <strong>Celkový součet (konečné hodnoty):</strong> ${stats.totalSum.toFixed(2)} |
                 <strong>Celkem hodnot:</strong> ${stats.totalCount}
             </div>
-        </div></div>
     `;
+
+    if (stats.diagonalSum !== undefined) {
+        const diagonalCountsHTML = Object.keys(stats.diagonalCounts).map(key => {
+            const count = stats.diagonalCounts[key];
+            return `<strong>${key}:</strong> ${count}×`;
+        }).join(', ');
+
+        html += `
+            <div style="margin-top: 0.5rem; border-top: 1px solid #dee2e6; padding-top: 0.5rem;">
+                <strong>Součet diagonály:</strong> ${stats.diagonalSum.toFixed(2)} |
+                <strong>Počty na diagonále:</strong> ${diagonalCountsHTML}
+            </div>
+        `;
+    }
+
+    html += `</div></div>`;
 
     return html;
 }
