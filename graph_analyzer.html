@@ -174,12 +174,13 @@ class Graph {
         this.edges = [];
         this._cachedAdjMatrix = null;
         this._cachedDegrees = null;
-        this._cachedProperties = null; // ⚡ Invalidate cache při změně
-        
-        const lines = text.split(/\r?\n/);
-        const nodePattern = /^u\s+([^\s;]+)(?:\s+([-+]?[0-9]*\.?[0-9]+))?\s*;/i;
-        const edgePattern = /^h\s+([^\s<>-]+)\s*([<>-])\s*([^\s<>-]+)\s*(?:([-+]?[0-9]*\.?[0-9]+))?\s*(?::([^;]+))?\s*;/i;
-        
+        this._cachedProperties = null; // Invalidate cache on change
+
+        const lines = text.split(/[;\r\n]+/);
+        const nodePattern = /^u\s+([^\s;]+)(?:\s+([-+]?[0-9]*\.?[0-9]+))?/;
+        const edgePattern = /^h\s+([^\s<>-]+)\s*([<>-])\s*([^\s<>-]+)\s*(?:([-+]?[0-9]*\.?[0-9]+))?\s*(?::([^;]+))?/;
+
+        // First pass: add all nodes
         for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
@@ -187,21 +188,31 @@ class Graph {
             if ((m = nodePattern.exec(trimmed))) {
                 const id = m[1];
                 if (id === '*') continue;
-                const weight = m[2] !== undefined ? parseFloat(m[2]) : null;
                 if (!this.nodes.includes(id)) {
                     this.nodes.push(id);
+                    const weight = m[2] !== undefined ? parseFloat(m[2]) : null;
                     this.nodeWeights[id] = weight;
                 }
-            } else if ((m = edgePattern.exec(trimmed))) {
+            }
+        }
+
+        // Second pass: add all edges
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            let m;
+            if ((m = edgePattern.exec(trimmed))) {
                 const u = m[1];
                 const direction = m[2];
                 const v = m[3];
-                const weight = m[4] !== undefined ? parseFloat(m[4]) : null;
-                const label = m[5] ? m[5].trim() : null;
-                this.edges.push({ u, v, direction, weight, label });
+                // Ensure nodes exist before adding an edge
+                if (this.nodes.includes(u) && this.nodes.includes(v)) {
+                    const weight = m[4] !== undefined ? parseFloat(m[4]) : 1; // Default weight to 1
+                    const label = m[5] ? m[5].trim() : null;
+                    this.edges.push({ u, v, direction, weight, label });
+                }
             }
         }
-        this.edges = this.edges.filter(e => this.nodes.includes(e.u) && this.nodes.includes(e.v));
     }
 
     adjacencyMatrix(binary = false) {
@@ -1659,6 +1670,113 @@ class Graph {
         }
         
         return { diameter, radius, centerNodes, peripheralNodes };
+    }
+
+    countSpanningTrees() {
+        if (this.nodes.length === 0) return 0;
+        // Matrix Tree Theorem: determinant of any cofactor of the Laplacian matrix
+        const L = this.laplacianMatrix();
+        // Cofactor L11
+        const cofactor = L.slice(1).map(row => row.slice(1));
+
+        function determinant(matrix) {
+            if (matrix.length === 0) return 1;
+            if (matrix.length === 1) return matrix[0][0];
+            if (matrix.length === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            let det = 0;
+            for (let i = 0; i < matrix.length; i++) {
+                const subMatrix = matrix.slice(1).map(row => row.filter((_, j) => i !== j));
+                det += (i % 2 === 0 ? 1 : -1) * matrix[0][i] * determinant(subMatrix);
+            }
+            return det;
+        }
+
+        return Math.round(determinant(cofactor));
+    }
+
+    minimumSpanningTree() {
+        const mst = [];
+        let totalWeight = 0;
+        if (this.nodes.length === 0) return { tree: [], totalWeight: 0 };
+
+        const visited = new Set([this.nodes[0]]);
+        const edges = [...this.edges].sort((a, b) => (a.weight || 1) - (b.weight || 1));
+
+        while (visited.size < this.nodes.length) {
+            let foundEdge = false;
+            for (let i = 0; i < edges.length; i++) {
+                const edge = edges[i];
+                const uVisited = visited.has(edge.u);
+                const vVisited = visited.has(edge.v);
+
+                if (uVisited && !vVisited) {
+                    mst.push(edge);
+                    totalWeight += edge.weight || 1;
+                    visited.add(edge.v);
+                    edges.splice(i, 1);
+                    foundEdge = true;
+                    break;
+                } else if (!uVisited && vVisited) {
+                    mst.push(edge);
+                    totalWeight += edge.weight || 1;
+                    visited.add(edge.u);
+                    edges.splice(i, 1);
+                    foundEdge = true;
+                    break;
+                }
+            }
+            if (!foundEdge) break; // No more edges to add
+        }
+
+        return { tree: mst, totalWeight };
+    }
+
+    dfsTraversal(startNode) {
+        const result = [];
+        const visited = new Set();
+        const adj = this.neighbours();
+
+        function dfs(node) {
+            if (!node || visited.has(node)) {
+                return;
+            }
+            visited.add(node);
+            result.push(node);
+            const neighbors = adj[node] || [];
+            for (const neighbor of neighbors) {
+                dfs(neighbor);
+            }
+        }
+
+        dfs(startNode);
+        return result;
+    }
+
+    bfsTraversal(startNode) {
+        const result = [];
+        const visited = new Set();
+        const queue = [startNode];
+        const adj = this.neighbours();
+
+        if (!this.nodes.includes(startNode)) {
+            return [];
+        }
+
+        visited.add(startNode);
+
+        while (queue.length > 0) {
+            const node = queue.shift();
+            result.push(node);
+
+            const neighbors = adj[node] || [];
+            for (const neighbor of neighbors) {
+                if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    queue.push(neighbor);
+                }
+            }
+        }
+        return result;
     }
 }
 
@@ -3571,6 +3689,98 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     addProp('Rovinný', typeof props.planar === 'string' ? props.planar : (props.planar ? 'ano' : 'ne'));
     propSection.appendChild(propDiv);
     output.appendChild(propSection);
+
+    // Graph exploration section
+    const exploreSection = document.createElement('div');
+    exploreSection.id = 'exploreSection';
+    exploreSection.className = 'section';
+    exploreSection.innerHTML = '<h2>Prohledávání grafu (BFS/DFS)</h2>';
+    const exploreControls = document.createElement('div');
+    exploreControls.className = 'query-inputs';
+    exploreControls.innerHTML = `
+        <select id="traversalAlgo" class="query-select">
+            <option value="bfs">BFS (do šířky)</option>
+            <option value="dfs">DFS (do hloubky)</option>
+        </select>
+        <input id="startNode" list="nodes-datalist-explore" placeholder="Startovací uzel">
+        <datalist id="nodes-datalist-explore"></datalist>
+        <button id="runTraversal">Spustit</button>
+    `;
+    exploreSection.appendChild(exploreControls);
+    const exploreResult = document.createElement('div');
+    exploreResult.id = 'exploreResult';
+    exploreResult.style.display = 'none';
+    exploreSection.appendChild(exploreResult);
+    output.appendChild(exploreSection);
+
+    // Spanning Tree section
+    const spanningTreeSection = document.createElement('div');
+    spanningTreeSection.id = 'spanningTreeSection';
+    spanningTreeSection.className = 'section';
+    spanningTreeSection.innerHTML = '<h2>Kostra grafu</h2>';
+    const spanningTreeControls = document.createElement('div');
+    spanningTreeControls.className = 'query-inputs';
+    spanningTreeControls.innerHTML = `
+        <button id="runSpanningTree">Analyzovat kostru grafu</button>
+    `;
+    spanningTreeSection.appendChild(spanningTreeControls);
+    const spanningTreeResult = document.createElement('div');
+    spanningTreeResult.id = 'spanningTreeResult';
+    spanningTreeResult.style.display = 'none';
+    spanningTreeSection.appendChild(spanningTreeResult);
+    output.appendChild(spanningTreeSection);
+
+    // Populate explore datalist
+    const exploreDatalist = document.getElementById('nodes-datalist-explore');
+    if (exploreDatalist) {
+        exploreDatalist.innerHTML = '';
+        graph.nodes.forEach(node => {
+            const option = document.createElement('option');
+            option.value = node;
+            exploreDatalist.appendChild(option);
+        });
+    }
+
+    document.getElementById('runTraversal').addEventListener('click', () => {
+        const algo = document.getElementById('traversalAlgo').value;
+        const startNode = document.getElementById('startNode').value;
+        const graph = new Graph();
+        graph.parse(document.getElementById('graphInput').value);
+        let result = [];
+        if (algo === 'bfs') {
+            result = graph.bfsTraversal(startNode);
+        } else {
+            result = graph.dfsTraversal(startNode);
+        }
+
+        let html = `<h4>Výsledek pro ${algo.toUpperCase()} od ${startNode}:</h4>`;
+        html += `<p>Pořadí navštívených uzlů: ${result.join(' → ')}</p>`;
+        html += `<p>Dosažitelných uzlů: ${result.length}</p>`;
+
+        const exploreResult = document.getElementById('exploreResult');
+        exploreResult.innerHTML = html;
+        exploreResult.style.display = 'block';
+    });
+
+    document.getElementById('runSpanningTree').addEventListener('click', () => {
+        const graph = new Graph();
+        graph.parse(document.getElementById('graphInput').value);
+        const mst = graph.minimumSpanningTree();
+        const count = graph.countSpanningTrees();
+
+        let html = `<h4>Výsledky analýzy kostry grafu:</h4>`;
+        html += `<p>Počet koster: ${count}</p>`;
+        html += `<p>Minimální kostra (váha: ${mst.totalWeight}):</p>`;
+        html += '<ul>';
+        mst.tree.forEach(edge => {
+            html += `<li>${edge.u} - ${edge.v} (váha: ${edge.weight})</li>`;
+        });
+        html += '</ul>';
+
+        const spanningTreeResult = document.getElementById('spanningTreeResult');
+        spanningTreeResult.innerHTML = html;
+        spanningTreeResult.style.display = 'block';
+    });
 });
 
 document.addEventListener('change', function(event) {
