@@ -1,7 +1,8 @@
 const { test, expect } = require('@playwright/test');
+const { APP_URL } = require('./utils');
 
 test('homepage has title and screenshot', async ({ page }) => {
-  await page.goto('file:///app/graph_analyzer.html');
+  await page.goto(APP_URL);
 
   // Expect a title "to contain" a substring.
   await expect(page).toHaveTitle(/Graph Analyzer/);

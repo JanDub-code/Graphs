@@ -1,8 +1,9 @@
 const { test, expect } = require('@playwright/test');
+const { APP_URL } = require('./utils');
 
 test.describe('Graph Analyzer New Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('file:///app/graph_analyzer.html');
+    await page.goto(APP_URL);
   });
 
   test('should perform BFS and display results', async ({ page }) => {

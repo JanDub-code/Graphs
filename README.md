@@ -34,3 +34,11 @@ This is a web-based tool for analyzing graphs. You can define a graph using a si
 5.  Use the interactive query sections to get specific values from matrices or find paths.
 6.  Use the "Prohledávání grafu (BFS/DFS)" section to perform traversals.
 7.  Use the "Kostra grafu" section to analyze spanning trees.
+
+## Running Tests
+
+Playwright tests verify UI behaviour (including the default graph regression in `tests/default_graph_output.spec.js`). To run them:
+
+1. Install dependencies and browsers (once):<br>`npm install && npx playwright install`
+2. Execute the suite:<br>`npx playwright test`
+3. Run a single spec if needed (e.g., the default graph regression):<br>`npx playwright test tests/default_graph_output.spec.js`
