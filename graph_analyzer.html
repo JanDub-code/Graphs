@@ -1731,6 +1731,43 @@ class Graph {
         return { tree: mst, totalWeight };
     }
 
+    maximumSpanningTree() {
+        const mst = [];
+        let totalWeight = 0;
+        if (this.nodes.length === 0) return { tree: [], totalWeight: 0 };
+
+        const visited = new Set([this.nodes[0]]);
+        const edges = [...this.edges].sort((a, b) => (b.weight || 1) - (a.weight || 1));
+
+        while (visited.size < this.nodes.length) {
+            let foundEdge = false;
+            for (let i = 0; i < edges.length; i++) {
+                const edge = edges[i];
+                const uVisited = visited.has(edge.u);
+                const vVisited = visited.has(edge.v);
+
+                if (uVisited && !vVisited) {
+                    mst.push(edge);
+                    totalWeight += edge.weight || 1;
+                    visited.add(edge.v);
+                    edges.splice(i, 1);
+                    foundEdge = true;
+                    break;
+                } else if (!uVisited && vVisited) {
+                    mst.push(edge);
+                    totalWeight += edge.weight || 1;
+                    visited.add(edge.u);
+                    edges.splice(i, 1);
+                    foundEdge = true;
+                    break;
+                }
+            }
+            if (!foundEdge) break;
+        }
+
+        return { tree: mst, totalWeight };
+    }
+
     dfsTraversal(startNode) {
         const result = [];
         const visited = new Set();
@@ -3760,6 +3797,26 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     spanningTreeSection.appendChild(spanningTreeResult);
     output.appendChild(spanningTreeSection);
 
+    const theorySection = document.createElement('div');
+    theorySection.id = 'graphTheoryGuide';
+    theorySection.className = 'section';
+    theorySection.innerHTML = `
+        <h2>📘 Teoretický rozcestník (grafy)</h2>
+        <p style="color: #495057;">Krátký tahák k pojmům, které při práci s grafy nejčastěji používáme:</p>
+        <ul style="line-height: 1.8; padding-left: 1.25rem;">
+            <li><strong>Kostra grafu:</strong> Podgraf, který obsahuje všechny uzly a jen tolik hran, aby byl graf stále souvislý (tedy žádné cykly).</li>
+            <li><strong>Minimální kostra grafu:</strong> Soubor hran s nejnižší možnou váhou. Typicky ji hledáme Jarníkův-Primův-Dijkstrův algoritmus nebo Kruskalem.</li>
+            <li><strong>Maximální kostra grafu:</strong> Analogicky hledá nejvyšší celkovou váhu – hodí se například pro maximalizaci kapacity.</li>
+            <li><strong>Laplaceova matice:</strong> L = D - A. Pomáhá nám spočítat počet koster (věta o matici stromů) a popsat spektrální vlastnosti grafu.</li>
+            <li><strong>Jarníkův-Primův-Dijkstrův algoritmus:</strong> Greedy přístup – začneme v náhodném uzlu a opakovaně přidáváme nejlevnější hranu, která neuzavírá cyklus.</li>
+            <li><strong>Kruskalův algoritmus:</strong> Seřadí všechny hrany podle váhy, přidává je od nejmenších, a přes sjednocování komponent hlídá, aby nevznikaly cykly.</li>
+            <li><strong>Borůvkův-Sollinův algoritmus:</strong> Každá komponenta si vybírá svou nejlevnější incidentní hranu a komponenty se paralelně spojují, dokud nezůstane jedna.</li>
+            <li><strong>Prohledávání do šířky (BFS):</strong> Vrstevnatý průchod grafem – nejprve všechny sousedy, pak sousedy sousedů. Používáme frontu.</li>
+            <li><strong>Prohledávání do hloubky (DFS):</strong> Vždy pokračujeme co nejdál, dokud nenarazíme na slepou větev, pak se vracíme. Používáme zásobník (nebo rekurzi).</li>
+        </ul>
+    `;
+    output.appendChild(theorySection);
+
     // Populate explore datalist
     const exploreDatalist = document.getElementById('nodes-datalist-explore');
     if (exploreDatalist) {
@@ -3796,16 +3853,32 @@ document.getElementById('parseBtn').addEventListener('click', () => {
         const graph = new Graph();
         graph.parse(document.getElementById('graphInput').value);
         const mst = graph.minimumSpanningTree();
+        const maxTree = graph.maximumSpanningTree();
         const count = graph.countSpanningTrees();
 
         let html = `<h4>Výsledky analýzy kostry grafu:</h4>`;
         html += `<p>Počet koster: ${count}</p>`;
-        html += `<p>Minimální kostra (váha: ${mst.totalWeight}):</p>`;
-        html += '<ul>';
-        mst.tree.forEach(edge => {
-            html += `<li>${edge.u} - ${edge.v} (váha: ${edge.weight})</li>`;
-        });
-        html += '</ul>';
+
+        const renderTreeList = (title, treeData) => {
+            if (!treeData.tree.length) {
+                return `<p><strong>${title}:</strong> Nelze sestavit – graf není souvislý.</p>`;
+            }
+            let block = `<div style="margin-top: 0.75rem;"><strong>${title} (váha: ${treeData.totalWeight})</strong><ul>`;
+            treeData.tree.forEach(edge => {
+                const w = edge.weight !== null && edge.weight !== undefined ? edge.weight : 1;
+                block += `<li>${edge.u} - ${edge.v} (váha: ${w})</li>`;
+            });
+            block += '</ul></div>';
+            return block;
+        };
+
+        html += renderTreeList('Minimální kostra (Jarník-Prim-Dijkstra)', mst);
+        html += renderTreeList('Maximální kostra (obrácená heuristika)', maxTree);
+        html += `<p style="margin-top: 0.75rem; font-size: 0.9rem; color: #084298;">
+            Minimální kostru počítáme variantou Jarníkova-Primova algoritmu – začínáme v jednom uzlu a přidáváme nejlevnější hranu, která graf drží souvislý.
+            Maximální kostra využívá stejný princip, ale hrany bereme od nejtěžších k nejlehčím, takže dostaneme nejdražší možnou kostru.
+            Celkový počet koster získáváme pomocí Laplaceovy matice a věty o matici stromů.
+        </p>`;
 
         const spanningTreeResult = document.getElementById('spanningTreeResult');
         spanningTreeResult.innerHTML = html;

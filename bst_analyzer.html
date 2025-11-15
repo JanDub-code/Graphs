@@ -337,6 +337,25 @@
             </button>
         </div>
 
+        <div class="card" id="treeTheoryCard">
+            <h2>📘 Teoretický přehled pojmů</h2>
+            <p style="color: #bbdefb;">
+                Potřebujete si rychle připomenout rozdíly mezi jednotlivými typy stromů a průchody?
+                Tady je stručný slovník používaný napříč aplikací.
+            </p>
+            <ul style="line-height: 1.8; padding-left: 1.25rem; color: #e3f2fd;">
+                <li><strong>Strom:</strong> Souvislý acyklický graf – mezi libovolnými dvěma uzly vede právě jedna cesta.</li>
+                <li><strong>Binární strom:</strong> Každý uzel může mít nanejvýš dva potomky (levý a pravý). V režimu „Binary Tree“ zapisujeme strom po vrstvách.</li>
+                <li><strong>Binární vyhledávací strom (BST):</strong> Binární strom s podmínkou, že levý podstrom obsahuje menší hodnoty a pravý podstrom větší – díky tomu lze rychle hledat.</li>
+                <li><strong>Level-order:</strong> Průchod po úrovních (BFS) – hodí se pro vizualizaci a práci s úplnými stromy.</li>
+                <li><strong>Pre-order:</strong> Nejprve uzel, pak levý a pravý podstrom (DFS). Vhodné pro serializaci stromu.</li>
+                <li><strong>In-order:</strong> Levý podstrom → uzel → pravý podstrom. U BST vrací prvky seřazené.</li>
+                <li><strong>Post-order:</strong> Levý, pravý, teprve poté uzel. Používá se např. pro mazání stromu nebo generování postfixových výrazů.</li>
+                <li><strong>Prohledávání do hloubky (DFS):</strong> Základní rodina průchodů (pre/in/post-order), které vždy jdou co nejdál do jedné větve.</li>
+                <li><strong>Prohledávání do šířky (BFS):</strong> Stejný princip jako level-order – vrstvu po vrstvě, ideální pro měření vzdálenosti od kořene.</li>
+            </ul>
+        </div>
+
         <!-- BST MODE -->
         <div id="bstMode">
             <div class="card">

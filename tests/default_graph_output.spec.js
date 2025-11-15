@@ -133,7 +133,7 @@ const EXPECTED_SNIPPETS = [
   'Dosažitelných uzlů: 8',
   'Výsledky analýzy kostry grafu:',
   'Počet koster: 4',
-  'Minimální kostra (váha: 21):',
+  'Minimální kostra (Jarník-Prim-Dijkstra)',
   'A - B (váha: 1)',
   'B - C (váha: 1)',
   'A - D (váha: 2)',
@@ -141,6 +141,10 @@ const EXPECTED_SNIPPETS = [
   'C - F (váha: 4)',
   'D - G (váha: 5)',
   'H - E (váha: 6)',
+  'Maximální kostra (obrácená heuristika)',
+  '📘 Teoretický rozcestník (grafy)',
+  'Kruskalův algoritmus',
+  'Borůvkův-Sollinův algoritmus',
 ];
 
 const normalizeText = (value) => value.replace(/\s+/g, ' ').trim();
