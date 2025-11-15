@@ -2204,6 +2204,319 @@ class Graph {
         return bestPath;
     }
 
+    _buildCapacityMatrixForFlows() {
+        if (!this.nodes.length) return null;
+        const data = this._buildDirectedGraph(true);
+        const n = this.nodes.length;
+        const capacity = Array.from({ length: n }, () => Array(n).fill(0));
+        data.edges.forEach(edge => {
+            capacity[edge.from][edge.to] += edge.weight;
+        });
+        return { capacity, idx: data.idx };
+    }
+
+    _flowEdgesFrom(capacity, residual) {
+        const edges = [];
+        const n = capacity.length;
+        const EPS = 1e-9;
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                const cap = capacity[i][j];
+                if (cap <= EPS) continue;
+                const flow = cap - residual[i][j];
+                if (flow > EPS) {
+                    edges.push({
+                        from: this.nodes[i],
+                        to: this.nodes[j],
+                        flow,
+                        capacity: cap,
+                        utilization: cap ? flow / cap : 0
+                    });
+                }
+            }
+        }
+        edges.sort((a, b) => b.flow - a.flow);
+        return edges;
+    }
+
+    _capacitySummary(capacity, sourceIdx, sinkIdx) {
+        const outFromSource = capacity[sourceIdx].reduce((a, b) => a + b, 0);
+        let intoSink = 0;
+        for (let i = 0; i < capacity.length; i++) {
+            intoSink += capacity[i][sinkIdx];
+        }
+        return { outFromSource, intoSink };
+    }
+
+    _deriveMinCut(capacity, residual, sourceIdx) {
+        const n = capacity.length;
+        const visited = Array(n).fill(false);
+        const stack = [sourceIdx];
+        const EPS = 1e-9;
+        while (stack.length) {
+            const u = stack.pop();
+            if (visited[u]) continue;
+            visited[u] = true;
+            for (let v = 0; v < n; v++) {
+                if (visited[v]) continue;
+                if (residual[u][v] > EPS) {
+                    stack.push(v);
+                }
+            }
+        }
+        const S = [];
+        const T = [];
+        const edges = [];
+        for (let i = 0; i < n; i++) {
+            if (visited[i]) S.push(this.nodes[i]);
+            else T.push(this.nodes[i]);
+            for (let j = 0; j < n; j++) {
+                if (visited[i] && !visited[j] && capacity[i][j] > EPS) {
+                    edges.push({
+                        from: this.nodes[i],
+                        to: this.nodes[j],
+                        capacity: capacity[i][j]
+                    });
+                }
+            }
+        }
+        const value = edges.reduce((acc, e) => acc + e.capacity, 0);
+        return { value, S, T, edges };
+    }
+
+    _augmentingPathMaxFlow(baseCapacity, sourceIdx, sinkIdx, useBfs) {
+        const n = baseCapacity.length;
+        const capacity = baseCapacity.map(row => row.slice());
+        const residual = capacity.map(row => row.slice());
+        const parent = Array(n).fill(-1);
+        const augmentingPaths = [];
+        const EPS = 1e-9;
+        const findPath = () => {
+            parent.fill(-1);
+            parent[sourceIdx] = sourceIdx;
+            if (useBfs) {
+                const queue = [sourceIdx];
+                while (queue.length) {
+                    const u = queue.shift();
+                    for (let v = 0; v < n; v++) {
+                        if (parent[v] !== -1) continue;
+                        if (residual[u][v] <= EPS) continue;
+                        parent[v] = u;
+                        if (v === sinkIdx) return true;
+                        queue.push(v);
+                    }
+                }
+            } else {
+                const stack = [sourceIdx];
+                while (stack.length) {
+                    const u = stack.pop();
+                    for (let v = 0; v < n; v++) {
+                        if (parent[v] !== -1) continue;
+                        if (residual[u][v] <= EPS) continue;
+                        parent[v] = u;
+                        if (v === sinkIdx) return true;
+                        stack.push(v);
+                    }
+                }
+            }
+            return false;
+        };
+        let maxFlow = 0;
+        let iterations = 0;
+        while (findPath()) {
+            iterations++;
+            let pathFlow = Infinity;
+            let v = sinkIdx;
+            const pathNodes = [];
+            while (v !== sourceIdx) {
+                const u = parent[v];
+                pathFlow = Math.min(pathFlow, residual[u][v]);
+                pathNodes.push(this.nodes[v]);
+                v = u;
+            }
+            pathNodes.push(this.nodes[sourceIdx]);
+            pathNodes.reverse();
+            augmentingPaths.push({
+                path: pathNodes,
+                bottleneck: pathFlow
+            });
+            v = sinkIdx;
+            while (v !== sourceIdx) {
+                const u = parent[v];
+                residual[u][v] -= pathFlow;
+                residual[v][u] += pathFlow;
+                v = u;
+            }
+            maxFlow += pathFlow;
+            if (iterations > 10000) break;
+        }
+        const minCut = this._deriveMinCut(capacity, residual, sourceIdx);
+        return {
+            maxFlow,
+            augmentingPaths,
+            iterations,
+            minCut,
+            flowEdges: this._flowEdgesFrom(capacity, residual),
+            residual
+        };
+    }
+
+    _pushRelabelMaxFlow(baseCapacity, sourceIdx, sinkIdx) {
+        const n = baseCapacity.length;
+        const capacity = baseCapacity.map(row => row.slice());
+        const flow = Array.from({ length: n }, () => Array(n).fill(0));
+        const height = Array(n).fill(0);
+        const excess = Array(n).fill(0);
+        const neighborSets = Array.from({ length: n }, () => new Set());
+        for (let u = 0; u < n; u++) {
+            for (let v = 0; v < n; v++) {
+                if (capacity[u][v] > 0 || capacity[v][u] > 0) {
+                    neighborSets[u].add(v);
+                }
+            }
+        }
+        const neighbors = neighborSets.map(set => Array.from(set));
+        height[sourceIdx] = n;
+        for (let v = 0; v < n; v++) {
+            if (capacity[sourceIdx][v] > 0) {
+                const cap = capacity[sourceIdx][v];
+                flow[sourceIdx][v] = cap;
+                flow[v][sourceIdx] = -cap;
+                excess[v] += cap;
+                excess[sourceIdx] -= cap;
+            }
+        }
+        const nodes = [];
+        for (let i = 0; i < n; i++) {
+            if (i !== sourceIdx && i !== sinkIdx) nodes.push(i);
+        }
+        const seen = Array(n).fill(0);
+        let relabelCount = 0;
+        let pushCount = 0;
+        const residualCapacity = (u, v) => capacity[u][v] - flow[u][v];
+        const push = (u, v) => {
+            const send = Math.min(excess[u], residualCapacity(u, v));
+            if (send <= 0) return false;
+            flow[u][v] += send;
+            flow[v][u] -= send;
+            excess[u] -= send;
+            excess[v] += send;
+            pushCount++;
+            return true;
+        };
+        const relabel = (u) => {
+            let minHeight = Infinity;
+            neighbors[u].forEach(v => {
+                if (residualCapacity(u, v) > 1e-9) {
+                    minHeight = Math.min(minHeight, height[v]);
+                }
+            });
+            if (minHeight < Infinity) {
+                height[u] = minHeight + 1;
+            } else {
+                height[u] = Infinity;
+            }
+            relabelCount++;
+        };
+        let p = 0;
+        while (p < nodes.length) {
+            const u = nodes[p];
+            const oldHeight = height[u];
+            while (excess[u] > 1e-9) {
+                const neighborList = neighbors[u];
+                if (!neighborList.length) break;
+                if (seen[u] >= neighborList.length) {
+                    relabel(u);
+                    seen[u] = 0;
+                    continue;
+                }
+                const v = neighborList[seen[u]];
+                if (residualCapacity(u, v) > 1e-9 && height[u] === height[v] + 1) {
+                    push(u, v);
+                } else {
+                    seen[u]++;
+                }
+            }
+            if (height[u] > oldHeight) {
+                nodes.splice(0, 0, nodes.splice(p, 1)[0]);
+                p = 0;
+            } else {
+                p++;
+            }
+        }
+        const maxFlow = Math.max(0, excess[sinkIdx]);
+        const residual = Array.from({ length: n }, () => Array(n).fill(0));
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                residual[i][j] = capacity[i][j] - flow[i][j];
+            }
+        }
+        const minCut = this._deriveMinCut(capacity, residual, sourceIdx);
+        const flowEdges = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                if (capacity[i][j] > 0) {
+                    const val = Math.max(0, flow[i][j]);
+                    if (val > 1e-9) {
+                        flowEdges.push({
+                            from: this.nodes[i],
+                            to: this.nodes[j],
+                            flow: val,
+                            capacity: capacity[i][j],
+                            utilization: capacity[i][j] ? val / capacity[i][j] : 0
+                        });
+                    }
+                }
+            }
+        }
+        flowEdges.sort((a, b) => b.flow - a.flow);
+        const heightProfile = this.nodes.map((node, idx) => ({
+            node,
+            height: height[idx]
+        }));
+        return {
+            maxFlow,
+            relabelCount,
+            pushCount,
+            heightProfile,
+            minCut,
+            flowEdges,
+            residual
+        };
+    }
+
+    flowNetworkAnalysis(sourceNode, sinkNode) {
+        const structures = this._buildCapacityMatrixForFlows();
+        if (!structures) {
+            return { error: 'Graf neobsahuje žádnou síť pro výpočet toku.' };
+        }
+        const { capacity, idx } = structures;
+        if (!(sourceNode in idx) || !(sinkNode in idx)) {
+            return { error: 'Zadejte prosím existující uzly jako zdroj (s) i cíl (t).' };
+        }
+        const sourceIdx = idx[sourceNode];
+        const sinkIdx = idx[sinkNode];
+        if (sourceIdx === sinkIdx) {
+            return { error: 'Zdroj a cíl musí být různé uzly.' };
+        }
+        const copyMatrix = () => capacity.map(row => row.slice());
+        const ford = this._augmentingPathMaxFlow(copyMatrix(), sourceIdx, sinkIdx, false);
+        const edmonds = this._augmentingPathMaxFlow(copyMatrix(), sourceIdx, sinkIdx, true);
+        const goldberg = this._pushRelabelMaxFlow(copyMatrix(), sourceIdx, sinkIdx);
+        const bestFlow = Math.max(ford.maxFlow || 0, edmonds.maxFlow || 0, goldberg.maxFlow || 0);
+        const representativeCut = edmonds.minCut || ford.minCut || goldberg.minCut;
+        return {
+            source: sourceNode,
+            sink: sinkNode,
+            fordFulkerson: ford,
+            edmondsKarp: edmonds,
+            goldberg,
+            bestFlow,
+            minCut: representativeCut,
+            capacitySummary: this._capacitySummary(capacity, sourceIdx, sinkIdx)
+        };
+    }
+
     dfsTraversal(startNode) {
         const result = [];
         const visited = new Set();
@@ -4278,6 +4591,32 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     cpmSection.appendChild(cpmResult);
     output.appendChild(cpmSection);
 
+    // Network flow section
+    const flowSection = document.createElement('div');
+    flowSection.id = 'flowSection';
+    flowSection.className = 'section';
+    flowSection.innerHTML = '<h2>Síťové toky (maximální tok & minimální řez)</h2>';
+    const flowIntro = document.createElement('p');
+    flowIntro.style.color = '#495057';
+    flowIntro.innerHTML = 'Pro orientovaný graf můžeme vytvořit <strong>síť</strong>: hrany chápeme jako kapacity a hledáme maximální tok ze zdroje <em>s</em> do cíle <em>t</em>. Fordův-Fulkersonův a Edmondsův-Karpův algoritmus využívají zlepšující polocesty, Goldbergův algoritmus (push-relabel) pracuje s výškami uzlů.';
+    flowSection.appendChild(flowIntro);
+    const flowInputs = document.createElement('div');
+    flowInputs.className = 'query-inputs';
+    flowInputs.innerHTML = `
+        <input id="flowSource" list="nodes-datalist-flow" placeholder="Zdroj (s)">
+        <input id="flowSink" list="nodes-datalist-flow" placeholder="Cíl (t)">
+        <button id="runFlowAnalysis">Analyzovat tok v síti</button>
+    `;
+    flowSection.appendChild(flowInputs);
+    const flowDatalist = document.createElement('datalist');
+    flowDatalist.id = 'nodes-datalist-flow';
+    flowSection.appendChild(flowDatalist);
+    const flowResult = document.createElement('div');
+    flowResult.id = 'flowResult';
+    flowResult.style.display = 'none';
+    flowSection.appendChild(flowResult);
+    output.appendChild(flowSection);
+
     const theorySection = document.createElement('div');
     theorySection.id = 'graphTheoryGuide';
     theorySection.className = 'section';
@@ -4294,6 +4633,11 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             <li><strong>Borůvkův-Sollinův algoritmus:</strong> Každá komponenta si vybírá svou nejlevnější incidentní hranu a komponenty se paralelně spojují, dokud nezůstane jedna.</li>
             <li><strong>Prohledávání do šířky (BFS):</strong> Vrstevnatý průchod grafem – nejprve všechny sousedy, pak sousedy sousedů. Používáme frontu.</li>
             <li><strong>Prohledávání do hloubky (DFS):</strong> Vždy pokračujeme co nejdál, dokud nenarazíme na slepou větev, pak se vracíme. Používáme zásobník (nebo rekurzi).</li>
+            <li><strong>Tok v síti:</strong> Orientovaný graf s kapacitami hran (síť) a dvěma speciálními uzly <em>s</em> (zdroj) a <em>t</em> (cíl). Hledáme maximální tok, který respektuje kapacitní omezení i rovnováhu v uzlech.</li>
+            <li><strong>Rezervní kapacita cesty:</strong> Nejmenší z kapacit (resp. reziduálních kapacit) podél vybrané cesty. Udává, o kolik lze zvýšit tok po zlepšující polocestě.</li>
+            <li><strong>Zlepšující polocesta:</strong> Cesta v reziduální síti se zápasem od <em>s</em> do <em>t</em>, která má kladnou rezervní kapacitu – umožňuje zvýšit celkový tok.</li>
+            <li><strong>Fordův-Fulkersonův / Edmondsův-Karpův algoritmus:</strong> Hledají zlepšující polocesty (DFS resp. BFS) a iterativně zvětšují tok. Edmondsův-Karp garantuje polynomiální čas.</li>
+            <li><strong>Goldbergův algoritmus (push-relabel):</strong> Udržuje výšku (label) uzlů, přeposílá přebytky (push) a dynamicky přeladí výšky tak, aby byl nalezen maximální tok i minimální řez.</li>
         </ul>
     `;
     output.appendChild(theorySection);
@@ -4301,6 +4645,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     // Populate explore datalist
     const exploreDatalist = document.getElementById('nodes-datalist-explore');
     const optimalDatalistEl = document.getElementById('nodes-datalist-optimal');
+    const flowDatalistEl = document.getElementById('nodes-datalist-flow');
     const fillDatalist = (listEl) => {
         if (!listEl) return;
         listEl.innerHTML = '';
@@ -4312,6 +4657,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     };
     fillDatalist(exploreDatalist);
     fillDatalist(optimalDatalistEl);
+    fillDatalist(flowDatalistEl);
 
     const optimalButton = document.getElementById('runOptimalPaths');
     if (optimalButton) {
@@ -4439,6 +4785,101 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             html += '<p style="font-size:0.9rem; color:#495057; margin-top:0.5rem;">Rezerva činnosti (float) = LS − ES. Činnosti s nulovou rezervou tvoří kritickou cestu (CPM).</p>';
             cpmDiv.innerHTML = html;
             cpmDiv.style.display = 'block';
+        });
+    }
+
+    const flowButton = document.getElementById('runFlowAnalysis');
+    if (flowButton) {
+        flowButton.addEventListener('click', () => {
+            const source = document.getElementById('flowSource').value.trim();
+            const sink = document.getElementById('flowSink').value.trim();
+            const flowDiv = document.getElementById('flowResult');
+            if (!flowDiv) return;
+            if (!source || !sink) {
+                flowDiv.innerHTML = '<p style="color:#dc3545;">Zadejte prosím zdroj <em>s</em> i cíl <em>t</em>.</p>';
+                flowDiv.style.display = 'block';
+                return;
+            }
+            const analysis = graph.flowNetworkAnalysis(source, sink);
+            if (!analysis || analysis.error) {
+                flowDiv.innerHTML = `<p style="color:#dc3545;">${analysis && analysis.error ? analysis.error : 'Analýza toku se nezdařila.'}</p>`;
+                flowDiv.style.display = 'block';
+                return;
+            }
+            const formatNum = (val) => {
+                if (!Number.isFinite(val)) return '0';
+                const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
+                return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+            };
+            const formatEdges = (edges) => {
+                if (!edges || !edges.length) return '<p>Tok není vedený žádnou hranou.</p>';
+                const rows = edges.slice(0, 6).map(edge => {
+                    const utilRatio = (edge.utilization !== undefined && edge.utilization !== null)
+                        ? edge.utilization
+                        : (edge.capacity > 0 ? edge.flow / edge.capacity : 0);
+                    const utilPercent = Number.isFinite(utilRatio) ? Math.min(100, Math.max(0, utilRatio * 100)) : 0;
+                    return `<li>${edge.from} → ${edge.to}: ${formatNum(edge.flow)} / ${formatNum(edge.capacity)} (využití ${utilPercent.toFixed(1)} %)</li>`;
+                }).join('');
+                return `<ul>${rows}</ul>`;
+            };
+            const formatAugPaths = (paths) => {
+                if (!paths || !paths.length) return '<li>Žádná zlepšující polocesta nebyla nalezena.</li>';
+                return paths.slice(0, 5).map((p, idx) =>
+                    `<li>${idx + 1}. ${p.path.join(' → ')} (rezervní kapacita cesty: ${formatNum(p.bottleneck)})</li>`
+                ).join('');
+            };
+            const minCut = analysis.minCut || { value: 0, S: [], T: [], edges: [] };
+            const cutEdges = (minCut.edges || []).slice(0, 6).map(edge => `${edge.from} → ${edge.to} (${formatNum(edge.capacity)})`).join(', ') || '—';
+            const capacityInfo = analysis.capacitySummary || { outFromSource: 0, intoSink: 0 };
+            const buildAlgorithmBox = (title, data, extraInfo = '') => {
+                if (!data) return '';
+                const pathList = data.augmentingPaths
+                    ? `<div style="margin-top:0.5rem;"><strong>Zlepšující polocesty:</strong><ul>${formatAugPaths(data.augmentingPaths)}</ul></div>`
+                    : '<p style="margin-top:0.5rem; font-size:0.9rem; color:#6c757d;">Push-relabel varianta nepracuje s explicitními polocestami, ale s přebytky a výškami uzlů.</p>';
+                const extraStats = [];
+                if (typeof data.iterations === 'number') {
+                    extraStats.push(`<div>Počet polocest: ${data.iterations}</div>`);
+                }
+                if (typeof data.relabelCount === 'number') {
+                    extraStats.push(`<div>Relabel operace: ${data.relabelCount}</div>`);
+                }
+                if (typeof data.pushCount === 'number') {
+                    extraStats.push(`<div>Push operace: ${data.pushCount}</div>`);
+                }
+                if (data.heightProfile) {
+                    const interesting = data.heightProfile
+                        .filter(h => Number.isFinite(h.height))
+                        .sort((a, b) => b.height - a.height)
+                        .slice(0, 3)
+                        .map(item => `${item.node}: ${item.height}`);
+                    if (interesting.length) {
+                        extraStats.push(`<div>Výšky (Goldberg): ${interesting.join(', ')}</div>`);
+                    }
+                }
+                return `<div class="result-box">
+                    <div class="result-label">${title}</div>
+                    <div><strong>Maximální tok:</strong> ${formatNum(data.maxFlow || 0)}</div>
+                    ${extraInfo ? `<div>${extraInfo}</div>` : ''}
+                    ${extraStats.join('')}
+                    <div style="margin-top:0.5rem;"><strong>Toky hran:</strong>${formatEdges(data.flowEdges || [])}</div>
+                    ${pathList}
+                </div>`;
+            };
+            let html = `<div class="result-box">
+                <div class="result-label">Souhrn sítě</div>
+                <p><strong>Tok v síti:</strong> nejlepší dosažený maximální tok je ${formatNum(analysis.bestFlow || 0)} jednotek.</p>
+                <p><strong>Kapacita ze zdroje:</strong> ${formatNum(capacityInfo.outFromSource || 0)} | <strong>Kapacita do cíle:</strong> ${formatNum(capacityInfo.intoSink || 0)}</p>
+                <p><strong>Minimální řez:</strong> ${formatNum(minCut.value || 0)} (S = {${minCut.S.join(', ')}}, T = {${minCut.T.join(', ')}})</p>
+                <p><strong>Hrany řezu:</strong> ${cutEdges}</p>
+            </div>`;
+            html += '<div class="optimal-grid">';
+            html += buildAlgorithmBox('Fordův-Fulkersonův algoritmus (DFS polocesty)', analysis.fordFulkerson, 'Zlepšující polocesty hledáme do hloubky.');
+            html += buildAlgorithmBox('Edmondsův-Karpův algoritmus (BFS polocesty)', analysis.edmondsKarp, 'Polocesty jsou nejkratší podle počtu hran, proto se tok stabilizuje rychleji.');
+            html += buildAlgorithmBox('Goldbergův algoritmus (push-relabel)', analysis.goldberg, '');
+            html += '</div>';
+            html += '<p style="font-size:0.9rem; color:#495057; margin-top:0.5rem;">Rezervní kapacita cesty = minimum reziduálních kapacit na zlepšující polocestě. Jakmile žádná taková polocesta neexistuje, aktuální tok je maximální a odpovídá minimálnímu řezu.</p>';
+            flowDiv.innerHTML = html;
+            flowDiv.style.display = 'block';
         });
     }
 

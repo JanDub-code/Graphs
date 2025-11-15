@@ -274,6 +274,15 @@
             margin-bottom: 0.5rem;
         }
 
+        .scrollable-panel {
+            max-height: 320px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -463,6 +472,26 @@ u *;</textarea>
             <h2>🔍 Výsledek vyhledávání</h2>
             <div id="searchResult"></div>
         </div>
+
+        <div id="cpmCard" class="card hidden">
+            <h2>🕒 Síťový graf & CPM pro stromy</h2>
+            <p style="color: #bbdefb;">
+                Strom je orientovaný acyklický graf – proto můžeme jeho hrany chápat jako činnosti v síti (zdroj = kořen, cíle = listy)
+                a spočítat kritickou cestu pomocí metody CPM.
+            </p>
+            <div class="input-group">
+                <input type="number" id="defaultEdgeDuration" value="1" min="0" step="0.1"
+                       placeholder="Výchozí délka hrany (např. 1)">
+                <input type="text" id="customDurations"
+                       placeholder="Volitelné délky: A=3, B=2, C=1.5">
+                <button onclick="runTreeCpm()">Analyzovat CPM / síť</button>
+            </div>
+            <p style="color: #bbdefb; font-size: 0.9rem; margin-bottom: 1rem;">
+                Pokud uzly obsahují čísla, jejich absolutní hodnota se použije jako délka činnosti (jinak výchozí hodnota).
+                Do pole s vlastními délkami zadejte dvojice ve tvaru <code>Uzel=Číslo</code>, oddělené čárkou nebo středníkem.
+            </p>
+            <div id="cpmResult"></div>
+        </div>
     </div>
 
     <script>
@@ -512,6 +541,8 @@ u *;</textarea>
             document.getElementById('methodsCard').classList.add('hidden');
             document.getElementById('advancedStatsCard').classList.add('hidden');
             document.getElementById('searchResultCard').classList.add('hidden');
+            document.getElementById('cpmCard').classList.add('hidden');
+            document.getElementById('cpmResult').innerHTML = '';
             highlightedNodes.clear();
             searchPath = [];
         }
@@ -520,6 +551,7 @@ u *;</textarea>
             document.getElementById('statsCard').classList.remove('hidden');
             document.getElementById('vizCard').classList.remove('hidden');
             document.getElementById('traversalsCard').classList.remove('hidden');
+            document.getElementById('cpmCard').classList.remove('hidden');
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -1980,6 +2012,396 @@ u *;</textarea>
                 </div>
             `;
             document.getElementById('properties').innerHTML = propertiesHtml;
+        }
+
+        function parseDurationOverrides(text) {
+            const overrides = {};
+            if (!text) return overrides;
+            const parts = text.split(/[,;]+/);
+            parts.forEach(part => {
+                const cleaned = part.trim();
+                if (!cleaned) return;
+                const [key, value] = cleaned.split(/[:=]/);
+                if (!key || value === undefined) return;
+                const duration = parseFloat(value.replace(',', '.'));
+                if (!isNaN(duration)) {
+                    overrides[key.trim()] = Math.max(0, Math.abs(duration));
+                }
+            });
+            return overrides;
+        }
+
+        function inferDurationFromValue(rawValue, overrides, fallback) {
+            const key = rawValue !== undefined && rawValue !== null ? rawValue.toString() : '';
+            if (key && Object.prototype.hasOwnProperty.call(overrides, key)) {
+                return overrides[key];
+            }
+            const numeric = parseFloat(key.replace(',', '.'));
+            if (!isNaN(numeric)) {
+                return Math.max(0, Math.abs(numeric));
+            }
+            return Math.max(0, fallback);
+        }
+
+        function buildBstCpmStructure(resolveDuration) {
+            if (!bst.root) return null;
+            const nodes = [];
+            const nodeInfo = {};
+            const adj = {};
+            const edges = [];
+            const order = [];
+            const seenOrder = new Set();
+
+            const registerNode = (node) => {
+                if (!node) return null;
+                const id = `bst_${node.value}`;
+                if (!nodeInfo[id]) {
+                    nodeInfo[id] = { label: node.value.toString() };
+                    nodes.push({ id, label: nodeInfo[id].label });
+                }
+                if (!seenOrder.has(id)) {
+                    seenOrder.add(id);
+                    order.push(id);
+                }
+                return id;
+            };
+
+            const queue = [bst.root];
+            while (queue.length) {
+                const current = queue.shift();
+                if (!current) continue;
+                const fromId = registerNode(current);
+                const children = [current.left, current.right];
+                children.forEach(child => {
+                    if (!child) return;
+                    const toId = registerNode(child);
+                    queue.push(child);
+                    const duration = resolveDuration(child.value);
+                    const edge = {
+                        from: fromId,
+                        to: toId,
+                        duration,
+                        fromLabel: current.value.toString(),
+                        toLabel: child.value.toString()
+                    };
+                    edges.push(edge);
+                    (adj[fromId] = adj[fromId] || []).push(edge);
+                });
+            }
+
+            return {
+                nodes,
+                edges,
+                adj,
+                order,
+                nodeInfo,
+                rootId: `bst_${bst.root.value}`,
+                meta: {
+                    mode: 'bst',
+                    label: 'BST',
+                    totalNodes: nodes.length
+                }
+            };
+        }
+
+        function buildBinaryCpmStructure(resolveDuration) {
+            if (!binaryTree || !binaryTree.nodes.length || binaryTree.nodes[0] === '*') return null;
+            const nodes = [];
+            const nodeInfo = {};
+            const adj = {};
+            const edges = [];
+            const order = [];
+            const seenOrder = new Set();
+
+            const registerNode = (index) => {
+                const value = binaryTree.nodes[index];
+                const id = `bin_${index}`;
+                if (!nodeInfo[id]) {
+                    nodeInfo[id] = { label: value.toString(), index };
+                    nodes.push({ id, label: nodeInfo[id].label, index });
+                }
+                if (!seenOrder.has(id)) {
+                    seenOrder.add(id);
+                    order.push(id);
+                }
+                return id;
+            };
+
+            for (let i = 0; i < binaryTree.nodes.length; i++) {
+                const value = binaryTree.nodes[i];
+                if (value === '*') continue;
+                const fromId = registerNode(i);
+                const children = [2 * i + 1, 2 * i + 2];
+                children.forEach(childIdx => {
+                    if (childIdx >= binaryTree.nodes.length) return;
+                    const childValue = binaryTree.nodes[childIdx];
+                    if (childValue === '*') return;
+                    const toId = registerNode(childIdx);
+                    const duration = resolveDuration(childValue);
+                    const edge = {
+                        from: fromId,
+                        to: toId,
+                        duration,
+                        fromLabel: value.toString(),
+                        toLabel: childValue.toString()
+                    };
+                    edges.push(edge);
+                    (adj[fromId] = adj[fromId] || []).push(edge);
+                });
+            }
+
+            if (!nodes.length) return null;
+
+            return {
+                nodes,
+                edges,
+                adj,
+                order,
+                nodeInfo,
+                rootId: 'bin_0',
+                meta: {
+                    mode: 'binary',
+                    label: 'Binary Tree',
+                    totalNodes: nodes.length
+                }
+            };
+        }
+
+        function analyzeTreeCpm(structure) {
+            const EPS = 1e-6;
+            const earliest = {};
+            const latest = {};
+
+            structure.nodes.forEach(node => {
+                earliest[node.id] = 0;
+            });
+
+            structure.order.forEach(nodeId => {
+                const outgoing = structure.adj[nodeId] || [];
+                outgoing.forEach(edge => {
+                    const candidate = earliest[nodeId] + edge.duration;
+                    if (candidate > earliest[edge.to]) {
+                        earliest[edge.to] = candidate;
+                    }
+                });
+            });
+
+            const projectDuration = Math.max(0, ...Object.values(earliest));
+
+            structure.nodes.forEach(node => {
+                latest[node.id] = projectDuration;
+            });
+
+            for (let i = structure.order.length - 1; i >= 0; i--) {
+                const nodeId = structure.order[i];
+                const outgoing = structure.adj[nodeId] || [];
+                if (!outgoing.length) continue;
+                let minCandidate = Infinity;
+                outgoing.forEach(edge => {
+                    const candidate = latest[edge.to] - edge.duration;
+                    if (candidate < minCandidate) minCandidate = candidate;
+                });
+                if (minCandidate < Infinity) {
+                    latest[nodeId] = Math.min(latest[nodeId], minCandidate);
+                }
+            }
+
+            const nodeSummaries = structure.nodes.map(node => {
+                const earliestVal = earliest[node.id];
+                const latestVal = latest[node.id];
+                const slack = latestVal - earliestVal;
+                return {
+                    id: node.id,
+                    label: structure.nodeInfo[node.id].label,
+                    earliest: earliestVal,
+                    latest: latestVal,
+                    slack,
+                    isCritical: Math.abs(slack) < EPS
+                };
+            });
+
+            const activities = structure.edges.map(edge => {
+                const earlyStart = earliest[edge.from];
+                const earlyFinish = earlyStart + edge.duration;
+                const lateFinish = latest[edge.to];
+                const lateStart = lateFinish - edge.duration;
+                const slack = lateStart - earlyStart;
+                return {
+                    fromId: edge.from,
+                    toId: edge.to,
+                    fromLabel: edge.fromLabel,
+                    toLabel: edge.toLabel,
+                    duration: edge.duration,
+                    earlyStart,
+                    earlyFinish,
+                    lateStart,
+                    lateFinish,
+                    slack,
+                    isCritical: Math.abs(slack) < EPS
+                };
+            });
+
+            const criticalEdges = activities.filter(edge => edge.isCritical);
+            const criticalPath = [];
+            if (structure.rootId && structure.nodeInfo[structure.rootId]) {
+                const visited = new Set();
+                let current = structure.rootId;
+                while (current && !visited.has(current)) {
+                    visited.add(current);
+                    criticalPath.push(structure.nodeInfo[current].label);
+                    const next = criticalEdges.find(edge => edge.fromId === current);
+                    if (!next) break;
+                    current = next.toId;
+                }
+            }
+
+            const leafNames = structure.nodes
+                .filter(node => !(structure.adj[node.id] && structure.adj[node.id].length))
+                .map(node => structure.nodeInfo[node.id].label);
+
+            return {
+                projectDuration,
+                nodeSummaries,
+                activities,
+                criticalPath,
+                criticalEdgeCount: criticalEdges.length,
+                leaves: leafNames,
+                sources: structure.rootId && structure.nodeInfo[structure.rootId]
+                    ? [structure.nodeInfo[structure.rootId].label]
+                    : [],
+                nodeCount: structure.nodes.length,
+                edgeCount: structure.edges.length
+            };
+        }
+
+        function runTreeCpm() {
+            const cpmDiv = document.getElementById('cpmResult');
+            const durationInputEl = document.getElementById('defaultEdgeDuration');
+            const rawDefault = durationInputEl ? durationInputEl.value : '1';
+            const defaultInput = parseFloat((rawDefault || '1').replace(',', '.'));
+            const fallback = Number.isFinite(defaultInput) && defaultInput >= 0 ? defaultInput : 1;
+            const overrides = parseDurationOverrides(document.getElementById('customDurations').value);
+            const resolver = (value) => inferDurationFromValue(value, overrides, fallback);
+            const structure = currentMode === 'binary'
+                ? buildBinaryCpmStructure(resolver)
+                : buildBstCpmStructure(resolver);
+
+            if (!structure) {
+                cpmDiv.innerHTML = `
+                    <div class="result-box">
+                        <div class="result-label">⚠️ Nelze vytvořit síť</div>
+                        <div>Nejdříve prosím vytvořte nebo načtěte strom (BST či Binary Tree).</div>
+                    </div>
+                `;
+                document.getElementById('cpmCard').classList.remove('hidden');
+                return;
+            }
+
+            const analysis = analyzeTreeCpm(structure);
+            const formatNumber = (value) => {
+                if (!Number.isFinite(value)) return '—';
+                const rounded = Math.round((value + Number.EPSILON) * 100) / 100;
+                return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+            };
+
+            let html = `
+                <div class="result-box">
+                    <div class="result-label">Shrnutí CPM & sítě (${structure.meta.label})</div>
+                    <div style="line-height: 1.8;">
+                        <strong>Uzly sítě:</strong> ${analysis.nodeCount}<br>
+                        <strong>Činnosti (hrany):</strong> ${analysis.edgeCount}<br>
+                        <strong>Listy (cíle):</strong> ${analysis.leaves.length ? analysis.leaves.join(', ') : '—'}<br>
+                        <strong>Kritická cesta:</strong> ${analysis.criticalPath.length ? analysis.criticalPath.join(' → ') : 'Nenalezena'}<br>
+                        <strong>Délka projektu:</strong> ${formatNumber(analysis.projectDuration)}<br>
+                        <strong>Počet kritických činností:</strong> ${analysis.criticalEdgeCount}
+                    </div>
+                </div>
+            `;
+
+            html += `
+                <div class="scrollable-panel">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:0.25rem;">Uzel</th>
+                                <th style="text-align:right; padding:0.25rem;">ES</th>
+                                <th style="text-align:right; padding:0.25rem;">LS</th>
+                                <th style="text-align:right; padding:0.25rem;">Rezerva</th>
+                                <th style="text-align:center; padding:0.25rem;">Kritický?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analysis.nodeSummaries.map(node => `
+                                <tr>
+                                    <td style="padding:0.25rem;">${node.label}</td>
+                                    <td style="padding:0.25rem; text-align:right;">${formatNumber(node.earliest)}</td>
+                                    <td style="padding:0.25rem; text-align:right;">${formatNumber(node.latest)}</td>
+                                    <td style="padding:0.25rem; text-align:right;">${formatNumber(node.slack)}</td>
+                                    <td style="padding:0.25rem; text-align:center;">${node.isCritical ? '✅' : '—'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            if (analysis.activities.length) {
+                html += `
+                    <div class="scrollable-panel">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:0.25rem;">Aktivita</th>
+                                    <th style="text-align:right; padding:0.25rem;">Délka</th>
+                                    <th style="text-align:right; padding:0.25rem;">ES</th>
+                                    <th style="text-align:right; padding:0.25rem;">EF</th>
+                                    <th style="text-align:right; padding:0.25rem;">LS</th>
+                                    <th style="text-align:right; padding:0.25rem;">LF</th>
+                                    <th style="text-align:right; padding:0.25rem;">Rezerva</th>
+                                    <th style="text-align:center; padding:0.25rem;">Kritická?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${analysis.activities.map(act => `
+                                    <tr>
+                                        <td style="padding:0.25rem;">${act.fromLabel} → ${act.toLabel}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.duration)}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.earlyStart)}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.earlyFinish)}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.lateStart)}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.lateFinish)}</td>
+                                        <td style="padding:0.25rem; text-align:right;">${formatNumber(act.slack)}</td>
+                                        <td style="padding:0.25rem; text-align:center;">${act.isCritical ? '🔥' : '—'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="result-box" style="margin-top: 1rem;">
+                        Strom obsahuje pouze kořen – síť proto neobsahuje žádné činnosti.
+                    </div>
+                `;
+            }
+
+            html += `
+                <p style="color:#bbdefb; font-size:0.9rem; margin-top:0.5rem;">
+                    Tip: kritická cesta je zvýrazněna i ve vizualizaci stromu. Vlastní délky zadávejte podle identifikátoru uzlu.
+                </p>
+            `;
+
+            cpmDiv.innerHTML = html;
+
+            if (analysis.criticalPath.length) {
+                highlightedNodes = new Set(analysis.criticalPath);
+                if (currentMode === 'bst') {
+                    visualizeBST();
+                } else if (binaryTree) {
+                    visualizeBinaryTree();
+                }
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════

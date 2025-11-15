@@ -55,8 +55,36 @@ test.describe('Graph Analyzer New Features', () => {
     await expect(page.locator('#spanningTreeResult')).toBeVisible();
     await expect(page.locator('#spanningTreeResult')).toContainText('Výsledky analýzy kostry grafu:');
     await expect(page.locator('#spanningTreeResult')).toContainText('Počet koster: 3');
-    await expect(page.locator('#spanningTreeResult')).toContainText('Minimální kostra (váha: 3):');
+    await expect(page.locator('#spanningTreeResult')).toContainText('Minimální kostra (Jarník-Prim-Dijkstra) (váha: 3)');
     await expect(page.locator('#spanningTreeResult')).toContainText('A - B (váha: 1)');
     await expect(page.locator('#spanningTreeResult')).toContainText('B - C (váha: 2)');
+  });
+
+  test('should analyze network flow with max flow and min cut', async ({ page }) => {
+    const networkInput = `
+u s; u a; u b; u t;
+h s > a 10;
+h s > b 5;
+h a > b 15;
+h a > t 10;
+h b > t 10;
+`;
+    await page.fill('#graphInput', networkInput);
+    await page.click('#parseBtn');
+
+    await expect(page.locator('#flowSection')).toBeVisible();
+
+    await page.fill('#flowSource', 's');
+    await page.fill('#flowSink', 't');
+    await page.click('#runFlowAnalysis');
+
+    const flowResult = page.locator('#flowResult');
+    await expect(flowResult).toBeVisible();
+    await expect(flowResult).toContainText('Tok v síti: nejlepší dosažený maximální tok je 15');
+    await expect(flowResult).toContainText('Fordův-Fulkersonův algoritmus');
+    await expect(flowResult).toContainText('Edmondsův-Karpův algoritmus');
+    await expect(flowResult).toContainText('Goldbergův algoritmus');
+    await expect(flowResult).toContainText('Minimální řez');
+    await expect(flowResult).toContainText('rezervní kapacita cesty');
   });
 });

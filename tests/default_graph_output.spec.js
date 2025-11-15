@@ -151,8 +151,7 @@ const EXPECTED_SNIPPETS = [
   'Nejbezpečnější cesta (maximalizace spolehlivosti)',
   'Nejširší cesta (max-min kapacita)',
   'Projektové plánování (síťový graf & CPM)',
-  'Shrnutí CPM',
-  'Síťový graf obsahuje cyklus',
+  'Síťový graf obsahuje cyklus – kritickou cestu lze hledat jen v acyklickém grafu.',
   'Kruskalův algoritmus',
   'Borůvkův-Sollinův algoritmus',
 ];
