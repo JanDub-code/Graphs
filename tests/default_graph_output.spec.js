@@ -143,6 +143,16 @@ const EXPECTED_SNIPPETS = [
   'H - E (váha: 6)',
   'Maximální kostra (obrácená heuristika)',
   '📘 Teoretický rozcestník (grafy)',
+  'Optimální cesty (nejkratší / nejdelší / nejbezpečnější / nejširší)',
+  'Nejkratší cesta (Dijkstrův algoritmus)',
+  'Moorův algoritmus (BFS)',
+  'Bellman-Fordův algoritmus',
+  'Nejdelší cesta',
+  'Nejbezpečnější cesta (maximalizace spolehlivosti)',
+  'Nejširší cesta (max-min kapacita)',
+  'Projektové plánování (síťový graf & CPM)',
+  'Shrnutí CPM',
+  'Síťový graf obsahuje cyklus',
   'Kruskalův algoritmus',
   'Borůvkův-Sollinův algoritmus',
 ];
@@ -164,6 +174,14 @@ test.describe('Graph Analyzer default sample regression', () => {
 
     await page.getByRole('button', { name: 'Analyzovat kostru grafu' }).click();
     await expect(page.locator('#spanningTreeResult')).toBeVisible();
+
+    await page.fill('#optimalStartNode', 'A');
+    await page.fill('#optimalEndNode', 'H');
+    await page.getByRole('button', { name: 'Analyzovat optimální cesty' }).click();
+    await expect(page.locator('#optimalPathsResult')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Analyzovat kritickou cestu (CPM)' }).click();
+    await expect(page.locator('#cpmResult')).toBeVisible();
 
     const pageText = await page.locator('body').innerText();
     const normalizedPageText = normalizeText(pageText);

@@ -1,0 +1,823 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - heading "Graph Analyzer" [level=1] [ref=e2]
+  - paragraph [ref=e3]:
+    - text: Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje pomocí řádku začínajícího
+    - code [ref=e4]: u
+    - text: a každá hrana pomocí řádku začínajícího
+    - code [ref=e5]: h
+    - text: . Orientace hrany se určuje šipkami
+    - code [ref=e6]: <
+    - text: ","
+    - code [ref=e7]: ">"
+    - text: nebo pomlčkou
+    - code [ref=e8]: "-"
+    - text: . Ohodnocení je volitelné.
+  - textbox [ref=e9]: u A; u B; h A > B 1 :h1; u C; h B > C 1 :h2; u D; h A > D 2 :h3; u E; h A < E 2 :h4; h B < E 3 :h5; h C > E 3 :h6; h D > E 4 :h8; u F; h C > F 4 :h7; h E > F 5 :h9; u G; h D < G 5 :h10; h E > G 6 :h11; u H; h H > E 6 :h12; h F > H 7 :h13; h G < H 7 :h14;
+  - button "Analyzovat graf" [ref=e10] [cursor=pointer]
+  - generic [ref=e11]:
+    - heading "📊 Základní statistiky" [level=3] [ref=e12]
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - strong [ref=e15]: "Počet uzlů:"
+        - text: "8"
+      - generic [ref=e16]:
+        - strong [ref=e17]: "Počet hran:"
+        - text: "14"
+      - generic [ref=e18]:
+        - strong [ref=e19]: "Počet komponent:"
+        - text: "1"
+    - generic [ref=e20]:
+      - text: 💡
+      - strong [ref=e21]: Komponenta
+      - text: = oddělená část grafu (1 komponenta = graf je souvislý)
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - heading "📊 Kompletní statistický přehled" [level=2] [ref=e24]
+      - button "Skrýt statistiky" [ref=e25] [cursor=pointer]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - heading "📈 Základní metriky" [level=3] [ref=e29]
+            - generic [ref=e30]:
+              - strong [ref=e31]: "Uzly:"
+              - text: "8"
+              - strong [ref=e32]: "Hrany:"
+              - text: "14"
+              - strong [ref=e33]: "Komponenty:"
+              - text: "1"
+              - strong [ref=e34]: "Izolované uzly:"
+              - text: "0"
+              - strong [ref=e35]: "Smyčky:"
+              - text: "0"
+              - strong [ref=e36]: "Hustota grafu:"
+              - text: 50.00%
+          - generic [ref=e37]:
+            - heading "📏 Nejkratší a nejdelší hrana" [level=3] [ref=e38]
+            - generic [ref=e39]:
+              - strong [ref=e40]: "Nejkratší:"
+              - text: "A → B (váha: 1)"
+              - strong [ref=e41]: "Nejdelší:"
+              - text: "F → H (váha: 7)"
+          - generic [ref=e42]:
+            - heading "⚖️ Statistiky vah hran" [level=3] [ref=e43]
+            - generic [ref=e44]:
+              - strong [ref=e45]: "Min váha:"
+              - text: "1"
+              - strong [ref=e46]: "Max váha:"
+              - text: "7"
+              - strong [ref=e47]: "Průměrná váha:"
+              - text: "4.00"
+              - strong [ref=e48]: "Distribuce:"
+              - text: "1: 2×, 2: 2×, 3: 2×, 4: 2×, 5: 2×, 6: 2×, 7: 2×"
+          - generic [ref=e49]:
+            - heading "🎯 Stupně uzlů" [level=3] [ref=e50]
+            - generic [ref=e51]:
+              - strong [ref=e52]: "Min:"
+              - text: "3"
+              - strong [ref=e53]: "Max:"
+              - text: "7"
+              - strong [ref=e54]: "Průměr:"
+              - text: "3.50"
+              - strong [ref=e55]: "Medián:"
+              - text: "3"
+              - separator [ref=e56]
+              - strong [ref=e57]: "IN-degree:"
+              - text: "Min: 1 | Max: 3 | Ø 1.75"
+              - strong [ref=e58]: "OUT-degree:"
+              - text: "Min: 1 | Max: 4 | Ø 1.75"
+              - separator [ref=e59]
+              - strong [ref=e60]: "Distribuce:"
+              - text: "3: 7×, 7: 1×"
+          - generic [ref=e61]:
+            - heading "🔗 Hrany" [level=3] [ref=e62]
+            - generic [ref=e63]:
+              - strong [ref=e64]: "Orientované:"
+              - text: "14"
+              - strong [ref=e65]: "Neorientované:"
+              - text: "0"
+              - strong [ref=e66]: "S vahami:"
+              - text: "14"
+              - strong [ref=e67]: "Násobné hrany:"
+              - text: 0 skupin (0 hran)
+              - strong [ref=e68]: "Smyčky:"
+              - text: "0"
+          - generic [ref=e69]:
+            - heading "🌳 Komponenty" [level=3] [ref=e70]
+            - generic [ref=e71]:
+              - strong [ref=e72]: "Počet komponent:"
+              - text: "1"
+              - strong [ref=e73]: "Největší:"
+              - text: 8 uzlů
+              - strong [ref=e74]: "Nejmenší:"
+              - text: 8 uzlů
+              - strong [ref=e75]: "Velikosti:"
+              - text: "8"
+          - generic [ref=e76]:
+            - heading "📏 Průměr a poloměr" [level=3] [ref=e77]
+            - generic [ref=e78]:
+              - strong [ref=e79]: "Průměr grafu:"
+              - text: "21"
+              - strong [ref=e80]: "Poloměr grafu:"
+              - text: "11"
+              - strong [ref=e81]: "Centrální uzly:"
+              - text: C, H
+              - strong [ref=e82]: "Periferní uzly:"
+              - text: G
+          - generic [ref=e83]:
+            - heading "🏆 TOP uzly (nejvyšší stupeň)" [level=3] [ref=e84]
+            - generic [ref=e85]:
+              - text: "1."
+              - strong [ref=e86]: E
+              - text: (7)
+              - text: "2."
+              - strong [ref=e87]: A
+              - text: (3)
+              - text: "3."
+              - strong [ref=e88]: B
+              - text: (3)
+              - text: "4."
+              - strong [ref=e89]: C
+              - text: (3)
+              - text: "5."
+              - strong [ref=e90]: D
+              - text: (3)
+              - text: "6."
+              - strong [ref=e91]: F
+              - text: (3)
+              - text: "7."
+              - strong [ref=e92]: G
+              - text: (3)
+              - text: "8."
+              - strong [ref=e93]: H
+              - text: (3)
+          - generic [ref=e94]:
+            - heading "📉 Histogram stupňů" [level=3] [ref=e95]
+            - generic [ref=e96]:
+              - text: "Stupeň 3: ████████████████████████████████████████ 7"
+              - text: "Stupeň 7: ██████ 1"
+        - generic [ref=e97]:
+          - strong [ref=e98]: "💡 Vysvětlení pojmů:"
+          - generic [ref=e99]:
+            - text: •
+            - strong [ref=e100]: "Hustota:"
+            - text: Poměr skutečných hran k max. možným (0% = žádné hrany, 100% = úplný graf)
+            - text: •
+            - strong [ref=e101]: "Průměr:"
+            - text: Maximální excentricita = nejdelší nejkratší cesta mezi libovolnými uzly
+            - text: •
+            - strong [ref=e102]: "Poloměr:"
+            - text: Minimální excentricita = centrum grafu
+            - text: •
+            - strong [ref=e103]: "Centrální uzly:"
+            - text: Uzly s nejmenší excentricitou (nejblíž ke všem ostatním)
+            - text: •
+            - strong [ref=e104]: "Periferní uzly:"
+            - text: Uzly s největší excentricitou (nejdál od ostatních)
+    - generic [ref=e105]:
+      - heading "Seznam uzlů a hran" [level=2] [ref=e106]
+      - list [ref=e108]:
+        - listitem [ref=e109]:
+          - strong [ref=e110]: Uzel A
+          - generic [ref=e111]: "in: 1 | out: 2 | celkem: 3"
+        - listitem [ref=e112]:
+          - strong [ref=e113]: Uzel B
+          - generic [ref=e114]: "in: 2 | out: 1 | celkem: 3"
+        - listitem [ref=e115]:
+          - strong [ref=e116]: Uzel C
+          - generic [ref=e117]: "in: 1 | out: 2 | celkem: 3"
+        - listitem [ref=e118]:
+          - strong [ref=e119]: Uzel D
+          - generic [ref=e120]: "in: 2 | out: 1 | celkem: 3"
+        - listitem [ref=e121]:
+          - strong [ref=e122]: Uzel E
+          - generic [ref=e123]: "in: 3 | out: 4 | celkem: 7"
+        - listitem [ref=e124]:
+          - strong [ref=e125]: Uzel F
+          - generic [ref=e126]: "in: 2 | out: 1 | celkem: 3"
+        - listitem [ref=e127]:
+          - strong [ref=e128]: Uzel G
+          - generic [ref=e129]: "in: 2 | out: 1 | celkem: 3"
+        - listitem [ref=e130]:
+          - strong [ref=e131]: Uzel H
+          - generic [ref=e132]: "in: 1 | out: 2 | celkem: 3"
+      - list [ref=e134]:
+        - listitem [ref=e135]: A → B (h=1) [h1]
+        - listitem [ref=e136]: B → C (h=1) [h2]
+        - listitem [ref=e137]: A → D (h=2) [h3]
+        - listitem [ref=e138]: A ← E (h=2) [h4]
+        - listitem [ref=e139]: B ← E (h=3) [h5]
+        - listitem [ref=e140]: C → E (h=3) [h6]
+        - listitem [ref=e141]: D → E (h=4) [h8]
+        - listitem [ref=e142]: C → F (h=4) [h7]
+        - listitem [ref=e143]: E → F (h=5) [h9]
+        - listitem [ref=e144]: D ← G (h=5) [h10]
+        - listitem [ref=e145]: E → G (h=6) [h11]
+        - listitem [ref=e146]: H → E (h=6) [h12]
+        - listitem [ref=e147]: F → H (h=7) [h13]
+        - listitem [ref=e148]: G ← H (h=7) [h14]
+    - generic [ref=e149]:
+      - heading "Matice sousednosti" [level=2] [ref=e150]
+      - generic [ref=e151]:
+        - strong [ref=e152]: "📊 Matice sousednosti A[i,j]:"
+        - generic [ref=e153]:
+          - text: •
+          - strong [ref=e154]: "A[i,j] = 0:"
+          - text: Bez hrany z i do j
+          - text: •
+          - strong [ref=e155]: "A[i,j] = 1:"
+          - text: Existuje hrana z i do j
+          - text: •
+          - strong [ref=e156]: "A[i,j] ≥ 2:"
+          - text: Více paralelních hran (multigraf)
+          - text: •
+          - strong [ref=e157]: "Symetrická matice:"
+          - text: Graf je neorientovaný
+      - generic [ref=e159]:
+        - checkbox "Binární verze (0/1)" [ref=e160]
+        - text: Binární verze (0/1)
+      - generic [ref=e161]:
+        - heading "Dotaz na hodnotu" [level=3] [ref=e162]
+        - generic [ref=e163]:
+          - generic [ref=e164]: "Od uzlu:"
+          - combobox [ref=e165]
+          - generic [ref=e166]: "Do uzlu:"
+          - combobox [ref=e167]
+          - button "Dotaz" [ref=e168] [cursor=pointer]
+      - button "Zobrazit celou matici" [ref=e169] [cursor=pointer]
+    - generic [ref=e170]:
+      - heading "Znaménková matice" [level=2] [ref=e171]
+      - generic [ref=e172]:
+        - strong [ref=e173]: "📊 Znaménková matice S[i,j] = A[i,j] - A[j,i]:"
+        - generic [ref=e174]:
+          - text: •
+          - strong [ref=e175]: "S[i,j] > 0:"
+          - text: Více hran z i do j než z j do i
+          - text: •
+          - strong [ref=e176]: "S[i,j] < 0:"
+          - text: Více hran z j do i než z i do j
+          - text: •
+          - strong [ref=e177]: "S[i,j] = 0:"
+          - text: Symetricky nebo bez hran
+          - text: •
+          - strong [ref=e178]: "Zjišťuješ:"
+          - text: Asymetrii a vyvážení směrů v grafu
+      - generic [ref=e179]:
+        - heading "Dotaz na hodnotu" [level=3] [ref=e180]
+        - generic [ref=e181]:
+          - generic [ref=e182]: "Od uzlu:"
+          - combobox [ref=e183]
+          - generic [ref=e184]: "Do uzlu:"
+          - combobox [ref=e185]
+          - button "Dotaz" [ref=e186] [cursor=pointer]
+      - button "Zobrazit celou matici" [ref=e187] [cursor=pointer]
+    - generic [ref=e188]:
+      - heading "Laplaciánská matice (L = D - A)" [level=2] [ref=e189]
+      - generic [ref=e190]:
+        - strong [ref=e191]: "📊 Laplaciánská matice L = D - A:"
+        - generic [ref=e192]:
+          - text: •
+          - strong [ref=e193]: "L[U,V] = 0:"
+          - text: Uzly U a V nejsou spojeny
+          - text: •
+          - strong [ref=e194]: "L[U,V] = -1:"
+          - text: Uzly U a V jsou přímo spojeny hranou
+          - text: •
+          - strong [ref=e195]: "L[U,U]:"
+          - strong [ref=e196]: Výstupní stupeň
+          - text: (počet hran VYCHÁZEJÍCÍCH z U)
+          - text: •
+          - strong [ref=e197]: "Vlastnost:"
+          - text: Součet každého řádku = 0
+      - generic [ref=e198]:
+        - heading "Dotaz na hodnotu L[U,V]" [level=3] [ref=e199]
+        - generic [ref=e200]:
+          - generic [ref=e201]: "Od uzlu:"
+          - combobox [ref=e202]
+          - generic [ref=e203]: "Do uzlu:"
+          - combobox [ref=e204]
+          - button "Dotaz" [ref=e205] [cursor=pointer]
+      - button "Zobrazit celou matici" [ref=e206] [cursor=pointer]
+    - generic [ref=e207]:
+      - heading "Multiplicita hran (počet paralelních hran)" [level=2] [ref=e208]
+      - generic [ref=e209]:
+        - strong [ref=e210]: "📊 Multiplicita hran:"
+        - generic [ref=e211]:
+          - text: •
+          - strong [ref=e212]: "Multiplicita = 1:"
+          - text: Právě 1 hrana (nebo více v jednom směru)
+          - text: •
+          - strong [ref=e213]: "Multiplicita > 1:"
+          - text: Více paralelních hran (multigraf)
+          - text: •
+          - strong [ref=e214]: "Počítá obě strany:"
+          - text: Hrany U→V a V→U se sčítají
+          - text: •
+          - strong [ref=e215]: "Bez ohledu na váhu:"
+          - text: Počítá jen existenci hran, ne jejich váhu
+      - generic [ref=e216]:
+        - heading "Dotaz na multiplicitu" [level=3] [ref=e217]
+        - generic [ref=e218]:
+          - generic [ref=e219]: "Od uzlu:"
+          - combobox [ref=e220]
+          - generic [ref=e221]: "Do uzlu:"
+          - combobox [ref=e222]
+          - button "Dotaz" [ref=e223] [cursor=pointer]
+    - generic [ref=e224]:
+      - heading "Druhá a třetí mocnina matice sousednosti (počet sledů délky N)" [level=2] [ref=e225]
+      - generic [ref=e226]:
+        - strong [ref=e227]:
+          - text: 📊 Mocnina matice A
+          - superscript [ref=e228]: k
+          - text: "[i,j]:"
+        - generic [ref=e229]:
+          - text: •
+          - strong [ref=e230]:
+            - text: A
+            - superscript [ref=e231]: k
+            - text: "[i,j] = číslo:"
+          - text: Počet procházek délky k z i do j
+          - text: •
+          - strong [ref=e232]: "A²:"
+          - text: Cesty s 2 hranami (zprostředkovaní sousedé)
+          - text: •
+          - strong [ref=e233]: "A³:"
+          - text: Cesty s 3 hranami atd.
+          - text: •
+          - strong [ref=e234]: "Zjišťuješ:"
+          - text: Kolik způsobů jít z i do j přesně k kroky
+      - generic [ref=e235]:
+        - heading "Dotaz na A²" [level=3] [ref=e236]
+        - generic [ref=e237]:
+          - generic [ref=e238]: "Od uzlu:"
+          - combobox [ref=e239]
+          - generic [ref=e240]: "Do uzlu:"
+          - combobox [ref=e241]
+          - button "Dotaz" [ref=e242] [cursor=pointer]
+      - generic [ref=e243]:
+        - heading "Dotaz na A³" [level=3] [ref=e244]
+        - generic [ref=e245]:
+          - generic [ref=e246]: "Od uzlu:"
+          - combobox [ref=e247]
+          - generic [ref=e248]: "Do uzlu:"
+          - combobox [ref=e249]
+          - button "Dotaz" [ref=e250] [cursor=pointer]
+      - generic [ref=e251]:
+        - heading "Libovolná mocnina matice sousednosti" [level=3] [ref=e252]
+        - generic [ref=e253]:
+          - strong [ref=e254]: "📖 Vysvětlení:"
+          - generic [ref=e255]:
+            - text: •
+            - strong [ref=e256]:
+              - text: A
+              - superscript [ref=e257]: k
+              - text: "[u, v]"
+            - text: udává počet cest
+            - strong [ref=e258]: délky k
+            - text: z uzlu
+            - strong [ref=e259]: u
+            - text: do uzlu
+            - strong [ref=e260]: v
+          - generic [ref=e261]:
+            - text: • Například A
+            - superscript [ref=e262]: "3"
+            - text: "[A, C] = 5 znamená, že existuje"
+            - strong [ref=e263]: 5 různých cest délky 3
+            - text: z uzlu A do uzlu C
+          - text: • Délka cesty = počet hran v cestě (ne počet uzlů!)
+        - generic [ref=e264]:
+          - generic [ref=e265]: "Od uzlu:"
+          - combobox [ref=e266]
+          - generic [ref=e267]: "Do uzlu:"
+          - combobox [ref=e268]
+          - generic [ref=e269]: "Mocnina:"
+          - spinbutton [ref=e270]: "4"
+          - button "Vypočítat" [ref=e271] [cursor=pointer]
+      - button "Zobrazit celé matice" [ref=e272] [cursor=pointer]
+    - generic [ref=e273]:
+      - heading "Suma všech procházek (∑ A¹ + A² + ... + Aᵏ)" [level=2] [ref=e274]
+      - generic [ref=e275]:
+        - heading "Dotaz na celkový počet procházek délek 1 až k" [level=3] [ref=e276]
+        - generic [ref=e277]:
+          - strong [ref=e278]: "📊 Vysvětlení:"
+          - text: • Sečte počet všech procházek délek 1, 2, 3, ..., až k mezi uzly U a V
+          - text: "• Např. pro k=3: počítá cesty délky 1 + cesty délky 2 + cesty délky 3"
+          - text: • Užitečné pro analýzu celkové propojitelnosti uzlů
+        - generic [ref=e279]:
+          - generic [ref=e280]: "Od uzlu:"
+          - combobox [ref=e281]
+          - generic [ref=e282]: "Do uzlu:"
+          - combobox [ref=e283]
+          - generic [ref=e284]: "Max. délka k:"
+          - spinbutton [ref=e285]: "3"
+          - button "Vypočítat" [ref=e286] [cursor=pointer]
+    - generic [ref=e287]:
+      - heading "Matice incidence" [level=2] [ref=e288]
+      - generic [ref=e289]:
+        - strong [ref=e290]: "� Matice incidence:"
+        - generic [ref=e291]:
+          - text: •
+          - strong [ref=e292]: "-1 v řádku:"
+          - text: Uzel je ocas orientované hrany (výchozí)
+          - text: •
+          - strong [ref=e293]: "+1 v řádku:"
+          - text: Uzel je hlava orientované hrany (cílový)
+          - text: •
+          - strong [ref=e294]: "1 v řádku (obojí):"
+          - text: Uzel je incidentní s neorientovanou hranou
+          - text: •
+          - strong [ref=e295]: "0 v řádku:"
+          - text: Uzel není incidentní s touto hranou
+      - generic [ref=e297]:
+        - checkbox "Podepsaná (signed)" [checked] [ref=e298]
+        - text: Podepsaná (signed)
+      - button "Zobrazit matici" [ref=e299] [cursor=pointer]
+    - generic [ref=e300]:
+      - heading "Dosažitelnost (transitivní uzávěr)" [level=2] [ref=e301]
+      - generic [ref=e302]:
+        - strong [ref=e303]: "🔄 Dosažitelnost R[i,j]:"
+        - generic [ref=e304]:
+          - text: •
+          - strong [ref=e305]: "R[i,j] = 1:"
+          - text: Uzel j je dosažitelný z i (existuje cesta)
+          - text: •
+          - strong [ref=e306]: "R[i,j] = 0:"
+          - text: Uzel j NENÍ dosažitelný z i
+          - text: •
+          - strong [ref=e307]: "R[i,i] = 1:"
+          - text: Vždy (uzel dosáhne sám sebe)
+          - text: •
+          - strong [ref=e308]: "Využití:"
+          - text: Zjištění komponent a souvislosti
+      - generic [ref=e309]:
+        - heading "Dotaz na dosažitelnost" [level=3] [ref=e310]
+        - generic [ref=e311]:
+          - generic [ref=e312]: "Z uzlu:"
+          - combobox [ref=e313]:
+            - option "A" [selected]
+            - option "B"
+            - option "C"
+            - option "D"
+            - option "E"
+            - option "F"
+            - option "G"
+            - option "H"
+          - generic [ref=e314]: "Do uzlu:"
+          - combobox [ref=e315]:
+            - option "A" [selected]
+            - option "B"
+            - option "C"
+            - option "D"
+            - option "E"
+            - option "F"
+            - option "G"
+            - option "H"
+          - button "Je dosažitelný?" [ref=e316] [cursor=pointer]
+      - button "Zobrazit statistiky dosažitelnosti" [ref=e317] [cursor=pointer]
+      - button "Zobrazit celou matici" [ref=e318] [cursor=pointer]
+    - generic [ref=e319]:
+      - heading "BFS Vrstvy (Breadth-First Search Layers)" [level=2] [ref=e320]
+      - generic [ref=e321]:
+        - strong [ref=e322]: "🌊 BFS vrstvy:"
+        - generic [ref=e323]:
+          - text: •
+          - strong [ref=e324]: "Vrstva 0:"
+          - text: Startovní uzel
+          - text: •
+          - strong [ref=e325]: "Vrstva k:"
+          - text: Uzly dostupné v k krocích ze startu
+          - text: •
+          - strong [ref=e326]: "Každý uzel:"
+          - text: Objeví se právě v jedné vrstvě
+          - text: •
+          - strong [ref=e327]: "Užití:"
+          - text: Vzdálenost od start, komponenty, šíření informace
+      - generic [ref=e328]:
+        - generic [ref=e329]:
+          - text: "Startovní uzel:"
+          - combobox "Startovní uzel:" [ref=e330]
+        - button "Spočítat vrstvy" [ref=e331] [cursor=pointer]
+    - generic [ref=e332]:
+      - heading "Všechny nejkratší cesty (neohodnocené)" [level=2] [ref=e333]
+      - generic [ref=e334]:
+        - strong [ref=e335]: "🛤️ Všechny nejkratší cesty:"
+        - generic [ref=e336]:
+          - text: •
+          - strong [ref=e337]: "Najde VŠECHNY:"
+          - text: Cesty stejné délky mezi U a V
+          - text: •
+          - strong [ref=e338]: "Algoritmus:"
+          - text: BFS (délka = počet hran)
+          - text: •
+          - strong [ref=e339]: "Limit 200:"
+          - text: Zobrazí max 200 cest (může jich být hodně!)
+          - text: •
+          - strong [ref=e340]: "Využití:"
+          - text: Analýza redundance, alternativní trasy
+      - generic [ref=e341]:
+        - generic [ref=e342]: "Od uzlu:"
+        - combobox [ref=e343]
+        - generic [ref=e344]: "Do uzlu:"
+        - combobox [ref=e345]
+        - button "Najít všechny cesty" [ref=e346] [cursor=pointer]
+    - generic [ref=e347]:
+      - heading "Jednoduché cesty U→V do délky K" [level=2] [ref=e348]
+      - generic [ref=e349]:
+        - strong [ref=e350]: "🎯 Jednoduché cesty (do délky K):"
+        - generic [ref=e351]:
+          - text: •
+          - strong [ref=e352]: "Jednoduchá cesta:"
+          - text: Neprochází žádný uzel vícekrát
+          - text: •
+          - strong [ref=e353]: "Max délka K:"
+          - text: Obsahuje max K hran
+          - text: •
+          - strong [ref=e354]: "Bez limitu K:"
+          - text: Hledá až do délky |V|-1
+          - text: •
+          - strong [ref=e355]: "Limit 10,000:"
+          - text: Maximálně 10,000 výsledků kvůli výkonu
+      - generic [ref=e356]:
+        - generic [ref=e357]: "Od uzlu:"
+        - combobox [ref=e358]
+        - generic [ref=e359]: "Do uzlu:"
+        - combobox [ref=e360]
+        - generic [ref=e361]: "Max délka K:"
+        - spinbutton [ref=e362]
+        - button "Najít cesty" [ref=e363] [cursor=pointer]
+    - generic [ref=e364]:
+      - heading "Sousedé podle směru" [level=2] [ref=e365]
+      - generic [ref=e366]:
+        - strong [ref=e367]: "👥 Sousedé podle typu hrany:"
+        - generic [ref=e368]:
+          - text: •
+          - strong [ref=e369]: "OUT (→):"
+          - text: Uzly, do kterých vede hrana ven
+          - text: •
+          - strong [ref=e370]: "IN (←):"
+          - text: Uzly, ze kterých vede hrana dovnitř
+          - text: •
+          - strong [ref=e371]: "UND (—):"
+          - text: Uzly spojené neorientovanou hranou
+          - text: •
+          - strong [ref=e372]: "Stupeň uzlu:"
+          - text: "|OUT| + |IN| + |UND| (s korekcí)"
+      - generic [ref=e373]:
+        - generic [ref=e374]:
+          - text: "Uzel:"
+          - combobox "Uzel:" [ref=e375]
+        - button "Zobrazit sousedy" [ref=e376] [cursor=pointer]
+    - generic [ref=e377]:
+      - heading "Matice délek" [level=2] [ref=e378]
+      - generic [ref=e379]:
+        - strong [ref=e380]: "📊 Matice délek L[i,j]:"
+        - generic [ref=e381]:
+          - text: •
+          - strong [ref=e382]: "L[i,j] = číslo:"
+          - text: Váha/délka přímé hrany
+          - text: •
+          - strong [ref=e383]: "L[i,j] = ∞:"
+          - text: Bez přímého spojení
+          - text: •
+          - strong [ref=e384]: "L[i,i] = 0:"
+          - text: Vzdálenost k sobě samému
+          - text: •
+          - strong [ref=e385]: "Poznámka:"
+          - text: Jen přímé hrany, ne nejkratší cesty
+      - generic [ref=e386]:
+        - heading "Dotaz na hodnotu" [level=3] [ref=e387]
+        - generic [ref=e388]:
+          - generic [ref=e389]: "Od uzlu:"
+          - combobox [ref=e390]
+          - generic [ref=e391]: "Do uzlu:"
+          - combobox [ref=e392]
+          - button "Dotaz" [ref=e393] [cursor=pointer]
+      - button "Zobrazit celou matici" [ref=e394] [cursor=pointer]
+    - generic [ref=e395]:
+      - heading "Nejkratší cesty (Floyd-Warshall)" [level=2] [ref=e396]
+      - generic [ref=e397]:
+        - heading "Dotaz na nejkratší cestu" [level=3] [ref=e398]
+        - generic [ref=e399]:
+          - generic [ref=e400]: "Od uzlu:"
+          - combobox [ref=e401]
+          - generic [ref=e402]: "Do uzlu:"
+          - combobox [ref=e403]
+          - button "Dotaz" [ref=e404] [cursor=pointer]
+      - button "Vypočítat celou matici předchůdců" [ref=e405] [cursor=pointer]
+    - generic [ref=e406]:
+      - heading "Tabulka incidentních hran" [level=2] [ref=e407]
+      - table [ref=e409]:
+        - rowgroup [ref=e410]:
+          - row "A h1, h3, h4" [ref=e411]:
+            - cell "A" [ref=e412]
+            - cell "h1, h3, h4" [ref=e413]
+          - row "B h1, h2, h5" [ref=e414]:
+            - cell "B" [ref=e415]
+            - cell "h1, h2, h5" [ref=e416]
+          - row "C h2, h6, h7" [ref=e417]:
+            - cell "C" [ref=e418]
+            - cell "h2, h6, h7" [ref=e419]
+          - row "D h3, h8, h10" [ref=e420]:
+            - cell "D" [ref=e421]
+            - cell "h3, h8, h10" [ref=e422]
+          - row "E h4, h5, h6, h8, h9, h11, h12" [ref=e423]:
+            - cell "E" [ref=e424]
+            - cell "h4, h5, h6, h8, h9, h11, h12" [ref=e425]
+          - row "F h7, h9, h13" [ref=e426]:
+            - cell "F" [ref=e427]
+            - cell "h7, h9, h13" [ref=e428]
+          - row "G h10, h11, h14" [ref=e429]:
+            - cell "G" [ref=e430]
+            - cell "h10, h11, h14" [ref=e431]
+          - row "H h12, h13, h14" [ref=e432]:
+            - cell "H" [ref=e433]
+            - cell "h12, h13, h14" [ref=e434]
+    - generic [ref=e435]:
+      - heading "Seznam sousedů" [level=2] [ref=e436]
+      - table [ref=e438]:
+        - rowgroup [ref=e439]:
+          - row "A B, D, E" [ref=e440]:
+            - cell "A" [ref=e441]
+            - cell "B, D, E" [ref=e442]
+          - row "B A, C, E" [ref=e443]:
+            - cell "B" [ref=e444]
+            - cell "A, C, E" [ref=e445]
+          - row "C B, E, F" [ref=e446]:
+            - cell "C" [ref=e447]
+            - cell "B, E, F" [ref=e448]
+          - row "D A, E, G" [ref=e449]:
+            - cell "D" [ref=e450]
+            - cell "A, E, G" [ref=e451]
+          - row "E A, B, C, D, F, G, H" [ref=e452]:
+            - cell "E" [ref=e453]
+            - cell "A, B, C, D, F, G, H" [ref=e454]
+          - row "F C, E, H" [ref=e455]:
+            - cell "F" [ref=e456]
+            - cell "C, E, H" [ref=e457]
+          - row "G D, E, H" [ref=e458]:
+            - cell "G" [ref=e459]
+            - cell "D, E, H" [ref=e460]
+          - row "H E, F, G" [ref=e461]:
+            - cell "H" [ref=e462]
+            - cell "E, F, G" [ref=e463]
+    - generic [ref=e464]:
+      - heading "Víceásobné hrany" [level=2] [ref=e465]
+      - paragraph [ref=e466]: Graf neobsahuje žádné víceásobné hrany.
+    - generic [ref=e467]:
+      - heading "Vlastnosti grafu" [level=2] [ref=e468]
+      - generic [ref=e469]:
+        - strong [ref=e470]: "📖 Rychlý slovník pojmů:"
+        - generic [ref=e471]:
+          - text: •
+          - strong [ref=e472]: "Ohodnocený:"
+          - text: Má váhy na hranách/uzlech |
+          - strong [ref=e473]: "Orientovaný:"
+          - text: Hrany mají směr (→)
+          - text: •
+          - strong [ref=e474]: "Souvislý:"
+          - text: Z každého uzlu lze dojet do každého |
+          - strong [ref=e475]: "Silně/Slabě:"
+          - text: Pouze v orientovaných
+          - text: •
+          - strong [ref=e476]: "Prostý:"
+          - text: Max 1 hrana mezi uzly |
+          - strong [ref=e477]: "Jednoduchý:"
+          - text: Prostý bez smyček
+          - text: •
+          - strong [ref=e478]: "Úplný:"
+          - text: Všechny uzly spojeny |
+          - strong [ref=e479]: "Regulární:"
+          - text: Všechny uzly stejný stupeň
+          - text: •
+          - strong [ref=e480]: "Bipartitní:"
+          - text: Uzly v 2 skupinách, hrany jen mezi |
+          - strong [ref=e481]: "Rovinný:"
+          - text: Nakreslitelný bez křížení
+      - generic [ref=e482]:
+        - generic [ref=e483]: "Ohodnocený: ano"
+        - generic [ref=e484]: "Orientace: orientovaný"
+        - generic [ref=e485]: "Souvislý: ano"
+        - generic [ref=e486]: "Silně souvislý: ano"
+        - generic [ref=e487]: "Prostý: ano"
+        - generic [ref=e488]: "Jednoduchý: ano"
+        - generic [ref=e489]: "Multigraf: ne"
+        - generic [ref=e490]: "Diskrétní: ne"
+        - generic [ref=e491]: "Konečný: ano"
+        - generic [ref=e492]: "Symetrizovaný: ne"
+        - generic [ref=e493]: "Úplný: ne"
+        - generic [ref=e494]: "Regulární: ne"
+        - generic [ref=e495]: "Bipartitní: ne"
+        - generic [ref=e496]: "Rovinný: ano"
+    - generic [ref=e497]:
+      - heading "Prohledávání grafu (BFS/DFS)" [level=2] [ref=e498]
+      - generic [ref=e499]:
+        - combobox [ref=e500]:
+          - option "BFS (do šířky)" [selected]
+          - option "DFS (do hloubky)"
+        - combobox "Startovací uzel" [ref=e501]: E
+        - button "Spustit" [ref=e502] [cursor=pointer]
+      - generic [ref=e503]:
+        - heading "Výsledek pro BFS od E:" [level=4] [ref=e504]
+        - paragraph [ref=e505]: "Pořadí navštívených uzlů: E → A → B → C → D → F → G → H"
+        - paragraph [ref=e506]: "Dosažitelných uzlů: 8"
+    - generic [ref=e507]:
+      - heading "Kostra grafu" [level=2] [ref=e508]
+      - button "Analyzovat kostru grafu" [ref=e510] [cursor=pointer]
+      - generic [ref=e511]:
+        - heading "Výsledky analýzy kostry grafu:" [level=4] [ref=e512]
+        - paragraph [ref=e513]: "Počet koster: 4"
+        - generic [ref=e514]:
+          - strong [ref=e515]: "Minimální kostra (Jarník-Prim-Dijkstra) (váha: 21)"
+          - list [ref=e516]:
+            - listitem [ref=e517]: "A - B (váha: 1)"
+            - listitem [ref=e518]: "B - C (váha: 1)"
+            - listitem [ref=e519]: "A - D (váha: 2)"
+            - listitem [ref=e520]: "A - E (váha: 2)"
+            - listitem [ref=e521]: "C - F (váha: 4)"
+            - listitem [ref=e522]: "D - G (váha: 5)"
+            - listitem [ref=e523]: "H - E (váha: 6)"
+        - generic [ref=e524]:
+          - strong [ref=e525]: "Maximální kostra (obrácená heuristika) (váha: 34)"
+          - list [ref=e526]:
+            - listitem [ref=e527]: "A - D (váha: 2)"
+            - listitem [ref=e528]: "D - G (váha: 5)"
+            - listitem [ref=e529]: "G - H (váha: 7)"
+            - listitem [ref=e530]: "F - H (váha: 7)"
+            - listitem [ref=e531]: "E - G (váha: 6)"
+            - listitem [ref=e532]: "C - F (váha: 4)"
+            - listitem [ref=e533]: "B - E (váha: 3)"
+        - paragraph [ref=e534]: Minimální kostru počítáme variantou Jarníkova-Primova algoritmu – začínáme v jednom uzlu a přidáváme nejlevnější hranu, která graf drží souvislý. Maximální kostra využívá stejný princip, ale hrany bereme od nejtěžších k nejlehčím, takže dostaneme nejdražší možnou kostru. Celkový počet koster získáváme pomocí Laplaceovy matice a věty o matici stromů.
+    - generic [ref=e535]:
+      - heading "Optimální cesty (nejkratší / nejdelší / nejbezpečnější / nejširší)" [level=2] [ref=e536]
+      - paragraph [ref=e537]: Mooreův algoritmus (BFS) hledá nejkratší cestu v neohodnoceném grafu. Dijkstrův a Bellman-Fordův algoritmus pracují s vahami (Bellman-Ford zvládá i záporné hrany) a Floyd-Warshallova varianta níže poskytuje kompletní matici vzdáleností.
+      - generic [ref=e538]:
+        - combobox "Od uzlu" [ref=e539]: A
+        - combobox "Do uzlu" [ref=e540]: H
+        - button "Analyzovat optimální cesty" [ref=e541] [cursor=pointer]
+      - generic [ref=e542]:
+        - generic [ref=e543]:
+          - generic [ref=e544]:
+            - generic [ref=e545]: Nejkratší cesta (Dijkstrův algoritmus)
+            - generic [ref=e546]: "Vzdálenost: 13"
+            - generic [ref=e547]: "Cesta: A → B → C → F → H"
+          - generic [ref=e548]:
+            - generic [ref=e549]: Moorův algoritmus (BFS)
+            - generic [ref=e550]: "Počet hran: 4"
+            - generic [ref=e551]: "Cesta: A → B → C → F → H"
+          - generic [ref=e552]:
+            - generic [ref=e553]: Bellman-Fordův algoritmus
+            - generic [ref=e554]: "Vzdálenost: 13"
+            - generic [ref=e555]: "Cesta: A → B → C → F → H"
+          - generic [ref=e556]:
+            - generic [ref=e557]: Nejdelší cesta
+            - generic [ref=e558]: "Délka: 21"
+            - generic [ref=e559]: "Cesta: A → D → E → B → C → F → H"
+            - generic [ref=e560]: Graf není DAG, proto se prohledávají jednoduché cesty (omezeno na 2000).
+          - generic [ref=e561]:
+            - generic [ref=e562]: Nejbezpečnější cesta (maximalizace spolehlivosti)
+            - generic [ref=e563]: "Spolehlivost: 5.55 %"
+            - generic [ref=e564]: "Cesta: A → D → E → F → H"
+          - generic [ref=e565]:
+            - generic [ref=e566]: Nejširší cesta (max-min kapacita)
+            - generic [ref=e567]: "Kritické hrdlo: 2"
+            - generic [ref=e568]: "Cesta: A → D → E → F → H"
+        - paragraph [ref=e569]: "Tip: úplnou matici nejkratších cest poskytuje sekce „Nejkratší cesty (Floyd-Warshall)“."
+    - generic [ref=e570]:
+      - heading "Projektové plánování (síťový graf & CPM)" [level=2] [ref=e571]
+      - paragraph [ref=e572]: Hrany interpretujeme jako činnosti s délkou podle váhy. CPM (Critical Path Method) spočítá kritickou cestu, délku projektu a rezervy činností, abyste mohli plánovat kapacity.
+      - button "Analyzovat kritickou cestu (CPM)" [active] [ref=e573] [cursor=pointer]
+      - paragraph [ref=e575]: Síťový graf obsahuje cyklus – kritickou cestu lze hledat jen v acyklickém grafu.
+    - generic [ref=e576]:
+      - heading "📘 Teoretický rozcestník (grafy)" [level=2] [ref=e577]
+      - paragraph [ref=e578]: "Krátký tahák k pojmům, které při práci s grafy nejčastěji používáme:"
+      - list [ref=e579]:
+        - listitem [ref=e580]:
+          - strong [ref=e581]: "Kostra grafu:"
+          - text: Podgraf, který obsahuje všechny uzly a jen tolik hran, aby byl graf stále souvislý (tedy žádné cykly).
+        - listitem [ref=e582]:
+          - strong [ref=e583]: "Minimální kostra grafu:"
+          - text: Soubor hran s nejnižší možnou váhou. Typicky ji hledáme Jarníkův-Primův-Dijkstrův algoritmus nebo Kruskalem.
+        - listitem [ref=e584]:
+          - strong [ref=e585]: "Maximální kostra grafu:"
+          - text: Analogicky hledá nejvyšší celkovou váhu – hodí se například pro maximalizaci kapacity.
+        - listitem [ref=e586]:
+          - strong [ref=e587]: "Laplaceova matice:"
+          - text: L = D - A. Pomáhá nám spočítat počet koster (věta o matici stromů) a popsat spektrální vlastnosti grafu.
+        - listitem [ref=e588]:
+          - strong [ref=e589]: "Jarníkův-Primův-Dijkstrův algoritmus:"
+          - text: Greedy přístup – začneme v náhodném uzlu a opakovaně přidáváme nejlevnější hranu, která neuzavírá cyklus.
+        - listitem [ref=e590]:
+          - strong [ref=e591]: "Kruskalův algoritmus:"
+          - text: Seřadí všechny hrany podle váhy, přidává je od nejmenších, a přes sjednocování komponent hlídá, aby nevznikaly cykly.
+        - listitem [ref=e592]:
+          - strong [ref=e593]: "Borůvkův-Sollinův algoritmus:"
+          - text: Každá komponenta si vybírá svou nejlevnější incidentní hranu a komponenty se paralelně spojují, dokud nezůstane jedna.
+        - listitem [ref=e594]:
+          - strong [ref=e595]: "Prohledávání do šířky (BFS):"
+          - text: Vrstevnatý průchod grafem – nejprve všechny sousedy, pak sousedy sousedů. Používáme frontu.
+        - listitem [ref=e596]:
+          - strong [ref=e597]: "Prohledávání do hloubky (DFS):"
+          - text: Vždy pokračujeme co nejdál, dokud nenarazíme na slepou větev, pak se vracíme. Používáme zásobník (nebo rekurzi).
+```

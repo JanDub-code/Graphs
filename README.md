@@ -24,6 +24,10 @@ This is a web-based tool for analyzing graphs. You can define a graph using a si
 *   **Spanning Tree Analysis**:
     *   Calculate the total number of possible spanning trees.
     *   Find the Minimum Spanning Tree (MST) for weighted graphs and display its total weight and constituent edges.
+*   **Optimal Paths & Metrics**:
+    *   Compare nejkratší, nejdelší, nejbezpečnější a nejširší cesty pomocí Mooreova, Dijkstrova a Bellman-Fordova algoritmu i „widest path“ heuristik.
+*   **Síťový graf & CPM**:
+    *   Vytvoř projektovou síť (CPM), spočítej kritickou cestu, délku projektu a rezervy činností.
 
 ## How to Use
 

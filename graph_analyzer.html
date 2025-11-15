@@ -109,6 +109,23 @@
             color: #6c757d;
             font-size: 0.9em;
         }
+        .optimal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+        .result-box {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            box-shadow: inset 0 0 0 rgba(0,0,0,0);
+        }
+        .result-label {
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -1766,6 +1783,425 @@ class Graph {
         }
 
         return { tree: mst, totalWeight };
+    }
+
+    edgeWeightStats() {
+        if (this.edges.length === 0) return null;
+        let min = Infinity;
+        let max = -Infinity;
+        for (const e of this.edges) {
+            const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+            if (w < min) min = w;
+            if (w > max) max = w;
+        }
+        return { min, max };
+    }
+
+    edgeWeightsBetween(nodeU, nodeV) {
+        const weights = [];
+        for (const e of this.edges) {
+            const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+            if (e.direction === '>') {
+                if (e.u === nodeU && e.v === nodeV) weights.push(w);
+            } else if (e.direction === '<') {
+                if (e.v === nodeU && e.u === nodeV) weights.push(w);
+            } else if ((e.u === nodeU && e.v === nodeV) || (e.u === nodeV && e.v === nodeU)) {
+                weights.push(w);
+            }
+        }
+        return weights;
+    }
+
+    pathWeightFromNodes(nodePath, strategy = 'min') {
+        if (!nodePath || nodePath.length < 2) return 0;
+        let total = 0;
+        for (let i = 0; i < nodePath.length - 1; i++) {
+            const weights = this.edgeWeightsBetween(nodePath[i], nodePath[i + 1]);
+            if (!weights.length) return null;
+            const value = strategy === 'max' ? Math.max(...weights) : Math.min(...weights);
+            total += value;
+        }
+        return total;
+    }
+
+    _buildDirectedGraph(includeUndirected = true) {
+        const idx = {};
+        this.nodes.forEach((id, i) => { idx[id] = i; });
+        const edges = [];
+        const addEdge = (from, to, weight, rawEdge, rawIndex) => {
+            if (!(from in idx) || !(to in idx)) return;
+            edges.push({
+                from: idx[from],
+                to: idx[to],
+                weight,
+                fromId: from,
+                toId: to,
+                label: rawEdge && rawEdge.label ? rawEdge.label : `${from}→${to}`,
+                rawIndex,
+            });
+        };
+        for (let rawIndex = 0; rawIndex < this.edges.length; rawIndex++) {
+            const e = this.edges[rawIndex];
+            const w = e.weight !== null && e.weight !== undefined ? e.weight : 1;
+            if (e.direction === '>') {
+                addEdge(e.u, e.v, w, e, rawIndex);
+            } else if (e.direction === '<') {
+                addEdge(e.v, e.u, w, e, rawIndex);
+            } else if (includeUndirected) {
+                addEdge(e.u, e.v, w, e, rawIndex);
+                addEdge(e.v, e.u, w, e, rawIndex);
+            }
+        }
+        const adj = Array.from({ length: this.nodes.length }, () => []);
+        edges.forEach((edge, idxEdge) => {
+            adj[edge.from].push({ to: edge.to, weight: edge.weight, edgeIndex: idxEdge });
+        });
+        return { idx, edges, adj };
+    }
+
+    topologicalSort(includeUndirected = true, graphData = null) {
+        const data = graphData || this._buildDirectedGraph(includeUndirected);
+        const n = this.nodes.length;
+        const indegree = Array(n).fill(0);
+        for (const edge of data.edges) {
+            indegree[edge.to]++;
+        }
+        const queue = [];
+        for (let i = 0; i < n; i++) {
+            if (indegree[i] === 0) queue.push(i);
+        }
+        const order = [];
+        while (queue.length) {
+            const u = queue.shift();
+            order.push(u);
+            for (const edge of data.adj[u]) {
+                indegree[edge.to]--;
+                if (indegree[edge.to] === 0) queue.push(edge.to);
+            }
+        }
+        return { order, isDAG: order.length === n, data };
+    }
+
+    _reconstructPath(startIdx, endIdx, predecessors) {
+        if (startIdx === undefined || startIdx === null || endIdx === undefined || endIdx === null) return [];
+        const path = [];
+        let current = endIdx;
+        while (current !== null && current !== undefined && current !== -1) {
+            path.unshift(this.nodes[current]);
+            if (current === startIdx) break;
+            current = predecessors[current];
+        }
+        if (!path.length || path[0] !== this.nodes[startIdx]) return [];
+        return path;
+    }
+
+    mooreShortestPath(startNode, endNode) {
+        const graphData = this._buildDirectedGraph(true);
+        if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
+        const startIdx = graphData.idx[startNode];
+        const endIdx = graphData.idx[endNode];
+        const n = this.nodes.length;
+        const dist = Array(n).fill(Infinity);
+        const pred = Array(n).fill(null);
+        const queue = [];
+        dist[startIdx] = 0;
+        queue.push(startIdx);
+        while (queue.length) {
+            const u = queue.shift();
+            if (u === endIdx) break;
+            for (const edge of graphData.adj[u]) {
+                if (dist[edge.to] === Infinity) {
+                    dist[edge.to] = dist[u] + 1;
+                    pred[edge.to] = u;
+                    queue.push(edge.to);
+                }
+            }
+        }
+        if (dist[endIdx] === Infinity) {
+            return { distance: Infinity, path: [] };
+        }
+        return { distance: dist[endIdx], path: this._reconstructPath(startIdx, endIdx, pred) };
+    }
+
+    bellmanFordAll(startNode) {
+        const graphData = this._buildDirectedGraph(true);
+        if (!(startNode in graphData.idx)) return null;
+        const startIdx = graphData.idx[startNode];
+        const n = this.nodes.length;
+        const dist = Array(n).fill(Infinity);
+        const pred = Array(n).fill(null);
+        dist[startIdx] = 0;
+        for (let i = 0; i < n - 1; i++) {
+            let updated = false;
+            for (const edge of graphData.edges) {
+                if (dist[edge.from] === Infinity) continue;
+                const candidate = dist[edge.from] + edge.weight;
+                if (candidate < dist[edge.to]) {
+                    dist[edge.to] = candidate;
+                    pred[edge.to] = edge.from;
+                    updated = true;
+                }
+            }
+            if (!updated) break;
+        }
+        let negativeCycle = false;
+        for (const edge of graphData.edges) {
+            if (dist[edge.from] !== Infinity && dist[edge.from] + edge.weight < dist[edge.to]) {
+                negativeCycle = true;
+                break;
+            }
+        }
+        return { dist, pred, negativeCycle, startIdx };
+    }
+
+    bellmanFordPath(startNode, endNode) {
+        const result = this.bellmanFordAll(startNode);
+        if (!result) return null;
+        const endIdx = this.nodes.indexOf(endNode);
+        if (endIdx === -1) return null;
+        const path = this._reconstructPath(result.startIdx, endIdx, result.pred);
+        return { distance: result.dist[endIdx], path, negativeCycle: result.negativeCycle };
+    }
+
+    widestPath(startNode, endNode) {
+        const graphData = this._buildDirectedGraph(true);
+        if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
+        const startIdx = graphData.idx[startNode];
+        const endIdx = graphData.idx[endNode];
+        if (startIdx === endIdx) return { path: [startNode], width: Infinity };
+        const n = this.nodes.length;
+        const width = Array(n).fill(0);
+        const visited = Array(n).fill(false);
+        const pred = Array(n).fill(null);
+        width[startIdx] = Infinity;
+        for (let count = 0; count < n; count++) {
+            let u = -1;
+            let best = 0;
+            for (let i = 0; i < n; i++) {
+                if (!visited[i] && width[i] > best) {
+                    best = width[i];
+                    u = i;
+                }
+            }
+            if (u === -1) break;
+            visited[u] = true;
+            if (u === endIdx) break;
+            for (const edge of graphData.adj[u]) {
+                const candidate = Math.min(width[u], edge.weight);
+                if (candidate > width[edge.to]) {
+                    width[edge.to] = candidate;
+                    pred[edge.to] = u;
+                }
+            }
+        }
+        if (width[endIdx] === 0) return { path: [], width: 0 };
+        return { path: this._reconstructPath(startIdx, endIdx, pred), width: width[endIdx] };
+    }
+
+    _normalizeSafetyWeight(weight, stats) {
+        if (!stats) return 0.5;
+        const min = stats.min;
+        const max = stats.max;
+        if (max === min) return 0.999;
+        const ratio = (weight - min) / (max - min);
+        return Math.min(0.9999, Math.max(0.0001, ratio));
+    }
+
+    safestPath(startNode, endNode) {
+        const stats = this.edgeWeightStats();
+        if (!(stats)) return null;
+        const graphData = this._buildDirectedGraph(true);
+        if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
+        const startIdx = graphData.idx[startNode];
+        const endIdx = graphData.idx[endNode];
+        if (startIdx === endIdx) return { path: [startNode], reliability: 1 };
+        const n = this.nodes.length;
+        const dist = Array(n).fill(Infinity);
+        const visited = Array(n).fill(false);
+        const pred = Array(n).fill(null);
+        dist[startIdx] = 0;
+        for (let iter = 0; iter < n; iter++) {
+            let u = -1;
+            let best = Infinity;
+            for (let i = 0; i < n; i++) {
+                if (!visited[i] && dist[i] < best) {
+                    best = dist[i];
+                    u = i;
+                }
+            }
+            if (u === -1) break;
+            visited[u] = true;
+            if (u === endIdx) break;
+            for (const edge of graphData.adj[u]) {
+                const normalized = this._normalizeSafetyWeight(edge.weight, stats);
+                const cost = -Math.log(normalized);
+                if (dist[u] + cost < dist[edge.to]) {
+                    dist[edge.to] = dist[u] + cost;
+                    pred[edge.to] = u;
+                }
+            }
+        }
+        if (dist[endIdx] === Infinity) return { path: [], reliability: 0 };
+        return {
+            path: this._reconstructPath(startIdx, endIdx, pred),
+            reliability: Math.exp(-dist[endIdx])
+        };
+    }
+
+    longestPathInfo(startNode, endNode) {
+        const graphData = this._buildDirectedGraph(true);
+        if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
+        const startIdx = graphData.idx[startNode];
+        const endIdx = graphData.idx[endNode];
+        const topo = this.topologicalSort(true, graphData);
+        if (topo.isDAG) {
+            const dist = Array(this.nodes.length).fill(-Infinity);
+            const pred = Array(this.nodes.length).fill(null);
+            dist[startIdx] = 0;
+            for (const u of topo.order) {
+                if (dist[u] === -Infinity) continue;
+                for (const edge of graphData.adj[u]) {
+                    const candidate = dist[u] + edge.weight;
+                    if (candidate > dist[edge.to]) {
+                        dist[edge.to] = candidate;
+                        pred[edge.to] = u;
+                    }
+                }
+            }
+            if (dist[endIdx] === -Infinity) {
+                return { path: [], weight: null, mode: 'dag' };
+            }
+            return {
+                path: this._reconstructPath(startIdx, endIdx, pred),
+                weight: dist[endIdx],
+                mode: 'dag'
+            };
+        }
+        const { paths } = this.simplePathsUpTo(startNode, endNode, this.nodes.length - 1, 2000);
+        if (!paths.length) return { path: [], weight: null, mode: 'fallback' };
+        let bestPath = null;
+        let bestWeight = -Infinity;
+        for (const p of paths) {
+            const w = this.pathWeightFromNodes(p, 'max');
+            if (w !== null && w > bestWeight) {
+                bestWeight = w;
+                bestPath = p;
+            }
+        }
+        return {
+            path: bestPath || [],
+            weight: bestWeight === -Infinity ? null : bestWeight,
+            mode: 'fallback',
+            limited: paths.length >= 2000
+        };
+    }
+
+    cpmAnalysis() {
+        const graphData = this._buildDirectedGraph(false);
+        if (graphData.edges.length === 0) {
+            return { error: 'Pro CPM analýzu jsou potřeba orientované hrany (operace).' };
+        }
+        const topo = this.topologicalSort(false, graphData);
+        if (!topo.isDAG) {
+            return { error: 'Síťový graf obsahuje cyklus – kritickou cestu lze hledat jen v acyklickém grafu.' };
+        }
+        const order = topo.order;
+        const n = this.nodes.length;
+        const earliest = Array(n).fill(0);
+        for (const u of order) {
+            for (const edge of graphData.adj[u]) {
+                const candidate = earliest[u] + edge.weight;
+                if (candidate > earliest[edge.to]) {
+                    earliest[edge.to] = candidate;
+                }
+            }
+        }
+        const projectDuration = Math.max(...earliest);
+        const latest = Array(n).fill(projectDuration);
+        for (let i = order.length - 1; i >= 0; i--) {
+            const u = order[i];
+            if (!graphData.adj[u].length) {
+                latest[u] = Math.min(latest[u], projectDuration);
+                continue;
+            }
+            let minCandidate = Infinity;
+            for (const edge of graphData.adj[u]) {
+                const candidate = latest[edge.to] - edge.weight;
+                if (candidate < minCandidate) minCandidate = candidate;
+            }
+            if (minCandidate !== Infinity) {
+                latest[u] = Math.min(latest[u], minCandidate);
+            }
+        }
+        const nodeSummaries = this.nodes.map((id, idx) => {
+            const slack = latest[idx] - earliest[idx];
+            return {
+                id,
+                earliest: earliest[idx],
+                latest: latest[idx],
+                slack,
+                isCritical: Math.abs(slack) < 1e-6
+            };
+        });
+        const activities = graphData.edges.map(edge => {
+            const earlyStart = earliest[edge.from];
+            const duration = edge.weight;
+            const earlyFinish = earlyStart + duration;
+            const lateFinish = latest[edge.to];
+            const lateStart = lateFinish - duration;
+            const slack = lateStart - earlyStart;
+            return {
+                id: edge.label || `${edge.fromId}→${edge.toId}`,
+                from: edge.fromId,
+                to: edge.toId,
+                duration,
+                earlyStart,
+                earlyFinish,
+                lateStart,
+                lateFinish,
+                slack,
+                isCritical: Math.abs(slack) < 1e-6
+            };
+        });
+        const criticalActivities = activities.filter(a => a.isCritical);
+        const criticalPath = this._extractCriticalPath(criticalActivities);
+        return {
+            projectDuration,
+            nodeSummaries,
+            activities,
+            criticalPath,
+            criticalEdgesCount: criticalActivities.length
+        };
+    }
+
+    _extractCriticalPath(criticalActivities) {
+        if (!criticalActivities.length) return [];
+        const adjacency = {};
+        const indegree = {};
+        for (const act of criticalActivities) {
+            if (!adjacency[act.from]) adjacency[act.from] = [];
+            adjacency[act.from].push(act);
+            indegree[act.to] = (indegree[act.to] || 0) + 1;
+            indegree[act.from] = indegree[act.from] || 0;
+        }
+        const startCandidates = Object.keys(adjacency).filter(node => (indegree[node] || 0) === 0);
+        const start = startCandidates[0] || criticalActivities[0].from;
+        const stack = [[start, [start]]];
+        let bestPath = [];
+        while (stack.length) {
+            const [node, path] = stack.pop();
+            const nextEdges = adjacency[node] || [];
+            if (!nextEdges.length) {
+                if (path.length > bestPath.length) {
+                    bestPath = path.slice();
+                }
+            } else {
+                for (const edge of nextEdges) {
+                    stack.push([edge.to, [...path, edge.to]]);
+                }
+            }
+        }
+        return bestPath;
     }
 
     dfsTraversal(startNode) {
@@ -3797,6 +4233,51 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     spanningTreeSection.appendChild(spanningTreeResult);
     output.appendChild(spanningTreeSection);
 
+    // Optimal paths (shortest/longest/safest/widest)
+    const optimalSection = document.createElement('div');
+    optimalSection.id = 'optimalPathsSection';
+    optimalSection.className = 'section';
+    optimalSection.innerHTML = '<h2>Optimální cesty (nejkratší / nejdelší / nejbezpečnější / nejširší)</h2>';
+    const optimalInfo = document.createElement('p');
+    optimalInfo.style.color = '#495057';
+    optimalInfo.innerHTML = 'Mooreův algoritmus (BFS) hledá nejkratší cestu v neohodnoceném grafu. Dijkstrův a Bellman-Fordův algoritmus pracují s vahami (Bellman-Ford zvládá i záporné hrany) a Floyd-Warshallova varianta níže poskytuje kompletní matici vzdáleností.';
+    optimalSection.appendChild(optimalInfo);
+    const optimalInputs = document.createElement('div');
+    optimalInputs.className = 'query-inputs';
+    optimalInputs.innerHTML = `
+        <input id="optimalStartNode" list="nodes-datalist-optimal" placeholder="Od uzlu">
+        <input id="optimalEndNode" list="nodes-datalist-optimal" placeholder="Do uzlu">
+        <button id="runOptimalPaths">Analyzovat optimální cesty</button>
+    `;
+    optimalSection.appendChild(optimalInputs);
+    const optimalDatalist = document.createElement('datalist');
+    optimalDatalist.id = 'nodes-datalist-optimal';
+    optimalSection.appendChild(optimalDatalist);
+    const optimalResult = document.createElement('div');
+    optimalResult.id = 'optimalPathsResult';
+    optimalResult.style.display = 'none';
+    optimalSection.appendChild(optimalResult);
+    output.appendChild(optimalSection);
+
+    // CPM / critical path section
+    const cpmSection = document.createElement('div');
+    cpmSection.id = 'cpmSection';
+    cpmSection.className = 'section';
+    cpmSection.innerHTML = '<h2>Projektové plánování (síťový graf & CPM)</h2>';
+    const cpmIntro = document.createElement('p');
+    cpmIntro.style.color = '#495057';
+    cpmIntro.innerHTML = 'Hrany interpretujeme jako činnosti s délkou podle váhy. CPM (Critical Path Method) spočítá kritickou cestu, délku projektu a rezervy činností, abyste mohli plánovat kapacity.';
+    cpmSection.appendChild(cpmIntro);
+    const cpmBtn = document.createElement('button');
+    cpmBtn.id = 'runCpmAnalysis';
+    cpmBtn.textContent = 'Analyzovat kritickou cestu (CPM)';
+    cpmSection.appendChild(cpmBtn);
+    const cpmResult = document.createElement('div');
+    cpmResult.id = 'cpmResult';
+    cpmResult.style.display = 'none';
+    cpmSection.appendChild(cpmResult);
+    output.appendChild(cpmSection);
+
     const theorySection = document.createElement('div');
     theorySection.id = 'graphTheoryGuide';
     theorySection.className = 'section';
@@ -3819,12 +4300,145 @@ document.getElementById('parseBtn').addEventListener('click', () => {
 
     // Populate explore datalist
     const exploreDatalist = document.getElementById('nodes-datalist-explore');
-    if (exploreDatalist) {
-        exploreDatalist.innerHTML = '';
+    const optimalDatalistEl = document.getElementById('nodes-datalist-optimal');
+    const fillDatalist = (listEl) => {
+        if (!listEl) return;
+        listEl.innerHTML = '';
         graph.nodes.forEach(node => {
             const option = document.createElement('option');
             option.value = node;
-            exploreDatalist.appendChild(option);
+            listEl.appendChild(option);
+        });
+    };
+    fillDatalist(exploreDatalist);
+    fillDatalist(optimalDatalistEl);
+
+    const optimalButton = document.getElementById('runOptimalPaths');
+    if (optimalButton) {
+        optimalButton.addEventListener('click', () => {
+            const startNode = document.getElementById('optimalStartNode').value.trim();
+            const endNode = document.getElementById('optimalEndNode').value.trim();
+            const resultDiv = document.getElementById('optimalPathsResult');
+            if (!resultDiv) return;
+            if (!startNode || !endNode) {
+                resultDiv.innerHTML = '<p style="color:#dc3545;">Vyplňte prosím oba uzly.</p>';
+                resultDiv.style.display = 'block';
+                return;
+            }
+            const dijkstra = graph.shortestPath(startNode, endNode);
+            const moore = graph.mooreShortestPath(startNode, endNode);
+            const bellman = graph.bellmanFordPath(startNode, endNode);
+            const longest = graph.longestPathInfo(startNode, endNode);
+            const safest = graph.safestPath(startNode, endNode);
+            const widest = graph.widestPath(startNode, endNode);
+            const formatPath = (arr) => (arr && arr.length ? arr.join(' → ') : 'Cesta nenalezena');
+            const formatDistance = (val) => {
+                if (val === null || val === undefined) return '—';
+                if (val === Infinity) return '∞';
+                if (!Number.isFinite(val)) return '—';
+                const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
+                return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+            };
+            let html = '<div class="optimal-grid">';
+            html += `<div class="result-box">
+                <div class="result-label">Nejkratší cesta (Dijkstrův algoritmus)</div>
+                <div>Vzdálenost: ${formatDistance(dijkstra ? dijkstra.distance : null)}</div>
+                <div>Cesta: ${formatPath(dijkstra ? dijkstra.path : [])}</div>
+            </div>`;
+            html += `<div class="result-box">
+                <div class="result-label">Moorův algoritmus (BFS)</div>
+                <div>Počet hran: ${moore && moore.distance !== Infinity ? moore.distance : 'Cesta nenalezena'}</div>
+                <div>Cesta: ${formatPath(moore ? moore.path : [])}</div>
+            </div>`;
+            const bellmanWarning = bellman && bellman.negativeCycle ? '<div style="color:#dc3545; margin-top:0.25rem;">Varování: Detekována záporná kružnice – výsledky mohou být neplatné.</div>' : '';
+            html += `<div class="result-box">
+                <div class="result-label">Bellman-Fordův algoritmus</div>
+                <div>Vzdálenost: ${formatDistance(bellman ? bellman.distance : null)}</div>
+                <div>Cesta: ${formatPath(bellman ? bellman.path : [])}</div>
+                ${bellmanWarning}
+            </div>`;
+            const longestNote = longest
+                ? (longest.mode === 'fallback'
+                    ? '<div style="font-size:0.85rem; color:#6c757d;">Graf není DAG, proto se prohledávají jednoduché cesty (omezeno na 2000).</div>'
+                    : '<div style="font-size:0.85rem; color:#6c757d;">Výpočet v DAG pomocí topologického pořadí.</div>')
+                : '';
+            html += `<div class="result-box">
+                <div class="result-label">Nejdelší cesta</div>
+                <div>Délka: ${formatDistance(longest ? longest.weight : null)}</div>
+                <div>Cesta: ${formatPath(longest ? longest.path : [])}</div>
+                ${longestNote}
+            </div>`;
+            const reliability = safest ? Math.min(1, Math.max(0, safest.reliability || 0)) : 0;
+            html += `<div class="result-box">
+                <div class="result-label">Nejbezpečnější cesta (maximalizace spolehlivosti)</div>
+                <div>Spolehlivost: ${(reliability * 100).toFixed(2)} %</div>
+                <div>Cesta: ${formatPath(safest ? safest.path : [])}</div>
+            </div>`;
+            html += `<div class="result-box">
+                <div class="result-label">Nejširší cesta (max-min kapacita)</div>
+                <div>Kritické hrdlo: ${formatDistance(widest ? widest.width : null)}</div>
+                <div>Cesta: ${formatPath(widest ? widest.path : [])}</div>
+            </div>`;
+            html += '</div>';
+            html += '<p style="font-size:0.9rem; color:#495057; margin-top:0.75rem;">Tip: úplnou matici nejkratších cest poskytuje sekce „Nejkratší cesty (Floyd-Warshall)“.</p>';
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        });
+    }
+
+    const cpmButton = document.getElementById('runCpmAnalysis');
+    if (cpmButton) {
+        cpmButton.addEventListener('click', () => {
+            const result = graph.cpmAnalysis();
+            const cpmDiv = document.getElementById('cpmResult');
+            if (!cpmDiv) return;
+            if (!result || result.error) {
+                cpmDiv.innerHTML = `<p style="color:#dc3545;">${result && result.error ? result.error : 'Analýza se nezdařila.'}</p>`;
+                cpmDiv.style.display = 'block';
+                return;
+            }
+            const formatNum = (val) => Number.isFinite(val) ? (Math.round((val + Number.EPSILON) * 100) / 100).toString() : '—';
+            const criticalPath = result.criticalPath && result.criticalPath.length
+                ? result.criticalPath.join(' → ')
+                : 'Nenalezena';
+            let html = `<div class="result-box">
+                <div class="result-label">Shrnutí CPM</div>
+                <div><strong>Délka projektu:</strong> ${formatNum(result.projectDuration)}</div>
+                <div><strong>Počet kritických činností:</strong> ${result.criticalEdgesCount}</div>
+                <div><strong>Kritická cesta:</strong> ${criticalPath}</div>
+            </div>`;
+            html += '<div class="scrollable-list">';
+            html += '<table><thead><tr><th>Uzel</th><th>Nejčasnější čas</th><th>Nejpozdější čas</th><th>Rezerva</th><th>Kritický</th></tr></thead><tbody>';
+            result.nodeSummaries.forEach(node => {
+                html += `<tr>
+                    <td>${node.id}</td>
+                    <td>${formatNum(node.earliest)}</td>
+                    <td>${formatNum(node.latest)}</td>
+                    <td>${formatNum(node.slack)}</td>
+                    <td>${node.isCritical ? 'ANO' : 'ne'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            html += '<div class="scrollable-list" style="margin-top:1rem;">';
+            html += '<table><thead><tr><th>Aktivita</th><th>Od</th><th>Do</th><th>Délka</th><th>ES</th><th>EF</th><th>LS</th><th>LF</th><th>Rezerva</th><th>Kritická?</th></tr></thead><tbody>';
+            result.activities.forEach(act => {
+                html += `<tr>
+                    <td>${act.id}</td>
+                    <td>${act.from}</td>
+                    <td>${act.to}</td>
+                    <td>${formatNum(act.duration)}</td>
+                    <td>${formatNum(act.earlyStart)}</td>
+                    <td>${formatNum(act.earlyFinish)}</td>
+                    <td>${formatNum(act.lateStart)}</td>
+                    <td>${formatNum(act.lateFinish)}</td>
+                    <td>${formatNum(act.slack)}</td>
+                    <td>${act.isCritical ? 'ANO' : 'ne'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            html += '<p style="font-size:0.9rem; color:#495057; margin-top:0.5rem;">Rezerva činnosti (float) = LS − ES. Činnosti s nulovou rezervou tvoří kritickou cestu (CPM).</p>';
+            cpmDiv.innerHTML = html;
+            cpmDiv.style.display = 'block';
         });
     }
 
