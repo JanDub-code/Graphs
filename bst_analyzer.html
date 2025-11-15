@@ -473,6 +473,16 @@ u *;</textarea>
             <div id="searchResult"></div>
         </div>
 
+        <div id="nodeTableCard" class="card hidden">
+            <h2>🗂️ Seznam uzlů & vazeb</h2>
+            <div id="nodeTable"></div>
+        </div>
+
+        <div id="pathInsightsCard" class="card hidden">
+            <h2>🧭 Stromové cesty & metriky</h2>
+            <div id="pathInsights"></div>
+        </div>
+
         <div id="cpmCard" class="card hidden">
             <h2>🕒 Síťový graf & CPM pro stromy</h2>
             <p style="color: #bbdefb;">
@@ -541,6 +551,10 @@ u *;</textarea>
             document.getElementById('methodsCard').classList.add('hidden');
             document.getElementById('advancedStatsCard').classList.add('hidden');
             document.getElementById('searchResultCard').classList.add('hidden');
+            document.getElementById('nodeTableCard').classList.add('hidden');
+            document.getElementById('pathInsightsCard').classList.add('hidden');
+            document.getElementById('nodeTable').innerHTML = '';
+            document.getElementById('pathInsights').innerHTML = '';
             document.getElementById('cpmCard').classList.add('hidden');
             document.getElementById('cpmResult').innerHTML = '';
             highlightedNodes.clear();
@@ -1497,6 +1511,8 @@ u *;</textarea>
 
             // Traversals
             displayTraversals(bst);
+
+            updateTreeInsights('bst');
         }
 
         function visualizeBST() {
@@ -1783,6 +1799,8 @@ u *;</textarea>
                 // Advanced stats
                 displayBinaryAdvancedStats();
 
+                updateTreeInsights('binary');
+
             } catch (error) {
                 alert('❌ Chyba: ' + error.message);
             }
@@ -2012,6 +2030,320 @@ u *;</textarea>
                 </div>
             `;
             document.getElementById('properties').innerHTML = propertiesHtml;
+        }
+
+        function buildBstTreeModel() {
+            if (!bst.root) return null;
+            const nodes = [];
+            const nodeMap = {};
+            let counter = 0;
+            let edgeCount = 0;
+            const queue = [{ treeNode: bst.root, depth: 0, parentId: null }];
+
+            while (queue.length) {
+                const { treeNode, depth, parentId } = queue.shift();
+                if (!treeNode) continue;
+                const id = `bst_${counter++}`;
+                const label = treeNode.value !== undefined && treeNode.value !== null ? treeNode.value.toString() : `Uzel ${counter}`;
+                const entry = {
+                    id,
+                    label,
+                    displayLabel: label,
+                    depth,
+                    parentId,
+                    parentLabel: '—',
+                    children: [],
+                    childrenLabels: [],
+                    degree: 0,
+                    type: 'List'
+                };
+                nodes.push(entry);
+                nodeMap[id] = entry;
+                if (parentId && nodeMap[parentId]) {
+                    nodeMap[parentId].children.push(id);
+                }
+
+                if (treeNode.left) {
+                    queue.push({ treeNode: treeNode.left, depth: depth + 1, parentId: id });
+                    edgeCount++;
+                }
+                if (treeNode.right) {
+                    queue.push({ treeNode: treeNode.right, depth: depth + 1, parentId: id });
+                    edgeCount++;
+                }
+            }
+
+            nodes.forEach(node => {
+                const childCount = node.children.length;
+                node.degree = childCount + (node.parentId ? 1 : 0);
+                node.type = childCount === 0 ? 'List' : 'Vnitřní';
+                node.parentLabel = node.parentId && nodeMap[node.parentId]
+                    ? nodeMap[node.parentId].label
+                    : '—';
+                node.childrenLabels = node.children
+                    .map(childId => nodeMap[childId]?.label || '')
+                    .filter(label => label);
+            });
+
+            return {
+                nodes,
+                nodeMap,
+                rootId: nodes.length ? nodes[0].id : null,
+                edgeCount,
+                meta: { type: 'bst', label: 'BST' }
+            };
+        }
+
+        function buildBinaryTreeModel() {
+            if (!binaryTree || !binaryTree.nodes.length || binaryTree.nodes[0] === '*') return null;
+            const nodes = [];
+            const nodeMap = {};
+            const queue = [{ index: 0, depth: 0, parentId: null }];
+            let edgeCount = 0;
+
+            while (queue.length) {
+                const { index, depth, parentId } = queue.shift();
+                if (index >= binaryTree.nodes.length) continue;
+                const value = binaryTree.nodes[index];
+                if (value === '*') continue;
+                const id = `bin_${index}`;
+                const label = value.toString();
+                const entry = {
+                    id,
+                    index,
+                    label,
+                    displayLabel: `${label} (idx ${index})`,
+                    depth,
+                    parentId,
+                    parentLabel: '—',
+                    children: [],
+                    childrenLabels: [],
+                    degree: 0,
+                    type: 'List'
+                };
+                nodes.push(entry);
+                nodeMap[id] = entry;
+                if (parentId && nodeMap[parentId]) {
+                    nodeMap[parentId].children.push(id);
+                }
+
+                const leftIdx = 2 * index + 1;
+                const rightIdx = 2 * index + 2;
+                if (leftIdx < binaryTree.nodes.length && binaryTree.nodes[leftIdx] !== '*') {
+                    queue.push({ index: leftIdx, depth: depth + 1, parentId: id });
+                    edgeCount++;
+                }
+                if (rightIdx < binaryTree.nodes.length && binaryTree.nodes[rightIdx] !== '*') {
+                    queue.push({ index: rightIdx, depth: depth + 1, parentId: id });
+                    edgeCount++;
+                }
+            }
+
+            nodes.forEach(node => {
+                const childCount = node.children.length;
+                node.degree = childCount + (node.parentId ? 1 : 0);
+                node.type = childCount === 0 ? 'List' : 'Vnitřní';
+                node.parentLabel = node.parentId && nodeMap[node.parentId]
+                    ? nodeMap[node.parentId].label
+                    : '—';
+                node.childrenLabels = node.children
+                    .map(childId => nodeMap[childId]?.label || '')
+                    .filter(label => label);
+            });
+
+            return {
+                nodes,
+                nodeMap,
+                rootId: nodes.length ? 'bin_0' : null,
+                edgeCount,
+                meta: { type: 'binary', label: 'Binary Tree' }
+            };
+        }
+
+        function renderNodeTable(model) {
+            const card = document.getElementById('nodeTableCard');
+            const container = document.getElementById('nodeTable');
+            if (!model) {
+                card.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            card.classList.remove('hidden');
+            const rows = model.nodes.map((node, idx) => `
+                <tr>
+                    <td style="padding:0.25rem;">${idx + 1}. ${node.displayLabel}</td>
+                    <td style="padding:0.25rem; text-align:right;">${node.depth}</td>
+                    <td style="padding:0.25rem;">${node.parentLabel}</td>
+                    <td style="padding:0.25rem;">${node.childrenLabels.length ? node.childrenLabels.join(', ') : '—'}</td>
+                    <td style="padding:0.25rem; text-align:center;">${node.degree}</td>
+                    <td style="padding:0.25rem; text-align:center;">${node.type}</td>
+                </tr>
+            `).join('');
+            container.innerHTML = `
+                <div class="result-box">
+                    <div class="result-label">${model.meta.label} – uzly & hrany</div>
+                    <div>Uzly: ${model.nodes.length} | Hrany: ${model.edgeCount}</div>
+                </div>
+                <div class="scrollable-panel">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:0.25rem;"># Uzel</th>
+                                <th style="text-align:right; padding:0.25rem;">Hloubka</th>
+                                <th style="text-align:left; padding:0.25rem;">Rodič</th>
+                                <th style="text-align:left; padding:0.25rem;">Potomci</th>
+                                <th style="text-align:center; padding:0.25rem;">Stupeň</th>
+                                <th style="text-align:center; padding:0.25rem;">Typ</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function computeDiameterFromModel(model) {
+            if (!model || !model.rootId) return null;
+            const nodeMap = model.nodeMap;
+            let bestPath = [];
+
+            const dfs = (nodeId) => {
+                const node = nodeMap[nodeId];
+                if (!node) return { depth: -1, pathDown: [] };
+                if (!node.children.length) {
+                    const pathDown = [nodeId];
+                    if (pathDown.length > bestPath.length) bestPath = pathDown.slice();
+                    return { depth: 0, pathDown };
+                }
+
+                const childResults = node.children.map(childId => dfs(childId));
+                childResults.sort((a, b) => b.depth - a.depth);
+
+                const bestChild = childResults[0];
+                const pathDown = [nodeId];
+                if (bestChild && bestChild.depth >= 0) {
+                    pathDown.push(...bestChild.pathDown);
+                }
+
+                if (pathDown.length > bestPath.length) bestPath = pathDown.slice();
+
+                if (childResults.length >= 2) {
+                    const through = [
+                        ...childResults[0].pathDown.slice().reverse(),
+                        nodeId,
+                        ...childResults[1].pathDown
+                    ];
+                    if (through.length > bestPath.length) bestPath = through.slice();
+                }
+
+                return {
+                    depth: (bestChild ? bestChild.depth : -1) + 1,
+                    pathDown
+                };
+            };
+
+            const rootResult = dfs(model.rootId);
+            if (!bestPath.length && rootResult.pathDown.length) {
+                bestPath = rootResult.pathDown.slice();
+            }
+            return {
+                length: bestPath.length ? bestPath.length - 1 : 0,
+                path: bestPath
+            };
+        }
+
+        function computePathInsightsFromModel(model) {
+            if (!model || !model.rootId) return null;
+            const nodeMap = model.nodeMap;
+            const longest = { length: -Infinity, path: [] };
+            const shortest = { length: Infinity, path: [] };
+
+            const dfs = (nodeId, path) => {
+                const node = nodeMap[nodeId];
+                if (!node) return;
+                path.push(nodeId);
+                if (!node.children.length) {
+                    const edges = path.length - 1;
+                    if (edges > longest.length) {
+                        longest.length = edges;
+                        longest.path = path.slice();
+                    }
+                    if (edges < shortest.length) {
+                        shortest.length = edges;
+                        shortest.path = path.slice();
+                    }
+                } else {
+                    node.children.forEach(childId => dfs(childId, path));
+                }
+                path.pop();
+            };
+
+            dfs(model.rootId, []);
+
+            if (longest.length === -Infinity) {
+                longest.length = 0;
+                longest.path = model.rootId ? [model.rootId] : [];
+            }
+            if (shortest.length === Infinity) {
+                shortest.length = 0;
+                shortest.path = model.rootId ? [model.rootId] : [];
+            }
+
+            const diameter = computeDiameterFromModel(model);
+            return {
+                longest,
+                shortest,
+                diameter
+            };
+        }
+
+        function renderPathInsights(model) {
+            const card = document.getElementById('pathInsightsCard');
+            const container = document.getElementById('pathInsights');
+            if (!model) {
+                card.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            const insights = computePathInsightsFromModel(model);
+            if (!insights) {
+                card.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            card.classList.remove('hidden');
+            const toLabelPath = (ids) => (ids && ids.length)
+                ? ids.map(id => model.nodeMap[id]?.label || '?').join(' → ')
+                : '—';
+            const leafCount = model.nodes.filter(node => !node.children.length).length;
+            const maxDepth = model.nodes.length ? Math.max(...model.nodes.map(n => n.depth)) : 0;
+            container.innerHTML = `
+                <div class="result-box">
+                    <div class="result-label">${model.meta.label} – listy & statistiky</div>
+                    <div>Listy: ${leafCount} | Největší hloubka: ${maxDepth}</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Nejdelší cesta od kořene</div>
+                    <div>Délka (hrany): ${insights.longest.length}</div>
+                    <div>Cesta: ${toLabelPath(insights.longest.path)}</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Nejkratší cesta od kořene</div>
+                    <div>Délka (hrany): ${insights.shortest.length}</div>
+                    <div>Cesta: ${toLabelPath(insights.shortest.path)}</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Průměr stromu (nejdelší cesta mezi uzly)</div>
+                    <div>Délka (hrany): ${insights.diameter ? insights.diameter.length : 0}</div>
+                    <div>Cesta: ${insights.diameter ? toLabelPath(insights.diameter.path) : '—'}</div>
+                </div>
+            `;
+        }
+
+        function updateTreeInsights(mode) {
+            const model = mode === 'binary' ? buildBinaryTreeModel() : buildBstTreeModel();
+            renderNodeTable(model);
+            renderPathInsights(model);
         }
 
         function parseDurationOverrides(text) {
