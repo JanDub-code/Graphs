@@ -338,10 +338,10 @@
 
         <!-- MODE SELECTOR -->
         <div class="mode-selector">
-            <button class="mode-btn active" onclick="switchMode('bst')">
+            <button class="mode-btn active" data-mode="bst" onclick="switchMode(event, 'bst')">
                 🔢 Binary Search Tree (BST)
             </button>
-            <button class="mode-btn" onclick="switchMode('binary')">
+            <button class="mode-btn" data-mode="binary" onclick="switchMode(event, 'binary')">
                 📊 Binary Tree (Level-Order)
             </button>
         </div>
@@ -441,9 +441,9 @@ u *;</textarea>
         <div id="vizCard" class="card hidden">
             <h2>🌲 Vizualizace stromu</h2>
             <div class="viz-controls">
-                <button class="viz-mode active" onclick="changeVizMode('text')">📝 Text</button>
-                <button class="viz-mode" onclick="changeVizMode('levels')">📊 Úrovně</button>
-                <button class="viz-mode" onclick="changeVizMode('canvas')">🎨 Canvas</button>
+                <button class="viz-mode active" data-viz="text" onclick="changeVizMode(event, 'text')">📝 Text</button>
+                <button class="viz-mode" data-viz="levels" onclick="changeVizMode(event, 'levels')">📊 Úrovně</button>
+                <button class="viz-mode" data-viz="canvas" onclick="changeVizMode(event, 'canvas')">🎨 Canvas</button>
             </div>
             <div id="treeViz" class="tree-viz"></div>
         </div>
@@ -513,12 +513,13 @@ u *;</textarea>
         let highlightedNodes = new Set();
         let searchPath = [];
 
-        function switchMode(mode) {
+        function switchMode(evt, mode) {
             currentMode = mode;
             
             // Update buttons
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            const targetButton = evt?.currentTarget ?? evt?.target ?? document.querySelector(`.mode-btn[data-mode="${mode}"]`);
+            targetButton?.classList.add('active');
             
             // Show/hide sections
             document.getElementById('bstMode').classList.toggle('hidden', mode !== 'bst');
@@ -528,12 +529,13 @@ u *;</textarea>
             hideResults();
         }
 
-        function changeVizMode(mode) {
+        function changeVizMode(evt, mode) {
             currentVizMode = mode;
             
             // Update buttons
             document.querySelectorAll('.viz-mode').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            const targetButton = evt?.currentTarget ?? evt?.target ?? document.querySelector(`.viz-mode[data-viz="${mode}"]`);
+            targetButton?.classList.add('active');
             
             // Refresh visualization
             if (currentMode === 'bst') {
@@ -897,48 +899,42 @@ u *;</textarea>
             }
 
             _getBalanceNode(node) {
-                if (node === null) return { balanced: true, height: 0, maxDiff: 0 };
-                
-                const stack = [{node, left: null, right: null}];
-                const heights = new Map();
-                
-                while (stack.length > 0) {
-                    const current = stack[stack.length - 1];
-                    
-                    if (current.node === null) {
-                        heights.set(current.node, 0);
-                        stack.pop();
-                        continue;
+                const traverse = (current) => {
+                    if (current === null) {
+                        return {
+                            balanced: true,
+                            height: 0,
+                            leftHeight: 0,
+                            rightHeight: 0,
+                            balanceFactor: 0,
+                            maxDiff: 0
+                        };
                     }
-                    
-                    if (current.left === null && current.right === null) {
-                        const leftHeight = heights.get(current.node.left) ?? 0;
-                        const rightHeight = heights.get(current.node.right) ?? 0;
-                        heights.set(current.node, Math.max(leftHeight, rightHeight) + 1);
-                        stack.pop();
-                    } else {
-                        if (current.left === null) {
-                            current.left = current.node.left;
-                            if (current.node.left !== null) stack.push({node: current.node.left, left: null, right: null});
-                            else heights.set(null, 0);
-                        }
-                        if (current.right === null) {
-                            current.right = current.node.right;
-                            if (current.node.right !== null) stack.push({node: current.node.right, left: null, right: null});
-                            else heights.set(null, 0);
-                        }
-                    }
-                }
-                
-                const leftHeight = this._heightNode(node.left);
-                const rightHeight = this._heightNode(node.right);
-                const diff = Math.abs(leftHeight - rightHeight);
-                
+
+                    const left = traverse(current.left);
+                    const right = traverse(current.right);
+                    const balanceFactor = left.height - right.height;
+                    const diff = Math.abs(balanceFactor);
+                    const balanced = left.balanced && right.balanced && diff <= 1;
+
+                    return {
+                        balanced,
+                        height: Math.max(left.height, right.height) + 1,
+                        leftHeight: left.height,
+                        rightHeight: right.height,
+                        balanceFactor,
+                        maxDiff: Math.max(diff, left.maxDiff, right.maxDiff)
+                    };
+                };
+
+                const summary = traverse(node);
                 return {
-                    balanced: diff <= 1,
-                    leftHeight,
-                    rightHeight,
-                    balanceFactor: leftHeight - rightHeight
+                    balanced: summary.balanced,
+                    leftHeight: summary.leftHeight,
+                    rightHeight: summary.rightHeight,
+                    balanceFactor: summary.balanceFactor,
+                    maxDiff: summary.maxDiff,
+                    height: summary.height
                 };
             }
 

@@ -1557,18 +1557,60 @@ class Graph {
         
         // Izolované uzly (stupeň 0)
         stats.isolatedNodes = this.nodes.filter(id => degrees[id] === 0);
-        
+
+        // Rozklad hran podle typu (orientované / neorientované / smyčky)
+        const edgeBreakdown = this.edges.reduce((acc, edge) => {
+            const isLoop = edge.u === edge.v;
+            if (isLoop) {
+                acc.loops++;
+            } else if (edge.direction === '-') {
+                acc.undirected++;
+            } else {
+                acc.directed++;
+            }
+            return acc;
+        }, { directed: 0, undirected: 0, loops: 0 });
+
         // Smyčky (self-loops)
-        stats.loops = this.edges.filter(e => e.u === e.v).length;
+        stats.loops = edgeBreakdown.loops;
         
         // Násobné hrany
         const multipleEdges = this.findMultipleEdges();
         stats.multipleEdgeGroups = multipleEdges.length;
         stats.totalMultipleEdges = multipleEdges.reduce((sum, g) => sum + g.count, 0);
         
-        // Hustota grafu (0 = řídký, 1 = úplný)
-        const maxEdges = (n * (n - 1)) / 2;
-        stats.density = maxEdges > 0 ? m / maxEdges : 0;
+        // Hustota grafu (0 = řídký, 1 = úplný) s ohledem na orientované/mixované hrany a smyčky
+        const pairCount = n > 1 ? n * (n - 1) : 0;
+        let maxDirectedCapacity = 0;
+        let maxUndirectedCapacity = 0;
+
+        // Pokud graf obsahuje nebo umožňuje orientované hrany, uvažuj n*(n-1) možností
+        if ((props.oriented === 'orientovaný' || props.oriented === 'smíšený') && pairCount > 0) {
+            maxDirectedCapacity = pairCount;
+        } else if (edgeBreakdown.directed > 0 && pairCount > 0) {
+            maxDirectedCapacity = pairCount;
+        }
+
+        // Pokud graf obsahuje nebo umožňuje neorientované hrany, uvažuj n*(n-1)/2 možností
+        if ((props.oriented === 'neorientovaný' || props.oriented === 'smíšený') && pairCount > 0) {
+            maxUndirectedCapacity = pairCount / 2;
+        } else if (edgeBreakdown.undirected > 0 && pairCount > 0) {
+            maxUndirectedCapacity = pairCount / 2;
+        }
+
+        // Smyčky – maximálně jedna smyčka na uzel pro normalizaci
+        const maxLoopCapacity = edgeBreakdown.loops > 0 ? n : 0;
+
+        const densityDenominator = maxDirectedCapacity + maxUndirectedCapacity + maxLoopCapacity;
+        stats.density = densityDenominator > 0 ? Math.min(1, m / densityDenominator) : 0;
+        stats.densityModel = {
+            directedSlots: maxDirectedCapacity,
+            undirectedSlots: maxUndirectedCapacity,
+            loopSlots: maxLoopCapacity,
+            usedDirected: edgeBreakdown.directed,
+            usedUndirected: edgeBreakdown.undirected,
+            usedLoops: edgeBreakdown.loops
+        };
         
         // Průměr a poloměr grafu (pokud je souvislý a ne moc velký)
         if (n > 0 && n <= 100 && this.properties().connected) {

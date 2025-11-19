@@ -36,7 +36,7 @@ const EXPECTED_SNIPPETS = [
   'Komponenty: 1',
   'Izolované uzly: 0',
   'Smyčky: 0',
-  'Hustota grafu: 50.00%',
+  'Hustota grafu: 25.00%',
   '📏 Nejkratší a nejdelší hrana',
   'Nejkratší: A → B (váha: 1)',
   'Nejdelší: F → H (váha: 7)',
