@@ -1690,99 +1690,164 @@ class Graph {
     }
 
     countSpanningTrees() {
-        if (this.nodes.length === 0) return 0;
-        // Matrix Tree Theorem: determinant of any cofactor of the Laplacian matrix
-        const L = this.laplacianMatrix();
-        // Cofactor L11
-        const cofactor = L.slice(1).map(row => row.slice(1));
+        const n = this.nodes.length;
+        if (n === 0) return 0;
+        if (n === 1) return 1;
 
-        function determinant(matrix) {
-            if (matrix.length === 0) return 1;
-            if (matrix.length === 1) return matrix[0][0];
-            if (matrix.length === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-            let det = 0;
-            for (let i = 0; i < matrix.length; i++) {
-                const subMatrix = matrix.slice(1).map(row => row.filter((_, j) => i !== j));
-                det += (i % 2 === 0 ? 1 : -1) * matrix[0][i] * determinant(subMatrix);
-            }
-            return det;
+        // Pokud graf není souvislý, neexistuje žádná spanning tree
+        if (this.countComponents() !== 1) {
+            return 0;
         }
 
-        return Math.round(determinant(cofactor));
+        const L = this.laplacianMatrix();
+        const cofactor = [];
+        for (let i = 1; i < n; i++) {
+            const row = [];
+            for (let j = 1; j < n; j++) {
+                row.push(L[i][j]);
+            }
+            cofactor.push(row);
+        }
+
+        const det = this._determinantGaussian(cofactor);
+        if (!Number.isFinite(det)) {
+            return det;
+        }
+        return Math.max(0, Math.round(det));
+    }
+
+    _determinantGaussian(matrix) {
+        const n = matrix.length;
+        if (n === 0) return 1;
+        const mat = matrix.map(row => row.map(value => {
+            const num = typeof value === 'number' ? value : Number(value);
+            return Number.isFinite(num) ? num : 0;
+        }));
+        const EPS = 1e-9;
+        let swapCount = 0;
+        for (let i = 0; i < n; i++) {
+            let pivot = i;
+            for (let j = i + 1; j < n; j++) {
+                if (Math.abs(mat[j][i]) > Math.abs(mat[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (Math.abs(mat[pivot][i]) < EPS) {
+                return 0;
+            }
+            if (pivot !== i) {
+                [mat[i], mat[pivot]] = [mat[pivot], mat[i]];
+                swapCount++;
+            }
+            for (let j = i + 1; j < n; j++) {
+                const factor = mat[j][i] / mat[i][i];
+                if (Math.abs(factor) < EPS) continue;
+                for (let k = i; k < n; k++) {
+                    mat[j][k] -= factor * mat[i][k];
+                }
+            }
+        }
+        let det = swapCount % 2 === 0 ? 1 : -1;
+        for (let i = 0; i < n; i++) {
+            det *= mat[i][i];
+        }
+        return det;
+    }
+
+    _spanningForest(order = 'asc') {
+        const n = this.nodes.length;
+        if (n === 0) {
+            return { tree: [], totalWeight: 0, componentTrees: [], componentCount: 0 };
+        }
+
+        const parent = {};
+        const rank = {};
+        this.nodes.forEach(node => {
+            parent[node] = node;
+            rank[node] = 0;
+        });
+
+        const find = (node) => {
+            if (parent[node] !== node) {
+                parent[node] = find(parent[node]);
+            }
+            return parent[node];
+        };
+
+        const union = (a, b) => {
+            const rootA = find(a);
+            const rootB = find(b);
+            if (rootA === rootB) return false;
+            if (rank[rootA] < rank[rootB]) {
+                parent[rootA] = rootB;
+            } else if (rank[rootA] > rank[rootB]) {
+                parent[rootB] = rootA;
+            } else {
+                parent[rootB] = rootA;
+                rank[rootA]++;
+            }
+            return true;
+        };
+
+        const edges = this.edges
+            .filter(e => e.u !== e.v)
+            .map((edge, index) => {
+                const weight = (edge.weight !== null && edge.weight !== undefined && !Number.isNaN(edge.weight)) ? edge.weight : 1;
+                return {
+                    index,
+                    u: edge.u,
+                    v: edge.v,
+                    weight,
+                    ref: edge,
+                };
+            });
+
+        edges.sort((a, b) => order === 'asc' ? a.weight - b.weight : b.weight - a.weight);
+
+        const selectedEdges = [];
+        let totalWeight = 0;
+        for (const edge of edges) {
+            if (union(edge.u, edge.v)) {
+                selectedEdges.push(edge);
+                totalWeight += edge.weight;
+            }
+        }
+
+        const components = {};
+        this.nodes.forEach(node => {
+            const root = find(node);
+            if (!components[root]) {
+                components[root] = { nodes: [], edges: [], totalWeight: 0 };
+            }
+            components[root].nodes.push(node);
+        });
+
+        selectedEdges.forEach(edge => {
+            const root = find(edge.u);
+            components[root].edges.push(edge.ref);
+            components[root].totalWeight += edge.weight;
+        });
+
+        const componentTrees = Object.values(components).map(component => ({
+            nodes: [...component.nodes],
+            edges: [...component.edges],
+            totalWeight: component.totalWeight,
+        })).sort((a, b) => b.nodes.length - a.nodes.length);
+
+        return {
+            tree: selectedEdges.map(edge => edge.ref),
+            totalWeight,
+            componentTrees,
+            componentCount: componentTrees.length,
+        };
     }
 
     minimumSpanningTree() {
-        const mst = [];
-        let totalWeight = 0;
-        if (this.nodes.length === 0) return { tree: [], totalWeight: 0 };
-
-        const visited = new Set([this.nodes[0]]);
-        const edges = [...this.edges].sort((a, b) => (a.weight || 1) - (b.weight || 1));
-
-        while (visited.size < this.nodes.length) {
-            let foundEdge = false;
-            for (let i = 0; i < edges.length; i++) {
-                const edge = edges[i];
-                const uVisited = visited.has(edge.u);
-                const vVisited = visited.has(edge.v);
-
-                if (uVisited && !vVisited) {
-                    mst.push(edge);
-                    totalWeight += edge.weight || 1;
-                    visited.add(edge.v);
-                    edges.splice(i, 1);
-                    foundEdge = true;
-                    break;
-                } else if (!uVisited && vVisited) {
-                    mst.push(edge);
-                    totalWeight += edge.weight || 1;
-                    visited.add(edge.u);
-                    edges.splice(i, 1);
-                    foundEdge = true;
-                    break;
-                }
-            }
-            if (!foundEdge) break; // No more edges to add
-        }
-
-        return { tree: mst, totalWeight };
+        return this._spanningForest('asc');
     }
 
     maximumSpanningTree() {
-        const mst = [];
-        let totalWeight = 0;
-        if (this.nodes.length === 0) return { tree: [], totalWeight: 0 };
-
-        const visited = new Set([this.nodes[0]]);
-        const edges = [...this.edges].sort((a, b) => (b.weight || 1) - (a.weight || 1));
-
-        while (visited.size < this.nodes.length) {
-            let foundEdge = false;
-            for (let i = 0; i < edges.length; i++) {
-                const edge = edges[i];
-                const uVisited = visited.has(edge.u);
-                const vVisited = visited.has(edge.v);
-
-                if (uVisited && !vVisited) {
-                    mst.push(edge);
-                    totalWeight += edge.weight || 1;
-                    visited.add(edge.v);
-                    edges.splice(i, 1);
-                    foundEdge = true;
-                    break;
-                } else if (!uVisited && vVisited) {
-                    mst.push(edge);
-                    totalWeight += edge.weight || 1;
-                    visited.add(edge.u);
-                    edges.splice(i, 1);
-                    foundEdge = true;
-                    break;
-                }
-            }
-            if (!foundEdge) break;
-        }
-
-        return { tree: mst, totalWeight };
+        return this._spanningForest('desc');
     }
 
     edgeWeightStats() {
@@ -4907,23 +4972,52 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     document.getElementById('runSpanningTree').addEventListener('click', () => {
         const graph = new Graph();
         graph.parse(document.getElementById('graphInput').value);
-        const mst = graph.minimumSpanningTree();
-        const maxTree = graph.maximumSpanningTree();
-        const count = graph.countSpanningTrees();
+    const mst = graph.minimumSpanningTree();
+    const maxTree = graph.maximumSpanningTree();
+    const count = graph.countSpanningTrees();
+    const countLabel = Number.isFinite(count) ? count : 'příliš velké číslo (nelze bezpečně zobrazit)';
 
-        let html = `<h4>Výsledky analýzy kostry grafu:</h4>`;
-        html += `<p>Počet koster: ${count}</p>`;
+    let html = `<h4>Výsledky analýzy kostry grafu:</h4>`;
+    html += `<p>Počet koster: ${countLabel}</p>`;
 
         const renderTreeList = (title, treeData) => {
-            if (!treeData.tree.length) {
-                return `<p><strong>${title}:</strong> Nelze sestavit – graf není souvislý.</p>`;
+            const forest = (treeData && treeData.componentTrees && treeData.componentTrees.length)
+                ? treeData.componentTrees
+                : [{ nodes: graph.nodes, edges: treeData ? treeData.tree : [], totalWeight: treeData ? treeData.totalWeight : 0 }];
+            const hasEdges = forest.some(component => component.edges.length);
+            if (!hasEdges) {
+                return `<p><strong>${title}:</strong> Nelze sestavit – graf není souvislý nebo neobsahuje žádné hrany.</p>`;
             }
-            let block = `<div style="margin-top: 0.75rem;"><strong>${title} (váha: ${treeData.totalWeight})</strong><ul>`;
-            treeData.tree.forEach(edge => {
-                const w = edge.weight !== null && edge.weight !== undefined ? edge.weight : 1;
-                block += `<li>${edge.u} - ${edge.v} (váha: ${w})</li>`;
+
+            const componentCount = treeData && typeof treeData.componentCount === 'number'
+                ? treeData.componentCount
+                : 1;
+
+            let block = `<div style="margin-top: 0.75rem;">
+                <strong>${title}${componentCount === 1 ? ` (váha: ${Math.round((treeData.totalWeight + Number.EPSILON) * 100) / 100})` : ''}</strong>`;
+            if (componentCount > 1) {
+                block += `<p style="margin: 0.25rem 0; font-size: 0.9rem; color: #495057;">Graf má ${componentCount} komponent – zobrazujeme minimální kostry jednotlivých komponent (spanning forest).</p>`;
+            }
+
+            forest.forEach((component, idx) => {
+                const compWeight = component.totalWeight !== undefined ? component.totalWeight : component.edges.reduce((sum, edge) => {
+                    const w = edge.weight !== null && edge.weight !== undefined ? edge.weight : 1;
+                    return sum + w;
+                }, 0);
+                if (componentCount > 1) {
+                    block += `<div style="margin-top:0.5rem; font-weight:600;">Komponenta ${idx + 1} – ${component.nodes.length} uzlů, váha ${compWeight}</div>`;
+                }
+                if (!component.edges.length) {
+                    block += `<p style="margin:0.25rem 0 0.5rem 0; font-size:0.9rem; color:#6c757d;">Komponenta obsahuje pouze izolovaný uzel (${component.nodes.join(', ')}).</p>`;
+                    return;
+                }
+                block += '<ul>' + component.edges.map(edge => {
+                    const w = edge.weight !== null && edge.weight !== undefined ? edge.weight : 1;
+                    return `<li>${edge.u} - ${edge.v} (váha: ${w})${edge.label ? ` – ${edge.label}` : ''}</li>`;
+                }).join('') + '</ul>';
             });
-            block += '</ul></div>';
+
+            block += '</div>';
             return block;
         };
 

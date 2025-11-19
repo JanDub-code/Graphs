@@ -22,8 +22,8 @@ This is a web-based tool for analyzing graphs. You can define a graph using a si
 *   **Graph Traversal**:
     *   Perform Breadth-First Search (BFS) or Depth-First Search (DFS) starting from any node. The UI will display the order of visited nodes.
 *   **Spanning Tree Analysis**:
-    *   Calculate the total number of possible spanning trees.
-    *   Find the Minimum Spanning Tree (MST) for weighted graphs and display its total weight and constituent edges.
+    *   Calculate the total number of possible spanning trees using a fast Laplacian-based determinant (handles dozens of nodes without freezing the UI).
+    *   Find the Minimum/Maximum Spanning Trees for weighted graphs. For disconnected graphs we now show a full spanning forest (per-component MST) together with weights and isolated nodes, so even large multi-component inputs stay responsive.
 *   **Optimal Paths & Metrics**:
     *   Compare nejkratší, nejdelší, nejbezpečnější a nejširší cesty pomocí Mooreova, Dijkstrova a Bellman-Fordova algoritmu i „widest path“ heuristik.
 *   **Síťový graf & CPM**:
