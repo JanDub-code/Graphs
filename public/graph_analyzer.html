@@ -126,9 +126,164 @@
             color: #0d6efd;
             margin-bottom: 0.5rem;
         }
+
+        /* Vánoční světýlka - Christmas Lights */
+        .christmas-lights {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 1000;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .wire {
+            position: absolute;
+            top: 8px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .lights-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 10px;
+        }
+
+        .light {
+            position: relative;
+            width: 12px;
+            height: 20px;
+            margin-top: 8px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: swing 2s ease-in-out infinite;
+        }
+
+        .light::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 8px;
+            background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .light::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        .light.red {
+            background: radial-gradient(ellipse at 30% 20%, #ff6b6b, #e63946);
+            box-shadow: 0 0 15px 5px rgba(230, 57, 70, 0.6),
+                        0 0 30px 10px rgba(230, 57, 70, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite, glow-red 1.5s ease-in-out infinite alternate;
+        }
+
+        .light.green {
+            background: radial-gradient(ellipse at 30% 20%, #51cf66, #2d9e42);
+            box-shadow: 0 0 15px 5px rgba(45, 158, 66, 0.6),
+                        0 0 30px 10px rgba(45, 158, 66, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite 0.3s, glow-green 1.5s ease-in-out infinite alternate 0.5s;
+        }
+
+        .light.blue {
+            background: radial-gradient(ellipse at 30% 20%, #74c0fc, #339af0);
+            box-shadow: 0 0 15px 5px rgba(51, 154, 240, 0.6),
+                        0 0 30px 10px rgba(51, 154, 240, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite 0.6s, glow-blue 1.5s ease-in-out infinite alternate 1s;
+        }
+
+        .light.yellow {
+            background: radial-gradient(ellipse at 30% 20%, #ffe066, #fab005);
+            box-shadow: 0 0 15px 5px rgba(250, 176, 5, 0.6),
+                        0 0 30px 10px rgba(250, 176, 5, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite 0.9s, glow-yellow 1.5s ease-in-out infinite alternate 1.5s;
+        }
+
+        .light.purple {
+            background: radial-gradient(ellipse at 30% 20%, #da77f2, #be4bdb);
+            box-shadow: 0 0 15px 5px rgba(190, 75, 219, 0.6),
+                        0 0 30px 10px rgba(190, 75, 219, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite 1.2s, glow-purple 1.5s ease-in-out infinite alternate 2s;
+        }
+
+        .light.orange {
+            background: radial-gradient(ellipse at 30% 20%, #ffa94d, #fd7e14);
+            box-shadow: 0 0 15px 5px rgba(253, 126, 20, 0.6),
+                        0 0 30px 10px rgba(253, 126, 20, 0.3),
+                        inset 0 -5px 10px rgba(0,0,0,0.2);
+            animation: swing 2s ease-in-out infinite 0.15s, glow-orange 1.5s ease-in-out infinite alternate 0.75s;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        @keyframes glow-red {
+            0% { box-shadow: 0 0 10px 3px rgba(230, 57, 70, 0.4), 0 0 20px 6px rgba(230, 57, 70, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(230, 57, 70, 0.8), 0 0 40px 15px rgba(230, 57, 70, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
+
+        @keyframes glow-green {
+            0% { box-shadow: 0 0 10px 3px rgba(45, 158, 66, 0.4), 0 0 20px 6px rgba(45, 158, 66, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(45, 158, 66, 0.8), 0 0 40px 15px rgba(45, 158, 66, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
+
+        @keyframes glow-blue {
+            0% { box-shadow: 0 0 10px 3px rgba(51, 154, 240, 0.4), 0 0 20px 6px rgba(51, 154, 240, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(51, 154, 240, 0.8), 0 0 40px 15px rgba(51, 154, 240, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
+
+        @keyframes glow-yellow {
+            0% { box-shadow: 0 0 10px 3px rgba(250, 176, 5, 0.4), 0 0 20px 6px rgba(250, 176, 5, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(250, 176, 5, 0.8), 0 0 40px 15px rgba(250, 176, 5, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
+
+        @keyframes glow-purple {
+            0% { box-shadow: 0 0 10px 3px rgba(190, 75, 219, 0.4), 0 0 20px 6px rgba(190, 75, 219, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(190, 75, 219, 0.8), 0 0 40px 15px rgba(190, 75, 219, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
+
+        @keyframes glow-orange {
+            0% { box-shadow: 0 0 10px 3px rgba(253, 126, 20, 0.4), 0 0 20px 6px rgba(253, 126, 20, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(253, 126, 20, 0.8), 0 0 40px 15px rgba(253, 126, 20, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
+        }
     </style>
 </head>
 <body>
+<!-- Vánoční světýlka -->
+<div class="christmas-lights">
+    <div class="wire"></div>
+    <div class="lights-container" id="lightsContainer"></div>
+</div>
 <div id="matrix-stats-tooltip" style="position: absolute; display: none; background-color: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; pointer-events: none; z-index: 1000; font-size: 0.9em; line-height: 1.5;"></div>
 <h1>Graph Analyzer</h1>
 <p>Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje
@@ -5085,6 +5240,30 @@ document.addEventListener('change', function(event) {
         }
     }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// VÁNOČNÍ SVĚTÝLKA - CHRISTMAS LIGHTS
+// ═══════════════════════════════════════════════════════════════
+function generateChristmasLights() {
+    const container = document.getElementById('lightsContainer');
+    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+    const screenWidth = window.innerWidth;
+    const lightSpacing = 45;
+    const numberOfLights = Math.floor(screenWidth / lightSpacing);
+    
+    container.innerHTML = '';
+    
+    for (let i = 0; i < numberOfLights; i++) {
+        const light = document.createElement('div');
+        light.className = 'light ' + colors[i % colors.length];
+        light.style.animationDelay = (Math.random() * 2) + 's, ' + (Math.random() * 2) + 's';
+        container.appendChild(light);
+    }
+}
+
+// Inicializovat světýlka
+generateChristmasLights();
+window.addEventListener('resize', generateChristmasLights);
 </script>
 </body>
 </html>

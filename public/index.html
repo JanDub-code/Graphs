@@ -3,45 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graph Analyzers</title>
+    <title>Graph Analyzers 🎄</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 800px;
             margin: 50px auto;
             padding: 20px;
-            background: #f5f5f5;
+            padding-top: 60px;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5016 50%, #1a472a 100%);
+            min-height: 100vh;
         }
         h1 {
-            color: #333;
+            color: #ffd700;
             text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         .links {
             display: flex;
             gap: 20px;
             justify-content: center;
             margin-top: 40px;
+            flex-wrap: wrap;
         }
         a {
             display: block;
             padding: 20px 40px;
-            background: #0070f3;
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
             color: white;
             text-decoration: none;
             border-radius: 8px;
             font-size: 18px;
-            transition: background 0.2s;
+            transition: all 0.3s;
+            border: 2px solid #ffd700;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         a:hover {
-            background: #0051a8;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Vánoční světýlka */
+        .christmas-lights {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 1000;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .wire {
+            position: absolute;
+            top: 8px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .lights-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 10px;
+        }
+
+        .light {
+            position: relative;
+            width: 12px;
+            height: 20px;
+            margin-top: 8px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+        }
+
+        .light::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 8px;
+            background: linear-gradient(to bottom, #4a4a4a, #3a3a3a);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .light::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+
+        .light.red {
+            background: radial-gradient(ellipse at 30% 20%, #ff6b6b, #e63946);
+            box-shadow: 0 0 15px 5px rgba(230, 57, 70, 0.6), 0 0 30px 10px rgba(230, 57, 70, 0.3);
+            animation: swing 2s ease-in-out infinite, glow-red 1.5s ease-in-out infinite alternate;
+        }
+
+        .light.green {
+            background: radial-gradient(ellipse at 30% 20%, #51cf66, #2d9e42);
+            box-shadow: 0 0 15px 5px rgba(45, 158, 66, 0.6), 0 0 30px 10px rgba(45, 158, 66, 0.3);
+            animation: swing 2s ease-in-out infinite 0.3s, glow-green 1.5s ease-in-out infinite alternate 0.5s;
+        }
+
+        .light.blue {
+            background: radial-gradient(ellipse at 30% 20%, #74c0fc, #339af0);
+            box-shadow: 0 0 15px 5px rgba(51, 154, 240, 0.6), 0 0 30px 10px rgba(51, 154, 240, 0.3);
+            animation: swing 2s ease-in-out infinite 0.6s, glow-blue 1.5s ease-in-out infinite alternate 1s;
+        }
+
+        .light.yellow {
+            background: radial-gradient(ellipse at 30% 20%, #ffe066, #fab005);
+            box-shadow: 0 0 15px 5px rgba(250, 176, 5, 0.6), 0 0 30px 10px rgba(250, 176, 5, 0.3);
+            animation: swing 2s ease-in-out infinite 0.9s, glow-yellow 1.5s ease-in-out infinite alternate 1.5s;
+        }
+
+        .light.purple {
+            background: radial-gradient(ellipse at 30% 20%, #da77f2, #be4bdb);
+            box-shadow: 0 0 15px 5px rgba(190, 75, 219, 0.6), 0 0 30px 10px rgba(190, 75, 219, 0.3);
+            animation: swing 2s ease-in-out infinite 1.2s, glow-purple 1.5s ease-in-out infinite alternate 2s;
+        }
+
+        .light.orange {
+            background: radial-gradient(ellipse at 30% 20%, #ffa94d, #fd7e14);
+            box-shadow: 0 0 15px 5px rgba(253, 126, 20, 0.6), 0 0 30px 10px rgba(253, 126, 20, 0.3);
+            animation: swing 2s ease-in-out infinite 0.15s, glow-orange 1.5s ease-in-out infinite alternate 0.75s;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        @keyframes glow-red {
+            0% { box-shadow: 0 0 10px 3px rgba(230, 57, 70, 0.4), 0 0 20px 6px rgba(230, 57, 70, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(230, 57, 70, 0.8), 0 0 40px 15px rgba(230, 57, 70, 0.4); }
+        }
+
+        @keyframes glow-green {
+            0% { box-shadow: 0 0 10px 3px rgba(45, 158, 66, 0.4), 0 0 20px 6px rgba(45, 158, 66, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(45, 158, 66, 0.8), 0 0 40px 15px rgba(45, 158, 66, 0.4); }
+        }
+
+        @keyframes glow-blue {
+            0% { box-shadow: 0 0 10px 3px rgba(51, 154, 240, 0.4), 0 0 20px 6px rgba(51, 154, 240, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(51, 154, 240, 0.8), 0 0 40px 15px rgba(51, 154, 240, 0.4); }
+        }
+
+        @keyframes glow-yellow {
+            0% { box-shadow: 0 0 10px 3px rgba(250, 176, 5, 0.4), 0 0 20px 6px rgba(250, 176, 5, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(250, 176, 5, 0.8), 0 0 40px 15px rgba(250, 176, 5, 0.4); }
+        }
+
+        @keyframes glow-purple {
+            0% { box-shadow: 0 0 10px 3px rgba(190, 75, 219, 0.4), 0 0 20px 6px rgba(190, 75, 219, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(190, 75, 219, 0.8), 0 0 40px 15px rgba(190, 75, 219, 0.4); }
+        }
+
+        @keyframes glow-orange {
+            0% { box-shadow: 0 0 10px 3px rgba(253, 126, 20, 0.4), 0 0 20px 6px rgba(253, 126, 20, 0.2); }
+            100% { box-shadow: 0 0 20px 8px rgba(253, 126, 20, 0.8), 0 0 40px 15px rgba(253, 126, 20, 0.4); }
         }
     </style>
 </head>
 <body>
-    <h1>Graph Analyzers</h1>
-    <div class="links">
-        <a href="graph_analyzer.html">Graph Analyzer</a>
-        <a href="bst_analyzer.html">BST Analyzer</a>
+    <!-- Vánoční světýlka -->
+    <div class="christmas-lights">
+        <div class="wire"></div>
+        <div class="lights-container" id="lightsContainer"></div>
     </div>
+
+    <h1>🎄 Graph Analyzers 🎄</h1>
+    <div class="links">
+        <a href="graph_analyzer.html">🎁 Graph Analyzer</a>
+        <a href="bst_analyzer.html">🌟 BST Analyzer</a>
+    </div>
+
+    <script>
+        function generateChristmasLights() {
+            const container = document.getElementById('lightsContainer');
+            const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+            const screenWidth = window.innerWidth;
+            const lightSpacing = 45;
+            const numberOfLights = Math.floor(screenWidth / lightSpacing);
+            
+            container.innerHTML = '';
+            
+            for (let i = 0; i < numberOfLights; i++) {
+                const light = document.createElement('div');
+                light.className = 'light ' + colors[i % colors.length];
+                light.style.animationDelay = (Math.random() * 2) + 's, ' + (Math.random() * 2) + 's';
+                container.appendChild(light);
+            }
+        }
+        
+        generateChristmasLights();
+        window.addEventListener('resize', generateChristmasLights);
+    </script>
 </body>
 </html>
