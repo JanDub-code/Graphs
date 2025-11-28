@@ -1913,6 +1913,57 @@ class Graph {
         return Math.max(0, Math.round(det));
     }
 
+    // Počet spanning forests (součin počtu koster všech komponent)
+    countSpanningForests() {
+        const components = this.getComponents();
+        if (components.length === 0) return { total: 0, perComponent: [], componentCount: 0 };
+        if (components.length === 1) {
+            const count = this.countSpanningTrees();
+            return { total: count, perComponent: [{ nodes: components[0].nodes, count }], componentCount: 1 };
+        }
+
+        // Pro každou komponentu vytvoříme subgraf a spočítáme kostry
+        const perComponent = [];
+        let totalProduct = 1;
+        let overflow = false;
+
+        for (const comp of components) {
+            if (comp.nodes.length === 1) {
+                // Izolovaný uzel má 1 kostru (prázdnou)
+                perComponent.push({ nodes: comp.nodes, count: 1 });
+                continue;
+            }
+
+            // Vytvoř subgraf pro tuto komponentu
+            const subGraph = new Graph();
+            subGraph.nodes = [...comp.nodes];
+            subGraph.nodeIndex = {};
+            comp.nodes.forEach((node, idx) => subGraph.nodeIndex[node] = idx);
+            
+            // Přidej hrany, které jsou uvnitř této komponenty
+            const nodeSet = new Set(comp.nodes);
+            subGraph.edges = this.edges.filter(e => nodeSet.has(e.u) && nodeSet.has(e.v));
+
+            const count = subGraph.countSpanningTrees();
+            perComponent.push({ nodes: comp.nodes, count });
+
+            if (!Number.isFinite(count)) {
+                overflow = true;
+            } else {
+                totalProduct *= count;
+                if (!Number.isFinite(totalProduct)) {
+                    overflow = true;
+                }
+            }
+        }
+
+        return {
+            total: overflow ? Infinity : totalProduct,
+            perComponent,
+            componentCount: components.length
+        };
+    }
+
     _determinantGaussian(matrix) {
         const n = matrix.length;
         if (n === 0) return 1;
@@ -5171,11 +5222,27 @@ document.getElementById('parseBtn').addEventListener('click', () => {
         graph.parse(document.getElementById('graphInput').value);
     const mst = graph.minimumSpanningTree();
     const maxTree = graph.maximumSpanningTree();
-    const count = graph.countSpanningTrees();
-    const countLabel = Number.isFinite(count) ? count : 'příliš velké číslo (nelze bezpečně zobrazit)';
-
+    const forestInfo = graph.countSpanningForests();
+    
     let html = `<h4>Výsledky analýzy kostry grafu:</h4>`;
-    html += `<p>Počet koster: ${countLabel}</p>`;
+    
+    if (forestInfo.componentCount === 1) {
+        // Souvislý graf - jednoduchý výpis
+        const countLabel = Number.isFinite(forestInfo.total) ? forestInfo.total : 'příliš velké číslo (nelze bezpečně zobrazit)';
+        html += `<p><strong>Počet koster:</strong> ${countLabel}</p>`;
+    } else {
+        // Nesouvislý graf - výpis po komponentách
+        const totalLabel = Number.isFinite(forestInfo.total) ? forestInfo.total : 'příliš velké číslo';
+        html += `<div style="background-color: #fff3cd; padding: 0.75rem; border-radius: 0.25rem; border: 1px solid #ffc107; margin-bottom: 1rem;">`;
+        html += `<p style="margin: 0;"><strong>🌲 Počet spanning forests (lesů koster):</strong> ${totalLabel}</p>`;
+        html += `<p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #856404;">Graf má ${forestInfo.componentCount} komponent. Celkový počet spanning forests = součin počtu koster všech komponent.</p>`;
+        html += `<div style="margin-top: 0.5rem;">`;
+        forestInfo.perComponent.forEach((comp, idx) => {
+            const compCountLabel = Number.isFinite(comp.count) ? comp.count : '∞';
+            html += `<div style="font-size: 0.85rem; margin: 0.25rem 0;"><strong>Komponenta ${idx + 1}</strong> (${comp.nodes.length} uzlů): ${compCountLabel} koster</div>`;
+        });
+        html += `</div></div>`;
+    }
 
         const renderTreeList = (title, treeData) => {
             const forest = (treeData && treeData.componentTrees && treeData.componentTrees.length)

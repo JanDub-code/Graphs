@@ -530,6 +530,12 @@
                     <button onclick="findInRange()">📊 Hledat v rozsahu</button>
                 </div>
 
+                <div class="input-group">
+                    <input type="number" id="dfsStartValue" placeholder="Počáteční uzel pro DFS/BFS">
+                    <button onclick="runDfsFromValue()">🔍 DFS od uzlu</button>
+                    <button onclick="runBfsFromValue()">🔄 BFS od uzlu</button>
+                </div>
+
                 <button onclick="showAllMethods()" style="width: 100%; margin-top: 1rem;">📊 Analyzovat BST</button>
             </div>
         </div>
@@ -564,6 +570,12 @@ u *;</textarea>
                 <div class="input-group" style="margin-top: 1rem;">
                     <input type="text" id="searchBinaryValue" placeholder="Hledat identifikátor (např: A, B, C)">
                     <button onclick="searchBinaryNode()">🔍 Vyhledat uzel</button>
+                </div>
+
+                <div class="input-group" style="margin-top: 1rem;">
+                    <input type="text" id="dfsStartBinaryValue" placeholder="Počáteční uzel pro DFS/BFS (např: A, B)">
+                    <button onclick="runBinaryDfsFromValue()">🔍 DFS od uzlu</button>
+                    <button onclick="runBinaryBfsFromValue()">🔄 BFS od uzlu</button>
                 </div>
 
                 <button onclick="analyzeBinaryTree()" style="width: 100%; margin-top: 1rem;">📊 Analyzovat Binary Tree</button>
@@ -1109,6 +1121,54 @@ u *;</textarea>
                 return result;
             }
 
+            // DFS (Pre-Order) od konkrétního uzlu
+            dfsFrom(startValue) {
+                const startNode = this._findNode(startValue);
+                if (!startNode) return { found: false, result: [] };
+
+                const result = [];
+                const stack = [startNode];
+
+                while (stack.length > 0) {
+                    const node = stack.pop();
+                    result.push(node.value);
+
+                    if (node.right !== null) stack.push(node.right);
+                    if (node.left !== null) stack.push(node.left);
+                }
+
+                return { found: true, result };
+            }
+
+            // BFS (Level-Order) od konkrétního uzlu
+            bfsFrom(startValue) {
+                const startNode = this._findNode(startValue);
+                if (!startNode) return { found: false, result: [] };
+
+                const result = [];
+                const queue = [startNode];
+
+                while (queue.length > 0) {
+                    const node = queue.shift();
+                    result.push(node.value);
+
+                    if (node.left !== null) queue.push(node.left);
+                    if (node.right !== null) queue.push(node.right);
+                }
+
+                return { found: true, result };
+            }
+
+            // Pomocná metoda pro nalezení uzlu podle hodnoty
+            _findNode(value) {
+                let current = this.root;
+                while (current !== null) {
+                    if (value === current.value) return current;
+                    current = value < current.value ? current.left : current.right;
+                }
+                return null;
+            }
+
             getAdvancedStats() {
                 if (this.root === null) return null;
                 
@@ -1416,6 +1476,68 @@ u *;</textarea>
                 }
                 
                 return result;
+            }
+
+            // DFS (Pre-Order) od konkrétního uzlu
+            dfsFrom(startIdentifier) {
+                const nodeInfo = this.findNode(startIdentifier);
+                if (!nodeInfo.found) return { found: false, result: [] };
+
+                const result = [];
+                const stack = [nodeInfo.index];
+
+                while (stack.length > 0) {
+                    const index = stack.pop();
+                    
+                    if (index >= this.nodes.length || this.nodes[index] === '*') {
+                        continue;
+                    }
+
+                    result.push(this.nodes[index]);
+
+                    const right = 2 * index + 2;
+                    if (right < this.nodes.length) {
+                        stack.push(right);
+                    }
+
+                    const left = 2 * index + 1;
+                    if (left < this.nodes.length) {
+                        stack.push(left);
+                    }
+                }
+
+                return { found: true, result };
+            }
+
+            // BFS (Level-Order) od konkrétního uzlu
+            bfsFrom(startIdentifier) {
+                const nodeInfo = this.findNode(startIdentifier);
+                if (!nodeInfo.found) return { found: false, result: [] };
+
+                const result = [];
+                const queue = [nodeInfo.index];
+
+                while (queue.length > 0) {
+                    const index = queue.shift();
+                    
+                    if (index >= this.nodes.length || this.nodes[index] === '*') {
+                        continue;
+                    }
+
+                    result.push(this.nodes[index]);
+
+                    const left = 2 * index + 1;
+                    if (left < this.nodes.length && this.nodes[left] !== '*') {
+                        queue.push(left);
+                    }
+
+                    const right = 2 * index + 2;
+                    if (right < this.nodes.length && this.nodes[right] !== '*') {
+                        queue.push(right);
+                    }
+                }
+
+                return { found: true, result };
             }
 
             getAdvancedStats() {
@@ -1787,8 +1909,58 @@ u *;</textarea>
                         <strong>Je v stromu:</strong> ✅ ANO<br>
                         <strong>Cesta z kořene:</strong> ${pathResult.path.join(' → ')}<br>
                     </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button onclick="runDfsFromNode(${value})" style="padding: 0.5rem 1rem;">🔍 DFS od tohoto uzlu</button>
+                        <button onclick="runBfsFromNode(${value})" style="padding: 0.5rem 1rem;">🔄 BFS od tohoto uzlu</button>
+                    </div>
                 </div>
             `;
+        }
+
+        function runDfsFromNode(value) {
+            const result = bst.dfsFrom(value);
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                searchPath = result.result;
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔍 DFS (Pre-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="showNodeInfo(${value})" style="padding: 0.5rem 1rem;">← Zpět na info uzlu</button>
+                            <button onclick="runBfsFromNode(${value})" style="padding: 0.5rem 1rem;">🔄 BFS od tohoto uzlu</button>
+                        </div>
+                    </div>
+                `;
+                
+                visualizeBST();
+            }
+        }
+
+        function runBfsFromNode(value) {
+            const result = bst.bfsFrom(value);
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                searchPath = result.result;
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔄 BFS (Level-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="showNodeInfo(${value})" style="padding: 0.5rem 1rem;">← Zpět na info uzlu</button>
+                            <button onclick="runDfsFromNode(${value})" style="padding: 0.5rem 1rem;">🔍 DFS od tohoto uzlu</button>
+                        </div>
+                    </div>
+                `;
+                
+                visualizeBST();
+            }
         }
 
         function displayAdvancedStats() {
@@ -2125,6 +2297,54 @@ u *;</textarea>
                             <strong>Rodič:</strong> ${parent}<br>
                             <strong>Levý potomek:</strong> ${leftChild}<br>
                             <strong>Pravý potomek:</strong> ${rightChild}<br>
+                        </div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="runBinaryDfsFromNode('${value}')" style="padding: 0.5rem 1rem;">🔍 DFS od tohoto uzlu</button>
+                            <button onclick="runBinaryBfsFromNode('${value}')" style="padding: 0.5rem 1rem;">🔄 BFS od tohoto uzlu</button>
+                        </div>
+                    </div>
+                `;
+                
+                visualizeBinaryTree();
+            }
+        }
+
+        function runBinaryDfsFromNode(value) {
+            const result = binaryTree.dfsFrom(value);
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔍 DFS (Pre-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="showBinaryNodeInfo('${value}', 0)" style="padding: 0.5rem 1rem;">← Zpět na info uzlu</button>
+                            <button onclick="runBinaryBfsFromNode('${value}')" style="padding: 0.5rem 1rem;">🔄 BFS od tohoto uzlu</button>
+                        </div>
+                    </div>
+                `;
+                
+                visualizeBinaryTree();
+            }
+        }
+
+        function runBinaryBfsFromNode(value) {
+            const result = binaryTree.bfsFrom(value);
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔄 BFS (Level-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="showBinaryNodeInfo('${value}', 0)" style="padding: 0.5rem 1rem;">← Zpět na info uzlu</button>
+                            <button onclick="runBinaryDfsFromNode('${value}')" style="padding: 0.5rem 1rem;">🔍 DFS od tohoto uzlu</button>
                         </div>
                     </div>
                 `;
@@ -2867,6 +3087,158 @@ u *;</textarea>
                 } else if (binaryTree) {
                     visualizeBinaryTree();
                 }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DFS/BFS FROM VALUE FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════
+
+        function runDfsFromValue() {
+            const value = parseFloat(document.getElementById('dfsStartValue').value);
+            
+            if (isNaN(value)) {
+                alert('Zadejte platné číslo!');
+                return;
+            }
+
+            const result = bst.dfsFrom(value);
+            document.getElementById('searchResultCard').classList.remove('hidden');
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                searchPath = result.result;
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔍 DFS (Pre-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                    </div>
+                `;
+                
+                visualizeBST();
+            } else {
+                highlightedNodes.clear();
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box" style="border-left-color: #f44336;">
+                        <div class="result-label">❌ Uzel ${value} nebyl nalezen</div>
+                        <div>Zadaná hodnota neexistuje ve stromu.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function runBfsFromValue() {
+            const value = parseFloat(document.getElementById('dfsStartValue').value);
+            
+            if (isNaN(value)) {
+                alert('Zadejte platné číslo!');
+                return;
+            }
+
+            const result = bst.bfsFrom(value);
+            document.getElementById('searchResultCard').classList.remove('hidden');
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                searchPath = result.result;
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔄 BFS (Level-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                    </div>
+                `;
+                
+                visualizeBST();
+            } else {
+                highlightedNodes.clear();
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box" style="border-left-color: #f44336;">
+                        <div class="result-label">❌ Uzel ${value} nebyl nalezen</div>
+                        <div>Zadaná hodnota neexistuje ve stromu.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function runBinaryDfsFromValue() {
+            const value = document.getElementById('dfsStartBinaryValue').value.trim();
+            
+            if (!value) {
+                alert('Zadejte identifikátor uzlu!');
+                return;
+            }
+
+            if (!binaryTree) {
+                alert('Nejprve analyzujte Binary Tree!');
+                return;
+            }
+
+            const result = binaryTree.dfsFrom(value);
+            document.getElementById('searchResultCard').classList.remove('hidden');
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔍 DFS (Pre-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                    </div>
+                `;
+                
+                visualizeBinaryTree();
+            } else {
+                highlightedNodes.clear();
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box" style="border-left-color: #f44336;">
+                        <div class="result-label">❌ Uzel "${value}" nebyl nalezen</div>
+                        <div>Zadaný identifikátor neexistuje ve stromu.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function runBinaryBfsFromValue() {
+            const value = document.getElementById('dfsStartBinaryValue').value.trim();
+            
+            if (!value) {
+                alert('Zadejte identifikátor uzlu!');
+                return;
+            }
+
+            if (!binaryTree) {
+                alert('Nejprve analyzujte Binary Tree!');
+                return;
+            }
+
+            const result = binaryTree.bfsFrom(value);
+            document.getElementById('searchResultCard').classList.remove('hidden');
+            
+            if (result.found) {
+                highlightedNodes = new Set(result.result);
+                
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box search-result">
+                        <div class="result-label">🔄 BFS (Level-Order) od uzlu ${value}</div>
+                        <div><strong>Pořadí průchodu:</strong> ${result.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem;"><strong>Počet navštívených uzlů:</strong> ${result.result.length}</div>
+                    </div>
+                `;
+                
+                visualizeBinaryTree();
+            } else {
+                highlightedNodes.clear();
+                document.getElementById('searchResult').innerHTML = `
+                    <div class="result-box" style="border-left-color: #f44336;">
+                        <div class="result-label">❌ Uzel "${value}" nebyl nalezen</div>
+                        <div>Zadaný identifikátor neexistuje ve stromu.</div>
+                    </div>
+                `;
             }
         }
 
