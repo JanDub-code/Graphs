@@ -4890,6 +4890,32 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const shortestSection = document.createElement('div');
     shortestSection.className = 'section';
     shortestSection.innerHTML = '<h2>Nejkratší cesty (Floyd-Warshall)</h2>';
+    
+    // Přidej vysvětlivku pro Floyd-Warshall
+    const fwLegendDiv = document.createElement('div');
+    fwLegendDiv.style.backgroundColor = '#e7f3ff';
+    fwLegendDiv.style.padding = '0.75rem';
+    fwLegendDiv.style.borderRadius = '0.25rem';
+    fwLegendDiv.style.marginBottom = '1rem';
+    fwLegendDiv.style.border = '1px solid #0d6efd';
+    fwLegendDiv.innerHTML = `
+        <strong>🛣️ Floyd-Warshallův algoritmus:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            • <strong>Co počítá:</strong> Nejkratší cesty mezi VŠEMI páry uzlů najednou<br>
+            • <strong>Výhoda:</strong> Zvládá i <strong>záporné váhy</strong> (ale ne záporné cykly)<br>
+            • <strong>Složitost:</strong> O(V³) – vhodné pro menší grafy (do ~500 uzlů)<br>
+            • <strong>Využití:</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>Routování v sítích</strong> – předpočítání směrovacích tabulek</li>
+                <li><strong>Tranzitivní uzávěr</strong> – kdo dosáhne na koho</li>
+                <li><strong>Detekce záporných cyklů</strong> – arbitráž měn</li>
+                <li><strong>Centrum grafu</strong> – uzel s nejmenší maximální vzdáleností</li>
+            </ul>
+            • <strong>Matice předchůdců:</strong> Umožňuje rekonstruovat celou cestu, nejen vzdálenost
+        </div>
+    `;
+    shortestSection.appendChild(fwLegendDiv);
+    
     shortestSection.appendChild(createQuerySection('Dotaz na nejkratší cestu', 'shortest'));
     
     const showPredBtn = document.createElement('button');
@@ -4924,6 +4950,30 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const incEdgeSection = document.createElement('div');
     incEdgeSection.className = 'section';
     incEdgeSection.innerHTML = '<h2>Tabulka incidentních hran</h2>';
+    
+    // Přidej vysvětlivku pro incidentní hrany
+    const incEdgeLegendDiv = document.createElement('div');
+    incEdgeLegendDiv.style.backgroundColor = '#e7f3ff';
+    incEdgeLegendDiv.style.padding = '0.75rem';
+    incEdgeLegendDiv.style.borderRadius = '0.25rem';
+    incEdgeLegendDiv.style.marginBottom = '1rem';
+    incEdgeLegendDiv.style.border = '1px solid #0d6efd';
+    incEdgeLegendDiv.innerHTML = `
+        <strong>🔗 Co jsou incidentní hrany?</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            • <strong>Definice:</strong> Hrany, které „dotýkají" daný uzel (vycházejí z něj nebo do něj vcházejí)<br>
+            • <strong>Stupeň uzlu:</strong> Počet incidentních hran = stupeň uzlu (degree)<br>
+            • <strong>Využití:</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>Analýza sítí</strong> – identifikace hubů (uzly s mnoha spojeními)</li>
+                <li><strong>Eulerovské cesty</strong> – graf má Eul. cestu ⟺ max 2 uzly lichého stupně</li>
+                <li><strong>Grafová vizualizace</strong> – rozložení podle stupňů</li>
+                <li><strong>Optimalizace</strong> – prořezávání hran u málo propojených uzlů</li>
+            </ul>
+        </div>
+    `;
+    incEdgeSection.appendChild(incEdgeLegendDiv);
+    
     const incEdgeDiv = document.createElement('div');
     incEdgeDiv.className = 'matrix';
     incEdgeDiv.appendChild(createListTable(incident));
@@ -4935,6 +4985,31 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const neighSection = document.createElement('div');
     neighSection.className = 'section';
     neighSection.innerHTML = '<h2>Seznam sousedů</h2>';
+    
+    // Přidej vysvětlivku pro seznam sousedů
+    const neighLegendDiv = document.createElement('div');
+    neighLegendDiv.style.backgroundColor = '#e7f3ff';
+    neighLegendDiv.style.padding = '0.75rem';
+    neighLegendDiv.style.borderRadius = '0.25rem';
+    neighLegendDiv.style.marginBottom = '1rem';
+    neighLegendDiv.style.border = '1px solid #0d6efd';
+    neighLegendDiv.innerHTML = `
+        <strong>👥 Co je seznam sousedů (Adjacency List)?</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            • <strong>Definice:</strong> Pro každý uzel seznam všech uzlů, se kterými je přímo spojen hranou<br>
+            • <strong>Paměťová náročnost:</strong> O(V + E) – efektivnější než matice sousednosti pro řídké grafy<br>
+            • <strong>Využití:</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>BFS/DFS</strong> – rychlý přístup k sousedům v O(1) amortizovaně</li>
+                <li><strong>Sociální sítě</strong> – seznam přátel, sledujících</li>
+                <li><strong>Doporučovací systémy</strong> – „přátelé přátel"</li>
+                <li><strong>Webové crawlery</strong> – odkazy z jedné stránky</li>
+            </ul>
+            • <strong>Tip:</strong> Pro orientované grafy rozlišujeme odchozí (OUT) a příchozí (IN) sousedy
+        </div>
+    `;
+    neighSection.appendChild(neighLegendDiv);
+    
     const neighDiv = document.createElement('div');
     neighDiv.className = 'matrix';
     neighDiv.appendChild(createListTable(neighbours));
@@ -4946,6 +5021,30 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const multiEdgeSection = document.createElement('div');
     multiEdgeSection.className = 'section';
     multiEdgeSection.innerHTML = '<h2>Víceásobné hrany</h2>';
+    
+    // Přidej vysvětlivku pro víceásobné hrany
+    const multiEdgeLegendDiv = document.createElement('div');
+    multiEdgeLegendDiv.style.backgroundColor = '#e7f3ff';
+    multiEdgeLegendDiv.style.padding = '0.75rem';
+    multiEdgeLegendDiv.style.borderRadius = '0.25rem';
+    multiEdgeLegendDiv.style.marginBottom = '1rem';
+    multiEdgeLegendDiv.style.border = '1px solid #0d6efd';
+    multiEdgeLegendDiv.innerHTML = `
+        <strong>🔀 Co jsou víceásobné (paralelní) hrany?</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            • <strong>Definice:</strong> Dvě nebo více hran spojujících stejnou dvojici uzlů<br>
+            • <strong>Multigraf:</strong> Graf, který obsahuje víceásobné hrany<br>
+            • <strong>Kde se vyskytují:</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>Dopravní sítě</strong> – více linek mezi stanicemi (metro, autobus)</li>
+                <li><strong>Telekomunikace</strong> – redundantní kabely mezi serverovnami</li>
+                <li><strong>Elektrické obvody</strong> – paralelně zapojené rezistory</li>
+                <li><strong>Finanční transakce</strong> – více převodů mezi účty</li>
+            </ul>
+            • <strong>Pozor:</strong> Mnoho algoritmů předpokládá prostý graf – víceásobné hrany je třeba ošetřit
+        </div>
+    `;
+    multiEdgeSection.appendChild(multiEdgeLegendDiv);
     
     if (multipleEdges.length === 0) {
         const noMultiMsg = document.createElement('p');
@@ -5071,6 +5170,36 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     exploreSection.id = 'exploreSection';
     exploreSection.className = 'section';
     exploreSection.innerHTML = '<h2>Prohledávání grafu (BFS/DFS)</h2>';
+    
+    // Přidej vysvětlivku pro BFS/DFS
+    const exploreLegendDiv = document.createElement('div');
+    exploreLegendDiv.style.backgroundColor = '#e7f3ff';
+    exploreLegendDiv.style.padding = '0.75rem';
+    exploreLegendDiv.style.borderRadius = '0.25rem';
+    exploreLegendDiv.style.marginBottom = '1rem';
+    exploreLegendDiv.style.border = '1px solid #0d6efd';
+    exploreLegendDiv.innerHTML = `
+        <strong>🔍 K čemu jsou BFS a DFS dobré?</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            <strong>BFS (Breadth-First Search):</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li>Najde <strong>nejkratší cestu</strong> v neohodnoceném grafu (počet hran)</li>
+                <li>Vhodné pro <strong>hledání nejbližších sousedů</strong> (sociální sítě, doporučovací systémy)</li>
+                <li>Testování <strong>souvislosti grafu</strong> a hledání komponent</li>
+                <li>Časová složitost: O(V + E)</li>
+            </ul>
+            <strong>DFS (Depth-First Search):</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>Detekce cyklů</strong> v grafu</li>
+                <li><strong>Topologické řazení</strong> pro DAG (plánování úkolů, závislosti)</li>
+                <li>Hledání <strong>silně souvislých komponent</strong> (Tarjan, Kosaraju)</li>
+                <li>Generování <strong>bludišť</strong> a řešení problémů s backtrackingem</li>
+                <li>Časová složitost: O(V + E)</li>
+            </ul>
+        </div>
+    `;
+    exploreSection.appendChild(exploreLegendDiv);
+    
     const exploreControls = document.createElement('div');
     exploreControls.className = 'query-inputs';
     exploreControls.innerHTML = `
@@ -5094,6 +5223,36 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     spanningTreeSection.id = 'spanningTreeSection';
     spanningTreeSection.className = 'section';
     spanningTreeSection.innerHTML = '<h2>Kostra grafu</h2>';
+    
+    // Přidej vysvětlivku pro kostru grafu
+    const spanningTreeLegendDiv = document.createElement('div');
+    spanningTreeLegendDiv.style.backgroundColor = '#e7f3ff';
+    spanningTreeLegendDiv.style.padding = '0.75rem';
+    spanningTreeLegendDiv.style.borderRadius = '0.25rem';
+    spanningTreeLegendDiv.style.marginBottom = '1rem';
+    spanningTreeLegendDiv.style.border = '1px solid #0d6efd';
+    spanningTreeLegendDiv.innerHTML = `
+        <strong>🌲 K čemu jsou kostry grafu dobré?</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            <strong>Kostra (Spanning Tree):</strong> Podgraf obsahující všechny uzly s minimem hran pro souvislost (bez cyklů).<br><br>
+            <strong>Minimální kostra (MST):</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li><strong>Návrh sítí</strong> – elektrické vedení, vodovody, optické kabely s min. náklady</li>
+                <li><strong>Clustering</strong> – shlukování dat (single-linkage clustering)</li>
+                <li><strong>Aproximace NP-těžkých problémů</strong> – TSP (obchodní cestující)</li>
+                <li><strong>Počítačové sítě</strong> – spanning tree protocol (prevence smyček)</li>
+            </ul>
+            <strong>Maximální kostra:</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li><strong>Maximalizace kapacity/šířky pásma</strong> v síti</li>
+                <li><strong>Analýza nejsilnějších vazeb</strong> v sociálních sítích</li>
+            </ul>
+            <strong>Počet koster:</strong> Udává redundanci grafu – čím více koster, tím více způsobů propojení.<br>
+            <strong>Algoritmy:</strong> Kruskal O(E log E), Prim O(E log V), Borůvka O(E log V)
+        </div>
+    `;
+    spanningTreeSection.appendChild(spanningTreeLegendDiv);
+    
     const spanningTreeControls = document.createElement('div');
     spanningTreeControls.className = 'query-inputs';
     spanningTreeControls.innerHTML = `
@@ -5111,6 +5270,61 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     optimalSection.id = 'optimalPathsSection';
     optimalSection.className = 'section';
     optimalSection.innerHTML = '<h2>Optimální cesty (nejkratší / nejdelší / nejbezpečnější / nejširší)</h2>';
+    
+    // Přidej detailní vysvětlivku pro optimální cesty
+    const optimalLegendDiv = document.createElement('div');
+    optimalLegendDiv.style.backgroundColor = '#e7f3ff';
+    optimalLegendDiv.style.padding = '0.75rem';
+    optimalLegendDiv.style.borderRadius = '0.25rem';
+    optimalLegendDiv.style.marginBottom = '1rem';
+    optimalLegendDiv.style.border = '1px solid #0d6efd';
+    optimalLegendDiv.innerHTML = `
+        <strong>🛤️ Přehled algoritmů pro hledání cest:</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <tr style="background-color: rgba(0,0,0,0.05);">
+                    <th style="text-align: left; padding: 0.3rem;">Algoritmus</th>
+                    <th style="text-align: left; padding: 0.3rem;">Složitost</th>
+                    <th style="text-align: left; padding: 0.3rem;">Kdy použít</th>
+                </tr>
+                <tr>
+                    <td style="padding: 0.3rem;"><strong>Moore (BFS)</strong></td>
+                    <td style="padding: 0.3rem;">O(V + E)</td>
+                    <td style="padding: 0.3rem;">Neohodnocený graf, hledáme min. počet hran</td>
+                </tr>
+                <tr style="background-color: rgba(0,0,0,0.03);">
+                    <td style="padding: 0.3rem;"><strong>Dijkstra</strong></td>
+                    <td style="padding: 0.3rem;">O((V+E) log V)</td>
+                    <td style="padding: 0.3rem;">Nezáporné váhy – GPS navigace, routing</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.3rem;"><strong>Bellman-Ford</strong></td>
+                    <td style="padding: 0.3rem;">O(V × E)</td>
+                    <td style="padding: 0.3rem;">Záporné váhy – arbitráž měn, detekce záp. cyklů</td>
+                </tr>
+                <tr style="background-color: rgba(0,0,0,0.03);">
+                    <td style="padding: 0.3rem;"><strong>Nejširší cesta</strong></td>
+                    <td style="padding: 0.3rem;">O((V+E) log V)</td>
+                    <td style="padding: 0.3rem;">Maximalizace minimální kapacity – síťové toky, bandwidth</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.3rem;"><strong>Nejbezpečnější</strong></td>
+                    <td style="padding: 0.3rem;">O((V+E) log V)</td>
+                    <td style="padding: 0.3rem;">Maximalizace součinu spolehlivostí – kritické systémy</td>
+                </tr>
+                <tr style="background-color: rgba(0,0,0,0.03);">
+                    <td style="padding: 0.3rem;"><strong>Nejdelší cesta</strong></td>
+                    <td style="padding: 0.3rem;">O(V + E) pro DAG</td>
+                    <td style="padding: 0.3rem;">Plánování projektů (CPM), kritická cesta</td>
+                </tr>
+            </table>
+            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6c757d;">
+                💡 <strong>Tip:</strong> Pro jeden zdroj → Dijkstra/BF. Pro všechny páry → Floyd-Warshall (sekce výše).
+            </div>
+        </div>
+    `;
+    optimalSection.appendChild(optimalLegendDiv);
+    
     const optimalInfo = document.createElement('p');
     optimalInfo.style.color = '#495057';
     optimalInfo.innerHTML = 'Mooreův algoritmus (BFS) hledá nejkratší cestu v neohodnoceném grafu. Dijkstrův a Bellman-Fordův algoritmus pracují s vahami (Bellman-Ford zvládá i záporné hrany) a Floyd-Warshallova varianta níže poskytuje kompletní matici vzdáleností.';
@@ -5137,6 +5351,39 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     cpmSection.id = 'cpmSection';
     cpmSection.className = 'section';
     cpmSection.innerHTML = '<h2>Projektové plánování (síťový graf & CPM)</h2>';
+    
+    // Přidej detailní CPM legendu
+    const cpmLegendDiv = document.createElement('div');
+    cpmLegendDiv.style.backgroundColor = '#e7f3ff';
+    cpmLegendDiv.style.padding = '0.75rem';
+    cpmLegendDiv.style.borderRadius = '0.25rem';
+    cpmLegendDiv.style.marginBottom = '1rem';
+    cpmLegendDiv.style.border = '1px solid #0d6efd';
+    cpmLegendDiv.innerHTML = `
+        <strong>📊 CPM (Critical Path Method) – Metoda kritické cesty</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            <strong>Co je CPM?</strong> Technika projektového řízení pro plánování a optimalizaci harmonogramu.<br><br>
+            <strong>Klíčové pojmy:</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li><strong>ES (Early Start)</strong> – Nejdříve možný začátek činnosti</li>
+                <li><strong>EF (Early Finish)</strong> – Nejdříve možný konec = ES + délka</li>
+                <li><strong>LS (Late Start)</strong> – Nejpozději přípustný začátek</li>
+                <li><strong>LF (Late Finish)</strong> – Nejpozději přípustný konec (deadline)</li>
+                <li><strong>Rezerva (Float/Slack)</strong> – LS − ES = o kolik lze činnost zpozdit</li>
+                <li><strong>Kritická cesta</strong> – Nejdelší cesta projektem (nulová rezerva)</li>
+            </ul>
+            <strong>K čemu je CPM dobrá:</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li><strong>Stavebnictví</strong> – plánování výstavby, koordinace subdodavatelů</li>
+                <li><strong>Vývoj software</strong> – release planning, dependency management</li>
+                <li><strong>Výroba</strong> – optimalizace výrobních linek</li>
+                <li><strong>Věda</strong> – plánování experimentů s návaznostmi</li>
+            </ul>
+            <strong>🔥 Kritické činnosti</strong> = činnosti s nulovou rezervou. Jakékoli zpoždění prodlouží projekt!
+        </div>
+    `;
+    cpmSection.appendChild(cpmLegendDiv);
+    
     const cpmIntro = document.createElement('p');
     cpmIntro.style.color = '#495057';
     cpmIntro.innerHTML = 'Hrany interpretujeme jako činnosti s délkou podle váhy. CPM (Critical Path Method) spočítá kritickou cestu, délku projektu a rezervy činností, abyste mohli plánovat kapacity.';
@@ -5156,6 +5403,59 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     flowSection.id = 'flowSection';
     flowSection.className = 'section';
     flowSection.innerHTML = '<h2>Síťové toky (maximální tok & minimální řez)</h2>';
+    
+    // Přidej detailní vysvětlivku pro síťové toky
+    const flowLegendDiv = document.createElement('div');
+    flowLegendDiv.style.backgroundColor = '#e7f3ff';
+    flowLegendDiv.style.padding = '0.75rem';
+    flowLegendDiv.style.borderRadius = '0.25rem';
+    flowLegendDiv.style.marginBottom = '1rem';
+    flowLegendDiv.style.border = '1px solid #0d6efd';
+    flowLegendDiv.innerHTML = `
+        <strong>🌊 Síťové toky – Maximální tok a Minimální řez</strong><br>
+        <div style="margin-left: 1rem; margin-top: 0.5rem; line-height: 1.6;">
+            <strong>Co je tok v síti?</strong> Přeprava „komodity" ze zdroje (s) do cíle (t) respektující kapacity hran.<br><br>
+            <strong>Klíčové pojmy:</strong>
+            <ul style="margin: 0.25rem 0 0.5rem 1rem;">
+                <li><strong>Kapacita hrany</strong> – maximální tok, který může hranou projít</li>
+                <li><strong>Reziduální kapacita</strong> – kolik ještě může hranou protéct</li>
+                <li><strong>Zlepšující cesta</strong> – cesta s kladnou reziduální kapacitou</li>
+                <li><strong>Min-cut věta</strong> – max tok = minimální řez (Ford-Fulkerson)</li>
+            </ul>
+            <strong>Algoritmy:</strong>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0;">
+                <tr style="background-color: rgba(0,0,0,0.05);">
+                    <th style="text-align: left; padding: 0.2rem;">Algoritmus</th>
+                    <th style="text-align: left; padding: 0.2rem;">Složitost</th>
+                    <th style="text-align: left; padding: 0.2rem;">Přístup</th>
+                </tr>
+                <tr>
+                    <td style="padding: 0.2rem;">Ford-Fulkerson (DFS)</td>
+                    <td style="padding: 0.2rem;">O(E × max_flow)</td>
+                    <td style="padding: 0.2rem;">Zlepšující cesty (DFS)</td>
+                </tr>
+                <tr style="background-color: rgba(0,0,0,0.03);">
+                    <td style="padding: 0.2rem;">Edmonds-Karp (BFS)</td>
+                    <td style="padding: 0.2rem;">O(V × E²)</td>
+                    <td style="padding: 0.2rem;">Nejkratší zlepšující cesty</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.2rem;">Goldberg (Push-Relabel)</td>
+                    <td style="padding: 0.2rem;">O(V² × E)</td>
+                    <td style="padding: 0.2rem;">Lokální operace, výšky uzlů</td>
+                </tr>
+            </table>
+            <strong>Praktické využití:</strong>
+            <ul style="margin: 0.25rem 0 0 1rem;">
+                <li><strong>Logistika</strong> – maximální přepravní kapacita</li>
+                <li><strong>Počítačové sítě</strong> – bandwidth, load balancing</li>
+                <li><strong>Bipartitní párování</strong> – přiřazování úkolů, svatební problém</li>
+                <li><strong>Segmentace obrazu</strong> – min-cut pro oddělení objektů</li>
+            </ul>
+        </div>
+    `;
+    flowSection.appendChild(flowLegendDiv);
+    
     const flowIntro = document.createElement('p');
     flowIntro.style.color = '#495057';
     flowIntro.innerHTML = 'Pro orientovaný graf můžeme vytvořit <strong>síť</strong>: hrany chápeme jako kapacity a hledáme maximální tok ze zdroje <em>s</em> do cíle <em>t</em>. Fordův-Fulkersonův a Edmondsův-Karpův algoritmus využívají zlepšující polocesty, Goldbergův algoritmus (push-relabel) pracuje s výškami uzlů.';

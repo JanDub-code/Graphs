@@ -508,6 +508,20 @@
             <div class="card">
                 <h2>➕ Operace nad BST</h2>
                 
+                <!-- Vysvětlivka pro BST operace -->
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <strong style="color: #64b5f6;">🎯 K čemu jsou tyto operace dobré?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem; color: #e3f2fd;">
+                        <strong>Vložení (Insert):</strong> O(log n) v průměru – základ pro dynamické datové struktury, databázové indexy.<br>
+                        <strong>Odebrání (Remove):</strong> O(log n) v průměru – mazání záznamů bez nutnosti přestavby celé struktury.<br>
+                        <strong>Vyhledání (Search):</strong> O(log n) v průměru – rychlé vyhledávání v databázích, slovnících.<br>
+                        <strong>Cesta ke kořeni:</strong> Debugging, analýza hloubky, výpočet předků uzlu.<br>
+                        <strong>Rozsahový dotaz (Range Query):</strong> Databázové dotazy typu „všechny záznamy mezi X a Y".<br>
+                        <strong>DFS/BFS od uzlu:</strong> Průzkum podstromu – např. všichni potomci kategorie v e-shopu.<br><br>
+                        <em style="color: #90caf9;">💡 Tip: Pro vyvážený BST (AVL, Red-Black) jsou operace garantovaně O(log n)!</em>
+                    </div>
+                </div>
+                
                 <div class="input-group">
                     <input type="text" id="insertValues" placeholder="Hodnoty k vložení (např: 50, 25, 41, 77)">
                     <button onclick="insertValues()">Vložit hodnoty</button>
@@ -544,6 +558,22 @@
         <div id="binaryMode" class="hidden">
             <div class="card">
                 <h2>📝 Vstup Binary Tree (Level-Order)</h2>
+                
+                <!-- Vysvětlivka pro Binary Tree -->
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">🌳 K čemu je Binary Tree reprezentace dobrá?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem; color: #e3f2fd;">
+                        <strong>Level-Order zápis:</strong> Kompaktní reprezentace úplných stromů (heaps), indexování pomocí 2i+1, 2i+2.<br>
+                        <strong>Praktické využití:</strong>
+                        <ul style="margin: 0.25rem 0 0.5rem 1rem; padding-left: 0;">
+                            <li><strong>Priority Queues</strong> – haldy pro plánování úloh, Dijkstra, A*</li>
+                            <li><strong>Huffmanovo kódování</strong> – komprese dat</li>
+                            <li><strong>Syntaktické stromy</strong> – parsování výrazů, kompilátory</li>
+                            <li><strong>Organizační struktury</strong> – hierarchie (firma, kategorie)</li>
+                        </ul>
+                    </div>
+                </div>
+                
                 <p style="margin-bottom: 1rem; color: #bbdefb;">
                     Formát: <code>u identifikátor;</code> pro uzly, <code>u *;</code> pro prázdné uzly.
                 </p>
@@ -1989,6 +2019,15 @@ u *;</textarea>
             const balanceText = stats.balance.balanced ? 'Vyvážený' : 'Nevyvážený';
             
             document.getElementById('advancedStats').innerHTML = `
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">📈 K čemu jsou tyto statistiky dobré?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; color: #e3f2fd;">
+                        <strong>Součet/Průměr/Medián:</strong> Datová analýza, agregační dotazy na BST.<br>
+                        <strong>Listové uzly:</strong> Koncové body stromu – v rozhodovacích stromech = klasifikace.<br>
+                        <strong>Vnitřní uzly:</strong> Rozhodovací body – určují složitost stromu.<br>
+                        <strong>Vyvážení:</strong> Kritické pro výkon! Nevyvážený BST může degradovat na O(n).
+                    </div>
+                </div>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value">${stats.sum}</div>
@@ -2033,26 +2072,34 @@ u *;</textarea>
             const isValid = bst.isValidBST();
 
             document.getElementById('methods').innerHTML = `
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">⚙️ Proč validovat BST?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; color: #e3f2fd;">
+                        BST validace kontroluje, že pro každý uzel platí: všechny hodnoty vlevo < uzel < všechny hodnoty vpravo.<br>
+                        <strong>Kdy je to důležité:</strong> Po deserializaci, po ručních úpravách, debugging, unit testy.
+                    </div>
+                </div>
+                
                 <div class="result-box">
                     <div class="result-label">✅ Validní BST?</div>
-                    <div>${isValid ? '✅ ANO' : '❌ NE'}</div>
+                    <div>${isValid ? '✅ ANO – strom splňuje BST podmínku' : '❌ NE – některý uzel porušuje BST podmínku'}</div>
                 </div>
 
                 <div class="result-box">
                     <div class="result-label">🔍 Všechny dostupné metody BST:</div>
                     <div style="line-height: 1.8;">
-                        <code>insert(value)</code> - Vložit hodnotu<br>
-                        <code>remove(value)</code> - Odebrat hodnotu<br>
-                        <code>search(value)</code> - Vyhledat hodnotu<br>
-                        <code>levelOrder()</code> - Průchod do šířky (BFS)<br>
-                        <code>preOrder()</code> - Preorder (DFS)<br>
-                        <code>inOrder()</code> - Inorder (DFS) - seřazené!<br>
-                        <code>postOrder()</code> - Postorder (DFS)<br>
-                        <code>findMin()</code> - Najít minimum<br>
-                        <code>findMax()</code> - Najít maximum<br>
-                        <code>height()</code> - Výška stromu<br>
-                        <code>count()</code> - Počet uzlů<br>
-                        <code>isValidBST()</code> - Validace BST<br>
+                        <code>insert(value)</code> - Vložit hodnotu – O(log n) průměrně<br>
+                        <code>remove(value)</code> - Odebrat hodnotu – O(log n) průměrně<br>
+                        <code>search(value)</code> - Vyhledat hodnotu – O(log n) průměrně<br>
+                        <code>levelOrder()</code> - Průchod do šířky (BFS) – O(n)<br>
+                        <code>preOrder()</code> - Preorder (DFS) – serializace stromu<br>
+                        <code>inOrder()</code> - Inorder (DFS) – seřazený výpis!<br>
+                        <code>postOrder()</code> - Postorder (DFS) – mazání stromu<br>
+                        <code>findMin()</code> - Najít minimum – O(h)<br>
+                        <code>findMax()</code> - Najít maximum – O(h)<br>
+                        <code>height()</code> - Výška stromu – O(n)<br>
+                        <code>count()</code> - Počet uzlů – O(1)<br>
+                        <code>isValidBST()</code> - Validace BST – O(n)<br>
                         <code>visualize()</code> - Textová vizualizace
                     </div>
                 </div>
@@ -2371,7 +2418,16 @@ u *;</textarea>
 
         function displayBinaryAdvancedStats() {
             const height = binaryTree.getHeight();
-            let levelStats = '<div style="margin-top: 1rem;"><strong>📊 Statistika po úrovních:</strong><br><br>';
+            let levelStats = `
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">📊 K čemu je statistika po úrovních dobrá?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; color: #e3f2fd;">
+                        <strong>Zaplnění úrovně:</strong> Ukazuje, jak „široký" je strom na každé úrovni.<br>
+                        <strong>100% zaplnění:</strong> Úplná úroveň (maximální počet uzlů 2^level).<br>
+                        <strong>Využití:</strong> Optimalizace paměti, analýza efektivity haldy, vizualizace struktury.
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;"><strong>📊 Statistika po úrovních:</strong><br><br>`;
             
             for (let level = 0; level < height; level++) {
                 const nodes = binaryTree.getNodesByLevel(level);
@@ -2390,6 +2446,14 @@ u *;</textarea>
 
         function displayBinaryProperties() {
             const propertiesHtml = `
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">🔍 Co znamenají tyto vlastnosti?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.9rem; color: #e3f2fd;">
+                        <strong>Kompletní strom:</strong> Všechny úrovně kromě poslední jsou plné, poslední se plní zleva → haldy (heaps).<br>
+                        <strong>Plný strom:</strong> Každý uzel má 0 nebo 2 potomky → rozhodovací stromy, Huffman kódování.<br>
+                        <strong>Perfektní strom:</strong> Kompletní + plný, všechny listy na stejné úrovni → ideální vyvážení, 2^h - 1 uzlů.
+                    </div>
+                </div>
                 <div class="result-box">
                     <div class="result-label">📋 Vlastnosti Binary Tree:</div>
                     <div style="line-height: 1.8;">
@@ -2713,6 +2777,28 @@ u *;</textarea>
         function updateTreeInsights(mode) {
             const model = mode === 'binary' ? buildBinaryTreeModel() : buildBstTreeModel();
             renderNodeTable(model);
+            
+            // Přidej vysvětlivku pro path insights
+            const pathInsightsCard = document.getElementById('pathInsightsCard');
+            if (!pathInsightsCard.classList.contains('hidden')) {
+                const existingLegend = pathInsightsCard.querySelector('.path-insights-legend');
+                if (!existingLegend) {
+                    const legendDiv = document.createElement('div');
+                    legendDiv.className = 'path-insights-legend';
+                    legendDiv.style.cssText = 'background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;';
+                    legendDiv.innerHTML = `
+                        <strong style="color: #64b5f6;">🧭 K čemu jsou tyto metriky dobré?</strong>
+                        <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; color: #e3f2fd;">
+                            <strong>Nejdelší cesta od kořene:</strong> Určuje worst-case pro vyhledávání – čím delší, tím pomalejší.<br>
+                            <strong>Nejkratší cesta od kořene:</strong> Best-case složitost – nejrychlejší nalezení listu.<br>
+                            <strong>Průměr stromu (diameter):</strong> Nejdelší cesta mezi libovolnými dvěma uzly – důležité pro síťové protokoly, cache hierarchie.
+                        </div>
+                    `;
+                    const pathInsightsContent = document.getElementById('pathInsights');
+                    pathInsightsContent.parentNode.insertBefore(legendDiv, pathInsightsContent);
+                }
+            }
+            
             renderPathInsights(model);
         }
 
@@ -3264,18 +3350,44 @@ u *;</textarea>
         
         function displayTraversals(tree) {
             const traversals = [
-                { label: '🔄 Level-Order (Do šířky - BFS)', result: tree.levelOrder() },
-                { label: '⬇️ Pre-Order (kořen→L→R)', result: tree.preOrder() },
-                { label: '📊 In-Order (L→kořen→R)', result: tree.inOrder() },
-                { label: '⬆️ Post-Order (L→R→kořen)', result: tree.postOrder() }
+                { 
+                    label: '🔄 Level-Order (Do šířky - BFS)', 
+                    result: tree.levelOrder(),
+                    useCase: 'Vizualizace stromu, serializace úplných stromů, BFS nejkratší cesta'
+                },
+                { 
+                    label: '⬇️ Pre-Order (kořen→L→R)', 
+                    result: tree.preOrder(),
+                    useCase: 'Kopírování stromu, prefixová notace výrazů, serializace BST'
+                },
+                { 
+                    label: '📊 In-Order (L→kořen→R)', 
+                    result: tree.inOrder(),
+                    useCase: 'Seřazený výpis BST, validace BST, hledání k-tého prvku'
+                },
+                { 
+                    label: '⬆️ Post-Order (L→R→kořen)', 
+                    result: tree.postOrder(),
+                    useCase: 'Mazání stromu, postfixová notace, výpočet velikosti podstromů'
+                }
             ];
 
-            let html = '';
+            let html = `
+                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <strong style="color: #64b5f6;">🚶 K čemu jsou průchody stromem dobré?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.6; font-size: 0.9rem; color: #e3f2fd;">
+                        Každý průchod navštíví všechny uzly v jiném pořadí – různé pořadí se hodí pro různé úlohy.<br>
+                        <strong>Časová složitost:</strong> Všechny průchody jsou O(n), kde n = počet uzlů.
+                    </div>
+                </div>
+            `;
+            
             traversals.forEach(trav => {
                 html += `
                     <div class="result-box">
                         <div class="result-label">${trav.label}</div>
                         <div>${trav.result.join(' → ')}</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #90caf9;">💡 ${trav.useCase}</div>
                     </div>
                 `;
             });
