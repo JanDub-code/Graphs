@@ -2965,12 +2965,12 @@ function handleMatrixMouseOut(event) {
     tooltip.style.display = 'none';
 }
 
-function calculateMatrixStats(matrix) {
+function calculateMatrixStats(matrix, rowLabels = null, colLabels = null) {
     const n = matrix.length;
     if (n === 0) return {
         positiveCount: 0, negativeCount: 0, zeroCount: 0, infinityCount: 0,
         totalCount: 0, totalSum: 0, rowSums: [], colSums: [], valueCounts: {},
-        diagonalSum: 0, diagonalCounts: {}
+        diagonalSum: 0, diagonalCounts: {}, rowStats: [], colStats: [], rowLabels: [], colLabels: []
     };
     const m = matrix[0].length;
 
@@ -2984,24 +2984,43 @@ function calculateMatrixStats(matrix) {
     const valueCounts = {};
     let diagonalSum = 0;
     const diagonalCounts = {};
+    
+    // Statistiky pro každý řádek a sloupec
+    const rowStats = Array(n).fill(null).map(() => ({ sum: 0, counts: {}, positive: 0, negative: 0, zero: 0 }));
+    const colStats = Array(m).fill(null).map(() => ({ sum: 0, counts: {}, positive: 0, negative: 0, zero: 0 }));
 
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < m; j++) {
             const val = matrix[i][j];
 
-            if (val > 0 && isFinite(val)) positiveCount++;
-            else if (val < 0 && isFinite(val)) negativeCount++;
-            else if (val === 0) zeroCount++;
-            else if (!isFinite(val)) infinityCount++;
+            if (val > 0 && isFinite(val)) {
+                positiveCount++;
+                rowStats[i].positive++;
+                colStats[j].positive++;
+            } else if (val < 0 && isFinite(val)) {
+                negativeCount++;
+                rowStats[i].negative++;
+                colStats[j].negative++;
+            } else if (val === 0) {
+                zeroCount++;
+                rowStats[i].zero++;
+                colStats[j].zero++;
+            } else if (!isFinite(val)) {
+                infinityCount++;
+            }
 
             if (isFinite(val)) {
                 rowSums[i] += val;
                 colSums[j] += val;
                 totalSum += val;
+                rowStats[i].sum += val;
+                colStats[j].sum += val;
             }
 
             const key = !isFinite(val) ? '∞' : val;
             valueCounts[key] = (valueCounts[key] || 0) + 1;
+            rowStats[i].counts[key] = (rowStats[i].counts[key] || 0) + 1;
+            colStats[j].counts[key] = (colStats[j].counts[key] || 0) + 1;
         }
     }
 
@@ -3019,7 +3038,9 @@ function calculateMatrixStats(matrix) {
     return {
         positiveCount, negativeCount, zeroCount, infinityCount,
         totalCount: n * m, totalSum, rowSums, colSums, valueCounts,
-        diagonalSum, diagonalCounts
+        diagonalSum, diagonalCounts, rowStats, colStats,
+        rowLabels: rowLabels || Array(n).fill(null).map((_, i) => `R${i+1}`),
+        colLabels: colLabels || Array(m).fill(null).map((_, i) => `C${i+1}`)
     };
 }
 
@@ -3043,14 +3064,76 @@ function createMatrixStatsHTML(stats, options = {}) {
             <div class="advanced-stats" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background-color: #fff; border-radius: 0.25rem; border: 1px solid #dee2e6;">
     `;
     
-    if (options.showRowColSums) {
-        const rowSumsHTML = stats.rowSums.map((sum, i) => `R${i+1}: ${sum}`).join(', ');
-        const colSumsHTML = stats.colSums.map((sum, i) => `C${i+1}: ${sum}`).join(', ');
-        html += `
-            <p style="margin: 0 0 0.5rem 0;"><strong>Součty řádků:</strong> <span style="font-size: 0.9em;">${rowSumsHTML}</span></p>
-            <p style="margin: 0;"><strong>Součty sloupců:</strong> <span style="font-size: 0.9em;">${colSumsHTML}</span></p>
-            <hr style="margin: 0.5rem 0;"/>
-        `;
+    if (options.showRowColSums && stats.rowStats && stats.colStats) {
+        // Pomocná funkce pro formátování počtů hodnot
+        const formatCounts = (counts) => {
+            const sortedKeys = Object.keys(counts).sort((a, b) => (a === '∞' ? 1 : (b === '∞' ? -1 : a - b)));
+            return sortedKeys.map(key => `${key}×${counts[key]}`).join(', ');
+        };
+        
+        // Řádky s podrobnými statistikami
+        html += `<div style="margin-bottom: 0.75rem;">
+            <strong style="color: #0d6efd;">📊 Statistiky řádků (uzly):</strong>
+            <div style="max-height: 200px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9em;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
+                    <thead>
+                        <tr style="background-color: #e9ecef;">
+                            <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Uzel</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: right; border: 1px solid #dee2e6;">Součet</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: center; border: 1px solid #dee2e6;">+ / − / 0</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Počty hodnot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stats.rowStats.map((rs, i) => `
+                            <tr>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${stats.rowLabels[i]}</td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right;">${rs.sum}</td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">
+                                    <span style="color: #198754;">${rs.positive}</span> / 
+                                    <span style="color: #dc3545;">${rs.negative}</span> / 
+                                    <span style="color: #6c757d;">${rs.zero}</span>
+                                </td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-size: 0.9em;">${formatCounts(rs.counts)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        
+        // Sloupce s podrobnými statistikami
+        html += `<div style="margin-bottom: 0.75rem;">
+            <strong style="color: #0d6efd;">📊 Statistiky sloupců (uzly):</strong>
+            <div style="max-height: 200px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9em;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
+                    <thead>
+                        <tr style="background-color: #e9ecef;">
+                            <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Uzel</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: right; border: 1px solid #dee2e6;">Součet</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: center; border: 1px solid #dee2e6;">+ / − / 0</th>
+                            <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Počty hodnot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stats.colStats.map((cs, i) => `
+                            <tr>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${stats.colLabels[i]}</td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right;">${cs.sum}</td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">
+                                    <span style="color: #198754;">${cs.positive}</span> / 
+                                    <span style="color: #dc3545;">${cs.negative}</span> / 
+                                    <span style="color: #6c757d;">${cs.zero}</span>
+                                </td>
+                                <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-size: 0.9em;">${formatCounts(cs.counts)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+        
+        html += `<hr style="margin: 0.5rem 0;"/>`;
     }
     
     const sortedKeys = Object.keys(stats.valueCounts).sort((a, b) => (a === '∞' ? 1 : (b === '∞' ? -1 : a - b)));
@@ -3573,7 +3656,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             adjMatrixDiv.innerHTML = '';
             adjMatrixDiv.appendChild(createMatrixTable(adjMat, graph.nodes, graph.nodes));
             
-            const stats = calculateMatrixStats(adjMat);
+            const stats = calculateMatrixStats(adjMat, graph.nodes, graph.nodes);
             adjStatsDiv.innerHTML = createMatrixStatsHTML(stats, { showRowColSums: true });
             
             adjMatrixDiv.style.display = 'block';
@@ -3652,7 +3735,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             signMatrixDiv.innerHTML = '';
             signMatrixDiv.appendChild(createMatrixTable(signMat, graph.nodes, graph.nodes));
             
-            const stats = calculateMatrixStats(signMat);
+            const stats = calculateMatrixStats(signMat, graph.nodes, graph.nodes);
             signStatsDiv.innerHTML = createMatrixStatsHTML(stats, { showRowColSums: true });
             
             signMatrixDiv.style.display = 'block';
@@ -3715,7 +3798,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             laplacianMatrixDiv.innerHTML = '';
             laplacianMatrixDiv.appendChild(createMatrixTable(laplacianMat, graph.nodes, graph.nodes));
 
-            const stats = calculateMatrixStats(laplacianMat);
+            const stats = calculateMatrixStats(laplacianMat, graph.nodes, graph.nodes);
             laplacianStatsDiv.innerHTML = createMatrixStatsHTML(stats, { showRowColSums: true });
 
             laplacianMatrixDiv.style.display = 'block';
@@ -3904,8 +3987,8 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             div3.appendChild(createMatrixTable(A3, graph.nodes, graph.nodes));
             powerMatrixDiv.appendChild(div3);
 
-            const stats2 = calculateMatrixStats(A2);
-            const stats3 = calculateMatrixStats(A3);
+            const stats2 = calculateMatrixStats(A2, graph.nodes, graph.nodes);
+            const stats3 = calculateMatrixStats(A3, graph.nodes, graph.nodes);
             powerStatsDiv.innerHTML = `
                 <div style="padding: 1rem; background-color: #e7f3ff; border-radius: 0.25rem;">
                     ${createMatrixStatsHTML(stats2, { showRowColSums: true })}
@@ -4641,7 +4724,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             lenMatrixDiv.innerHTML = '';
             lenMatrixDiv.appendChild(createMatrixTable(lenMat, graph.nodes, graph.nodes));
 
-            const stats = calculateMatrixStats(lenMat);
+            const stats = calculateMatrixStats(lenMat, graph.nodes, graph.nodes);
             lenStatsDiv.innerHTML = createMatrixStatsHTML(stats, { showRowColSums: true });
 
             lenMatrixDiv.style.display = 'block';
