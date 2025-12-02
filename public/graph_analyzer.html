@@ -2970,7 +2970,9 @@ function calculateMatrixStats(matrix, rowLabels = null, colLabels = null) {
     if (n === 0) return {
         positiveCount: 0, negativeCount: 0, zeroCount: 0, infinityCount: 0,
         totalCount: 0, totalSum: 0, rowSums: [], colSums: [], valueCounts: {},
-        diagonalSum: 0, diagonalCounts: {}, rowStats: [], colStats: [], rowLabels: [], colLabels: []
+        diagonalSum: 0, diagonalCounts: {}, antiDiagonalSum: 0, antiDiagonalCounts: {},
+        mainDiagonalStats: [], antiDiagonalStats: [],
+        rowStats: [], colStats: [], rowLabels: [], colLabels: []
     };
     const m = matrix[0].length;
 
@@ -2984,10 +2986,16 @@ function calculateMatrixStats(matrix, rowLabels = null, colLabels = null) {
     const valueCounts = {};
     let diagonalSum = 0;
     const diagonalCounts = {};
+    let antiDiagonalSum = 0;
+    const antiDiagonalCounts = {};
     
     // Statistiky pro každý řádek a sloupec
     const rowStats = Array(n).fill(null).map(() => ({ sum: 0, counts: {}, positive: 0, negative: 0, zero: 0 }));
     const colStats = Array(m).fill(null).map(() => ({ sum: 0, counts: {}, positive: 0, negative: 0, zero: 0 }));
+    
+    // Statistiky pro diagonály (detailní pro každý prvek)
+    const mainDiagonalStats = [];
+    const antiDiagonalStats = [];
 
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < m; j++) {
@@ -3024,6 +3032,7 @@ function calculateMatrixStats(matrix, rowLabels = null, colLabels = null) {
         }
     }
 
+    // Hlavní diagonála (i == j)
     if (n === m) {
         for (let i = 0; i < n; i++) {
             const val = matrix[i][i];
@@ -3032,13 +3041,46 @@ function calculateMatrixStats(matrix, rowLabels = null, colLabels = null) {
             }
             const key = !isFinite(val) ? '∞' : val;
             diagonalCounts[key] = (diagonalCounts[key] || 0) + 1;
+            
+            // Detailní statistika pro každý prvek hlavní diagonály
+            const rLabel = rowLabels ? rowLabels[i] : `R${i+1}`;
+            const cLabel = colLabels ? colLabels[i] : `C${i+1}`;
+            mainDiagonalStats.push({
+                rowLabel: rLabel,
+                colLabel: cLabel,
+                value: val,
+                position: i
+            });
+        }
+        
+        // Vedlejší diagonála (i + j == n - 1)
+        for (let i = 0; i < n; i++) {
+            const j = n - 1 - i;
+            const val = matrix[i][j];
+            if (isFinite(val)) {
+                antiDiagonalSum += val;
+            }
+            const key = !isFinite(val) ? '∞' : val;
+            antiDiagonalCounts[key] = (antiDiagonalCounts[key] || 0) + 1;
+            
+            // Detailní statistika pro každý prvek vedlejší diagonály
+            const rLabel = rowLabels ? rowLabels[i] : `R${i+1}`;
+            const cLabel = colLabels ? colLabels[j] : `C${j+1}`;
+            antiDiagonalStats.push({
+                rowLabel: rLabel,
+                colLabel: cLabel,
+                value: val,
+                position: i
+            });
         }
     }
 
     return {
         positiveCount, negativeCount, zeroCount, infinityCount,
         totalCount: n * m, totalSum, rowSums, colSums, valueCounts,
-        diagonalSum, diagonalCounts, rowStats, colStats,
+        diagonalSum, diagonalCounts, antiDiagonalSum, antiDiagonalCounts,
+        mainDiagonalStats, antiDiagonalStats,
+        rowStats, colStats,
         rowLabels: rowLabels || Array(n).fill(null).map((_, i) => `R${i+1}`),
         colLabels: colLabels || Array(m).fill(null).map((_, i) => `C${i+1}`)
     };
@@ -3057,6 +3099,7 @@ function createMatrixStatsHTML(stats, options = {}) {
     }
 
     const toggleId = `toggle-${Math.random().toString(36).substr(2, 9)}`;
+    const filterId = `filter-${Math.random().toString(36).substr(2, 9)}`;
     html += `
         <div style="margin-bottom: 1rem;">
             <input type="checkbox" id="${toggleId}" class="matrix-stats-toggle" style="display: none;">
@@ -3071,11 +3114,21 @@ function createMatrixStatsHTML(stats, options = {}) {
             return sortedKeys.map(key => `${key}×${counts[key]}`).join(', ');
         };
         
+        // Filtr pro rychlé vyhledání uzlu
+        html += `<div style="margin-bottom: 0.75rem; padding: 0.5rem; background-color: #e7f3ff; border-radius: 0.25rem;">
+            <strong style="color: #0d6efd;">🔍 Filtr uzlů:</strong>
+            <input type="text" id="${filterId}" placeholder="Zadejte název uzlu pro filtrování..." 
+                   style="margin-left: 0.5rem; padding: 0.25rem 0.5rem; border: 1px solid #ced4da; border-radius: 0.25rem; width: 200px;"
+                   oninput="filterMatrixStatsTables(this.value, '${filterId}')">
+            <button onclick="document.getElementById('${filterId}').value=''; filterMatrixStatsTables('', '${filterId}')" 
+                    style="margin-left: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.85em;">Vymazat</button>
+        </div>`;
+        
         // Řádky s podrobnými statistikami
         html += `<div style="margin-bottom: 0.75rem;">
             <strong style="color: #0d6efd;">📊 Statistiky řádků (uzly):</strong>
             <div style="max-height: 200px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9em;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
+                <table class="stats-table-rows-${filterId}" style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
                     <thead>
                         <tr style="background-color: #e9ecef;">
                             <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Uzel</th>
@@ -3086,7 +3139,7 @@ function createMatrixStatsHTML(stats, options = {}) {
                     </thead>
                     <tbody>
                         ${stats.rowStats.map((rs, i) => `
-                            <tr>
+                            <tr data-node="${stats.rowLabels[i]}">
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${stats.rowLabels[i]}</td>
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right;">${rs.sum}</td>
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">
@@ -3106,7 +3159,7 @@ function createMatrixStatsHTML(stats, options = {}) {
         html += `<div style="margin-bottom: 0.75rem;">
             <strong style="color: #0d6efd;">📊 Statistiky sloupců (uzly):</strong>
             <div style="max-height: 200px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9em;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
+                <table class="stats-table-cols-${filterId}" style="width: 100%; border-collapse: collapse; font-size: 0.95em;">
                     <thead>
                         <tr style="background-color: #e9ecef;">
                             <th style="padding: 0.25rem 0.5rem; text-align: left; border: 1px solid #dee2e6;">Uzel</th>
@@ -3117,7 +3170,7 @@ function createMatrixStatsHTML(stats, options = {}) {
                     </thead>
                     <tbody>
                         ${stats.colStats.map((cs, i) => `
-                            <tr>
+                            <tr data-node="${stats.colLabels[i]}">
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${stats.colLabels[i]}</td>
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right;">${cs.sum}</td>
                                 <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">
@@ -3153,7 +3206,8 @@ function createMatrixStatsHTML(stats, options = {}) {
             </div>
     `;
 
-    if (stats.diagonalSum !== undefined) {
+    // Hlavní diagonála s detaily
+    if (stats.mainDiagonalStats && stats.mainDiagonalStats.length > 0) {
         const diagonalCountsHTML = Object.keys(stats.diagonalCounts).map(key => {
             const count = stats.diagonalCounts[key];
             return `<strong>${key}:</strong> ${count}×`;
@@ -3161,8 +3215,81 @@ function createMatrixStatsHTML(stats, options = {}) {
 
         html += `
             <div style="margin-top: 0.5rem; border-top: 1px solid #dee2e6; padding-top: 0.5rem;">
-                <strong>Součet diagonály:</strong> ${stats.diagonalSum.toFixed(2)} |
-                <strong>Počty na diagonále:</strong> ${diagonalCountsHTML}
+                <strong style="color: #0d6efd;">↘️ Hlavní diagonála:</strong><br>
+                <div style="margin-left: 1rem;">
+                    <strong>Součet:</strong> ${stats.diagonalSum.toFixed(2)} | 
+                    <strong>Počty hodnot:</strong> ${diagonalCountsHTML}
+                </div>
+                <details style="margin-top: 0.25rem;">
+                    <summary style="cursor: pointer; color: #0d6efd;">Zobrazit jednotlivé prvky diagonály</summary>
+                    <div style="max-height: 150px; overflow-y: auto; margin-top: 0.25rem;">
+                        <table class="stats-table-diag-${filterId}" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                            <thead>
+                                <tr style="background-color: #e9ecef;">
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Pozice</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Řádek (uzel)</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Sloupec (uzel)</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Hodnota</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stats.mainDiagonalStats.map((d, idx) => `
+                                    <tr data-node="${d.rowLabel}">
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">[${idx},${idx}]</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${d.rowLabel}</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${d.colLabel}</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right; ${d.value > 0 ? 'color: #198754;' : d.value < 0 ? 'color: #dc3545;' : ''}">${isFinite(d.value) ? d.value : '∞'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+        `;
+    }
+
+    // Vedlejší diagonála s detaily
+    if (stats.antiDiagonalStats && stats.antiDiagonalStats.length > 0) {
+        const antiDiagonalCountsHTML = Object.keys(stats.antiDiagonalCounts).map(key => {
+            const count = stats.antiDiagonalCounts[key];
+            return `<strong>${key}:</strong> ${count}×`;
+        }).join(', ');
+
+        html += `
+            <div style="margin-top: 0.5rem; border-top: 1px solid #dee2e6; padding-top: 0.5rem;">
+                <strong style="color: #0d6efd;">↙️ Vedlejší diagonála:</strong><br>
+                <div style="margin-left: 1rem;">
+                    <strong>Součet:</strong> ${stats.antiDiagonalSum.toFixed(2)} | 
+                    <strong>Počty hodnot:</strong> ${antiDiagonalCountsHTML}
+                </div>
+                <details style="margin-top: 0.25rem;">
+                    <summary style="cursor: pointer; color: #0d6efd;">Zobrazit jednotlivé prvky vedlejší diagonály</summary>
+                    <div style="max-height: 150px; overflow-y: auto; margin-top: 0.25rem;">
+                        <table class="stats-table-antidiag-${filterId}" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                            <thead>
+                                <tr style="background-color: #e9ecef;">
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Pozice</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Řádek (uzel)</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Sloupec (uzel)</th>
+                                    <th style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6;">Hodnota</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stats.antiDiagonalStats.map((d, idx) => {
+                                    const n = stats.antiDiagonalStats.length;
+                                    return `
+                                    <tr data-node="${d.rowLabel}">
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: center;">[${idx},${n - 1 - idx}]</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${d.rowLabel}</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; font-weight: bold;">${d.colLabel}</td>
+                                        <td style="padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; text-align: right; ${d.value > 0 ? 'color: #198754;' : d.value < 0 ? 'color: #dc3545;' : ''}">${isFinite(d.value) ? d.value : '∞'}</td>
+                                    </tr>
+                                `}).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </div>
         `;
     }
@@ -3170,6 +3297,24 @@ function createMatrixStatsHTML(stats, options = {}) {
     html += `</div></div>`;
 
     return html;
+}
+
+// Funkce pro filtrování tabulek statistik podle uzlu
+function filterMatrixStatsTables(filterValue, filterId) {
+    const filter = filterValue.toLowerCase().trim();
+    const tables = document.querySelectorAll(`.stats-table-rows-${filterId}, .stats-table-cols-${filterId}, .stats-table-diag-${filterId}, .stats-table-antidiag-${filterId}`);
+    
+    tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const nodeName = row.getAttribute('data-node');
+            if (!filter || (nodeName && nodeName.toLowerCase().includes(filter))) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
 }
 
 function createListTable(map) {
