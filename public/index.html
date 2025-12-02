@@ -178,6 +178,198 @@
             0% { box-shadow: 0 0 10px 3px rgba(253, 126, 20, 0.4), 0 0 20px 6px rgba(253, 126, 20, 0.2); }
             100% { box-shadow: 0 0 20px 8px rgba(253, 126, 20, 0.8), 0 0 40px 15px rgba(253, 126, 20, 0.4); }
         }
+
+        /* Padající sníh */
+        .snowflakes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .snowflake {
+            position: absolute;
+            top: -20px;
+            color: white;
+            font-size: 1em;
+            text-shadow: 0 0 5px rgba(255,255,255,0.8);
+            animation: fall linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-20px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* Animovaný Santa na saních */
+        .santa-container {
+            position: fixed;
+            z-index: 1001;
+            pointer-events: none;
+            animation: fly-santa 15s linear infinite;
+        }
+
+        .santa {
+            font-size: 3rem;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
+            animation: santa-bounce 0.5s ease-in-out infinite;
+        }
+
+        .reindeer {
+            font-size: 2.5rem;
+            margin-right: -10px;
+            animation: reindeer-run 0.3s ease-in-out infinite alternate;
+        }
+
+        .sleigh {
+            display: flex;
+            align-items: center;
+        }
+
+        @keyframes fly-santa {
+            0% {
+                left: -200px;
+                top: 80px;
+            }
+            50% {
+                top: 120px;
+            }
+            100% {
+                left: calc(100vw + 200px);
+                top: 60px;
+            }
+        }
+
+        @keyframes santa-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes reindeer-run {
+            0% { transform: translateY(0) rotate(-2deg); }
+            100% { transform: translateY(-3px) rotate(2deg); }
+        }
+
+        /* Vánoční stromeček */
+        .christmas-tree {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 5rem;
+            animation: tree-glow 2s ease-in-out infinite alternate;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.5));
+            z-index: 100;
+        }
+
+        @keyframes tree-glow {
+            0% { filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.3)) brightness(1); }
+            100% { filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)) brightness(1.1); }
+        }
+
+        /* Dárky pod stromečkem */
+        .presents {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 2rem;
+            z-index: 99;
+            animation: present-shake 3s ease-in-out infinite;
+        }
+
+        @keyframes present-shake {
+            0%, 90%, 100% { transform: rotate(0deg); }
+            92%, 96% { transform: rotate(-3deg); }
+            94%, 98% { transform: rotate(3deg); }
+        }
+
+        /* Sněhulák */
+        .snowman {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 4rem;
+            animation: snowman-wave 2s ease-in-out infinite;
+            z-index: 100;
+        }
+
+        @keyframes snowman-wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        /* Hvězda nahoře */
+        .star {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            animation: star-twinkle 1s ease-in-out infinite alternate;
+            z-index: 1002;
+        }
+
+        @keyframes star-twinkle {
+            0% { 
+                transform: translateX(-50%) scale(1) rotate(0deg); 
+                filter: drop-shadow(0 0 10px gold);
+            }
+            100% { 
+                transform: translateX(-50%) scale(1.2) rotate(15deg); 
+                filter: drop-shadow(0 0 25px gold) drop-shadow(0 0 50px rgba(255,215,0,0.5));
+            }
+        }
+
+        /* Vánoční přání */
+        .greeting {
+            text-align: center;
+            color: #ffd700;
+            font-size: 1.5rem;
+            margin-top: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: greeting-fade 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes greeting-fade {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* Cukrová hůlka dekorace */
+        .candy-canes {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            z-index: 100;
+        }
+
+        /* Sob v rohu */
+        .corner-reindeer {
+            position: fixed;
+            top: 80px;
+            right: 30px;
+            font-size: 3rem;
+            animation: reindeer-nod 2s ease-in-out infinite;
+            z-index: 100;
+        }
+
+        @keyframes reindeer-nod {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+        }
     </style>
 </head>
 <body>
@@ -187,13 +379,48 @@
         <div class="lights-container" id="lightsContainer"></div>
     </div>
 
+    <!-- Padající sníh -->
+    <div class="snowflakes" id="snowflakes"></div>
+
+    <!-- Animovaný Santa na saních -->
+    <div class="santa-container" id="santaContainer">
+        <div class="sleigh">
+            <span class="reindeer">🦌</span>
+            <span class="reindeer">🦌</span>
+            <span class="santa">🎅🛷</span>
+        </div>
+    </div>
+
+    <!-- Hvězda nahoře -->
+    <div class="star">⭐</div>
+
+    <!-- Sob v rohu -->
+    <div class="corner-reindeer">🦌</div>
+
     <h1>🎄 Graph Analyzers 🎄</h1>
+    
+    <!-- Vánoční přání -->
+    <p class="greeting">✨ Veselé Vánoce a šťastný nový rok! ✨</p>
+    
     <div class="links">
         <a href="graph_analyzer.html">🎁 Graph Analyzer</a>
         <a href="bst_analyzer.html">🌟 BST Analyzer</a>
     </div>
 
+    <!-- Cukrové hůlky -->
+    <div class="candy-canes">🍬🍭🍬</div>
+
+    <!-- Sněhulák -->
+    <div class="snowman">⛄</div>
+
+    <!-- Vánoční stromeček -->
+    <div class="christmas-tree">🎄</div>
+
+    <!-- Dárky -->
+    <div class="presents">🎁🎀🎁</div>
+
     <script>
+        // Generování vánočních světýlek
         function generateChristmasLights() {
             const container = document.getElementById('lightsContainer');
             const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
@@ -210,8 +437,37 @@
                 container.appendChild(light);
             }
         }
+
+        // Generování padajícího sněhu
+        function generateSnowflakes() {
+            const container = document.getElementById('snowflakes');
+            const snowflakeChars = ['❄', '❅', '❆', '✻', '✼', '❉'];
+            const numberOfFlakes = 50;
+
+            for (let i = 0; i < numberOfFlakes; i++) {
+                const flake = document.createElement('div');
+                flake.className = 'snowflake';
+                flake.textContent = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
+                flake.style.left = Math.random() * 100 + 'vw';
+                flake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
+                flake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                flake.style.animationDelay = (Math.random() * 10) + 's';
+                flake.style.opacity = Math.random() * 0.5 + 0.5;
+                container.appendChild(flake);
+            }
+        }
+
+        // Náhodné zpoždění pro Santa animaci
+        function randomizeSanta() {
+            const santa = document.getElementById('santaContainer');
+            setInterval(() => {
+                santa.style.animationDuration = (Math.random() * 5 + 12) + 's';
+            }, 15000);
+        }
         
         generateChristmasLights();
+        generateSnowflakes();
+        randomizeSanta();
         window.addEventListener('resize', generateChristmasLights);
     </script>
 </body>
