@@ -5313,6 +5313,8 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <div><strong>Počet kritických činností:</strong> ${result.criticalEdgesCount}</div>
                 <div><strong>Kritická cesta:</strong> ${criticalPath}</div>
             </div>`;
+            html += '<h4 style="margin-top: 1rem; margin-bottom: 0.5rem; color: #0d6efd;">📍 Uzlové časy (milníky projektu)</h4>';
+            html += '<p style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.5rem;">Každý uzel představuje událost/milník. Zobrazujeme nejdříve možný a nejpozději přípustný čas dosažení.</p>';
             html += '<div class="scrollable-list">';
             html += '<table><thead><tr><th>Uzel</th><th>Nejčasnější čas</th><th>Nejpozdější čas</th><th>Rezerva</th><th>Kritický</th></tr></thead><tbody>';
             result.nodeSummaries.forEach(node => {
@@ -5325,7 +5327,9 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 </tr>`;
             });
             html += '</tbody></table></div>';
-            html += '<div class="scrollable-list" style="margin-top:1rem;">';
+            html += '<h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: #198754;">🔗 Hranové aktivity (činnosti projektu)</h4>';
+            html += '<p style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.5rem;">Každá hrana představuje činnost s určitou délkou trvání. ES = nejdříve možný start, EF = nejdříve možné ukončení, LS = nejpozději přípustný start, LF = nejpozději přípustné ukončení.</p>';
+            html += '<div class="scrollable-list" style="margin-top:0.5rem;">';
             html += '<table><thead><tr><th>Aktivita</th><th>Od</th><th>Do</th><th>Délka</th><th>ES</th><th>EF</th><th>LS</th><th>LF</th><th>Rezerva</th><th>Kritická?</th></tr></thead><tbody>';
             result.activities.forEach(act => {
                 html += `<tr>
