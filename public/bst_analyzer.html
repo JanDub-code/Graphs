@@ -639,6 +639,22 @@ u *;</textarea>
                 Strom je orientovaný acyklický graf – proto můžeme jeho hrany chápat jako činnosti v síti (zdroj = kořen, cíle = listy)
                 a spočítat kritickou cestu pomocí metody CPM.
             </p>
+            
+            <!-- Legenda CPM pojmů -->
+            <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <strong style="color: #64b5f6;">📖 Co je CPM (Critical Path Method)?</strong>
+                <div style="margin-top: 0.5rem; line-height: 1.8; font-size: 0.95rem;">
+                    <strong>CPM</strong> = Metoda kritické cesty – technika pro plánování projektů, která identifikuje nejdelší cestu úkolů.<br>
+                    <strong>ES (Early Start)</strong> = Nejdříve možný začátek – kdy může činnost nejdříve začít.<br>
+                    <strong>EF (Early Finish)</strong> = Nejdříve možný konec – ES + délka činnosti.<br>
+                    <strong>LS (Late Start)</strong> = Nejpozději přípustný začátek – kdy musí činnost nejpozději začít.<br>
+                    <strong>LF (Late Finish)</strong> = Nejpozději přípustný konec – deadline činnosti.<br>
+                    <strong>Rezerva (Slack/Float)</strong> = LS − ES = o kolik lze činnost zpozdit bez ohrožení projektu.<br>
+                    <strong>Kritická cesta</strong> = Cesta s nulovou rezervou – jakékoli zpoždění prodlouží celý projekt.<br>
+                    <strong>🔥</strong> = Kritická činnost (rezerva = 0) – musí být dokončena včas!
+                </div>
+            </div>
+            
             <div class="input-group">
                 <input type="number" id="defaultEdgeDuration" value="1" min="0" step="0.1"
                        placeholder="Výchozí délka hrany (např. 1)">

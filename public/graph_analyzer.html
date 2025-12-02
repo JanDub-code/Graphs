@@ -2937,19 +2937,19 @@ function handleMatrixMouseOver(matrix) {
             return acc;
         }, {});
 
-        let statsHTML = `<strong>Row ${rowIndex + 1}:</strong> Sum = ${rowSum}<br>`;
-        statsHTML += `<strong>Col ${colIndex + 1}:</strong> Sum = ${colSum}<br>`;
+        let statsHTML = `<strong>Řádek ${rowIndex + 1}:</strong> Součet = ${rowSum}<br>`;
+        statsHTML += `<strong>Sloupec ${colIndex + 1}:</strong> Součet = ${colSum}<br>`;
 
         // Diagonal stats
         if (rowIndex === colIndex) {
             const mainDiag = matrix.map((r, i) => r[i]);
             const mainDiagSum = mainDiag.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
-            statsHTML += `<strong>Main Diag:</strong> Sum = ${mainDiagSum}<br>`;
+            statsHTML += `<strong>Hlavní diagonála:</strong> Součet = ${mainDiagSum}<br>`;
         }
         if (rowIndex + colIndex === matrix.length - 1) {
             const antiDiag = matrix.map((r, i) => r[matrix.length - 1 - i]);
             const antiDiagSum = antiDiag.reduce((a, b) => a + (isFinite(b) ? b : 0), 0);
-            statsHTML += `<strong>Anti Diag:</strong> Sum = ${antiDiagSum}<br>`;
+            statsHTML += `<strong>Vedlejší diagonála:</strong> Součet = ${antiDiagSum}<br>`;
         }
 
         const tooltip = document.getElementById('matrix-stats-tooltip');
@@ -4125,19 +4125,21 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const reachInputDiv = document.createElement('div');
     reachInputDiv.className = 'query-inputs';
     
-    const selectReachU = document.createElement('select');
-    const selectReachV = document.createElement('select');
-    graph.nodes.forEach(node => {
-        const opt1 = document.createElement('option');
-        opt1.value = node;
-        opt1.textContent = node;
-        selectReachU.appendChild(opt1);
-        
-        const opt2 = document.createElement('option');
-        opt2.value = node;
-        opt2.textContent = node;
-        selectReachV.appendChild(opt2);
-    });
+    const inputReachU = document.createElement('input');
+    inputReachU.type = 'text';
+    inputReachU.placeholder = 'Zadejte uzel (např. A)';
+    inputReachU.style.width = '120px';
+    inputReachU.style.padding = '0.5rem';
+    inputReachU.style.border = '1px solid #ced4da';
+    inputReachU.style.borderRadius = '0.25rem';
+    
+    const inputReachV = document.createElement('input');
+    inputReachV.type = 'text';
+    inputReachV.placeholder = 'Zadejte uzel (např. B)';
+    inputReachV.style.width = '120px';
+    inputReachV.style.padding = '0.5rem';
+    inputReachV.style.border = '1px solid #ced4da';
+    inputReachV.style.borderRadius = '0.25rem';
     
     const reachQueryBtn = document.createElement('button');
     reachQueryBtn.textContent = 'Je dosažitelný?';
@@ -4147,11 +4149,28 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     reachQueryResult.style.display = 'none';
     
     reachQueryBtn.addEventListener('click', () => {
-        const u = selectReachU.value;
-        const v = selectReachV.value;
-        const reachMat = graph.reachability();
+        const u = inputReachU.value.trim();
+        const v = inputReachV.value.trim();
+        
+        if (!u || !v) {
+            reachQueryResult.innerHTML = `<strong>⚠️ Chyba:</strong> Zadejte oba uzly`;
+            reachQueryResult.style.display = 'block';
+            return;
+        }
+        
         const uIdx = graph.nodes.indexOf(u);
         const vIdx = graph.nodes.indexOf(v);
+        
+        if (uIdx === -1 || vIdx === -1) {
+            const invalidNodes = [];
+            if (uIdx === -1) invalidNodes.push(`"${u}"`);
+            if (vIdx === -1) invalidNodes.push(`"${v}"`);
+            reachQueryResult.innerHTML = `<strong>⚠️ Chyba:</strong> Uzel ${invalidNodes.join(' a ')} neexistuje v grafu. Dostupné uzly: ${graph.nodes.join(', ')}`;
+            reachQueryResult.style.display = 'block';
+            return;
+        }
+        
+        const reachMat = graph.reachability();
         const isReachable = reachMat[uIdx][vIdx] === 1;
         
         reachQueryResult.innerHTML = `<strong>${u} → ${v}:</strong> ${isReachable ? '✅ ANO (dosažitelný)' : '❌ NE (nedosažitelný)'}`;
@@ -4161,12 +4180,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     const labelReachU = document.createElement('span');
     labelReachU.textContent = 'Z uzlu: ';
     reachInputDiv.appendChild(labelReachU);
-    reachInputDiv.appendChild(selectReachU);
+    reachInputDiv.appendChild(inputReachU);
     
     const labelReachV = document.createElement('span');
     labelReachV.textContent = ' Do uzlu: ';
     reachInputDiv.appendChild(labelReachV);
-    reachInputDiv.appendChild(selectReachV);
+    reachInputDiv.appendChild(inputReachV);
     reachInputDiv.appendChild(reachQueryBtn);
     
     reachQueryDiv.appendChild(reachInputDiv);
