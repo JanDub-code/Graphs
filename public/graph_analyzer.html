@@ -920,6 +920,12 @@ class Graph {
         const vIdx = this.nodes.indexOf(nodeV);
         if (uIdx === -1 || vIdx === -1) return null;
         
+        // Dijkstra nepracuje se zápornými hranami
+        const stats = this.edgeWeightStats();
+        if (stats && stats.min < 0) {
+            return { error: 'Graf obsahuje záporné hrany – Dijkstrův algoritmus nelze použít. Použijte Bellman-Ford.' };
+        }
+        
         // Simple Dijkstra for single source-target
         const n = this.nodes.length;
         const dist = Array(n).fill(Infinity);
@@ -2431,6 +2437,17 @@ class Graph {
         const startIdx = graphData.idx[startNode];
         const endIdx = graphData.idx[endNode];
         const topo = this.topologicalSort(true, graphData);
+        
+        // Graf obsahuje cyklus - nejdelší cesta není definována (může být nekonečná)
+        if (!topo.isDAG) {
+            return { 
+                path: [], 
+                weight: null, 
+                mode: 'cyclic',
+                error: 'Graf obsahuje cyklus – nejdelší cesta není definována (může být nekonečně dlouhá).'
+            };
+        }
+        
         if (topo.isDAG) {
             const dist = Array(this.nodes.length).fill(-Infinity);
             const pred = Array(this.nodes.length).fill(null);
@@ -2454,22 +2471,13 @@ class Graph {
                 mode: 'dag'
             };
         }
-        const { paths } = this.simplePathsUpTo(startNode, endNode, this.nodes.length - 1, 2000);
-        if (!paths.length) return { path: [], weight: null, mode: 'fallback' };
-        let bestPath = null;
-        let bestWeight = -Infinity;
-        for (const p of paths) {
-            const w = this.pathWeightFromNodes(p, 'max');
-            if (w !== null && w > bestWeight) {
-                bestWeight = w;
-                bestPath = p;
-            }
-        }
-        return {
-            path: bestPath || [],
-            weight: bestWeight === -Infinity ? null : bestWeight,
-            mode: 'fallback',
-            limited: paths.length >= 2000
+        // Tento kód by se neměl nikdy zavolat, protože výše je zachycen cyklický graf
+        // Ponecháno pro zpětnou kompatibilitu
+        return { 
+            path: [], 
+            weight: null, 
+            mode: 'cyclic',
+            error: 'Graf obsahuje cyklus – nejdelší cesta není definována.'
         };
     }
 
@@ -5624,10 +5632,13 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
             };
             let html = '<div class="optimal-grid">';
+            // Dijkstra - zpracování chyby pro záporné hrany
+            let dijkstraError = dijkstra && dijkstra.error ? `<div style="color:#dc3545; margin-top:0.25rem;">⚠️ ${dijkstra.error}</div>` : '';
             html += `<div class="result-box">
                 <div class="result-label">Nejkratší cesta (Dijkstrův algoritmus)</div>
-                <div>Vzdálenost: ${formatDistance(dijkstra ? dijkstra.distance : null)}</div>
-                <div>Cesta: ${formatPath(dijkstra ? dijkstra.path : [])}</div>
+                <div>Vzdálenost: ${dijkstra && dijkstra.error ? '—' : formatDistance(dijkstra ? dijkstra.distance : null)}</div>
+                <div>Cesta: ${dijkstra && dijkstra.error ? 'Nelze spočítat' : formatPath(dijkstra ? dijkstra.path : [])}</div>
+                ${dijkstraError}
             </div>`;
             html += `<div class="result-box">
                 <div class="result-label">Moorův algoritmus (BFS)</div>
@@ -5641,16 +5652,17 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <div>Cesta: ${formatPath(bellman ? bellman.path : [])}</div>
                 ${bellmanWarning}
             </div>`;
-            const longestNote = longest
-                ? (longest.mode === 'fallback'
-                    ? '<div style="font-size:0.85rem; color:#6c757d;">Graf není DAG, proto se prohledávají jednoduché cesty (omezeno na 2000).</div>'
-                    : '<div style="font-size:0.85rem; color:#6c757d;">Výpočet v DAG pomocí topologického pořadí.</div>')
+            // Nejdelší cesta - zpracování cyklického grafu
+            let longestError = longest && longest.error ? `<div style="color:#dc3545; margin-top:0.25rem;">⚠️ ${longest.error}</div>` : '';
+            const longestNote = longest && !longest.error && longest.mode === 'dag'
+                ? '<div style="font-size:0.85rem; color:#6c757d;">Výpočet v DAG pomocí topologického pořadí.</div>'
                 : '';
             html += `<div class="result-box">
                 <div class="result-label">Nejdelší cesta</div>
-                <div>Délka: ${formatDistance(longest ? longest.weight : null)}</div>
-                <div>Cesta: ${formatPath(longest ? longest.path : [])}</div>
+                <div>Délka: ${longest && longest.error ? '—' : formatDistance(longest ? longest.weight : null)}</div>
+                <div>Cesta: ${longest && longest.error ? 'Nelze určit' : formatPath(longest ? longest.path : [])}</div>
                 ${longestNote}
+                ${longestError}
             </div>`;
             
             // Nejbezpečnější cesta - zpracování chyb a zobrazení vzorce
