@@ -2339,94 +2339,61 @@ class Graph {
     }
 
     safestPath(startNode, endNode) {
-        // Nejbezpečnější cesta maximalizuje součin spolehlivostí hran
-        // Spolehlivost hrany: r = exp(-w) kde w je váha hrany
-        // Maximalizace součinu r1 * r2 * ... = exp(-w1) * exp(-w2) * ... = exp(-(w1+w2+...))
-        // = minimalizace součtu vah = nejkratší cesta!
-        // 
-        // Pro kladné váhy: vyšší váha = nižší spolehlivost
-        // Pro záporné váhy: algoritmus stále funguje, ale interpretace je nestandardní
-        
         const graphData = this._buildDirectedGraph(true);
         if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
         const startIdx = graphData.idx[startNode];
         const endIdx = graphData.idx[endNode];
         if (startIdx === endIdx) return { path: [startNode], reliability: 1 };
-        
-        // Kontrola záporných vah - pro ně použijeme Bellman-Ford
-        let hasNegative = false;
+
+        // 1. ZMĚNA: Okamžitá kontrola záporných vah
+        // Pokud najdeme zápornou váhu, pro výpočet pravděpodobnosti to nedává smysl.
         for (const edge of graphData.edges) {
             if (edge.weight < 0) {
-                hasNegative = true;
-                break;
+                return { 
+                    path: [], 
+                    reliability: null, 
+                    error: 'Graf obsahuje záporné hrany. Pro výpočet spolehlivosti (pravděpodobnosti) musí být váhy nezáporné (0 = 100%, >0 = <100%).' 
+                };
             }
         }
-        
+
+        // 2. Pokud jsme tady, všechny váhy jsou >= 0. Můžeme bezpečně použít Dijkstru.
+        // Dijkstra je mnohem rychlejší než Bellman-Ford a "nezdechne".
         const n = this.nodes.length;
         const dist = Array(n).fill(Infinity);
         const pred = Array(n).fill(null);
         dist[startIdx] = 0;
         
-        if (hasNegative) {
-            // Bellman-Ford pro záporné váhy
-            for (let i = 0; i < n - 1; i++) {
-                let updated = false;
-                for (const edge of graphData.edges) {
-                    if (dist[edge.from] === Infinity) continue;
-                    const candidate = dist[edge.from] + edge.weight;
-                    if (candidate < dist[edge.to]) {
-                        dist[edge.to] = candidate;
-                        pred[edge.to] = edge.from;
-                        updated = true;
-                    }
-                }
-                if (!updated) break;
-            }
-            // Detekce záporného cyklu
-            let negativeCycle = false;
-            for (const edge of graphData.edges) {
-                if (dist[edge.from] !== Infinity && dist[edge.from] + edge.weight < dist[edge.to]) {
-                    negativeCycle = true;
-                    break;
+        const visited = Array(n).fill(false);
+        for (let iter = 0; iter < n; iter++) {
+            let u = -1;
+            let best = Infinity;
+            // Najdi nejbližší nenavštívený uzel
+            for (let i = 0; i < n; i++) {
+                if (!visited[i] && dist[i] < best) {
+                    best = dist[i];
+                    u = i;
                 }
             }
-            if (negativeCycle) {
-                return { path: [], reliability: null, error: 'Detekován záporný cyklus – spolehlivost není definována.' };
-            }
-        } else {
-            // Dijkstra pro nezáporné váhy
-            const visited = Array(n).fill(false);
-            for (let iter = 0; iter < n; iter++) {
-                let u = -1;
-                let best = Infinity;
-                for (let i = 0; i < n; i++) {
-                    if (!visited[i] && dist[i] < best) {
-                        best = dist[i];
-                        u = i;
-                    }
-                }
-                if (u === -1) break;
-                visited[u] = true;
-                if (u === endIdx) break;
-                for (const edge of graphData.adj[u]) {
-                    // Přímé sčítání vah (ekvivalent násobení spolehlivostí přes logaritmus)
-                    const candidate = dist[u] + edge.weight;
-                    if (candidate < dist[edge.to]) {
-                        dist[edge.to] = candidate;
-                        pred[edge.to] = u;
-                    }
+            
+            if (u === -1 || dist[u] === Infinity) break;
+            visited[u] = true;
+            if (u === endIdx) break;
+
+            for (const edge of graphData.adj[u]) {
+                const candidate = dist[u] + edge.weight;
+                if (candidate < dist[edge.to]) {
+                    dist[edge.to] = candidate;
+                    pred[edge.to] = u;
                 }
             }
         }
-        
+
         if (dist[endIdx] === Infinity) return { path: [], reliability: 0 };
-        
-        // Spolehlivost cesty = exp(-součet vah) = součin spolehlivostí hran
-        const pathReliability = Math.exp(-dist[endIdx]);
-        
+
         return {
             path: this._reconstructPath(startIdx, endIdx, pred),
-            reliability: pathReliability,
+            reliability: Math.exp(-dist[endIdx]), // e^(-vzdálenost)
             totalWeight: dist[endIdx]
         };
     }
