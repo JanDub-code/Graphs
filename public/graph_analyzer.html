@@ -2316,12 +2316,14 @@ class Graph {
         
         const startIdx = graphData.idx[startNode];
         const endIdx = graphData.idx[endNode];
-        if (startIdx === endIdx) return { path: [startNode], width: Infinity };
+        if (startIdx === endIdx) return { path: [startNode], width: Infinity, segments: [], bottleneck: null, widestSegment: null };
         const n = this.nodes.length;
         const width = Array(n).fill(0);
         const visited = Array(n).fill(false);
         const pred = Array(n).fill(null);
+        const predEdge = Array(n).fill(null); // Uložíme si hranu, která vedla do uzlu
         width[startIdx] = Infinity;
+        
         for (let count = 0; count < n; count++) {
             let u = -1;
             let best = 0;
@@ -2339,11 +2341,59 @@ class Graph {
                 if (candidate > width[edge.to]) {
                     width[edge.to] = candidate;
                     pred[edge.to] = u;
+                    predEdge[edge.to] = edge; // Uložíme hranu
                 }
             }
         }
-        if (width[endIdx] === 0) return { path: [], width: 0 };
-        return { path: this._reconstructPath(startIdx, endIdx, pred), width: width[endIdx] };
+        
+        if (width[endIdx] === 0) return { path: [], width: 0, segments: [], bottleneck: null, widestSegment: null };
+        
+        // Rekonstrukce cesty a sběr segmentů
+        const path = this._reconstructPath(startIdx, endIdx, pred);
+        const segments = [];
+        
+        // Projdi cestu a sbírej informace o segmentech
+        let current = endIdx;
+        while (pred[current] !== null) {
+            const prevIdx = pred[current];
+            const edge = predEdge[current];
+            if (edge) {
+                segments.unshift({
+                    from: this.nodes[prevIdx],
+                    to: this.nodes[current],
+                    capacity: edge.weight
+                });
+            }
+            current = prevIdx;
+        }
+        
+        // Najdi bottleneck (nejmenší kapacita) a nejširší segment
+        let bottleneck = null;
+        let widestSegment = null;
+        
+        if (segments.length > 0) {
+            let minCapacity = Infinity;
+            let maxCapacity = -Infinity;
+            
+            for (const seg of segments) {
+                if (seg.capacity < minCapacity) {
+                    minCapacity = seg.capacity;
+                    bottleneck = seg;
+                }
+                if (seg.capacity > maxCapacity) {
+                    maxCapacity = seg.capacity;
+                    widestSegment = seg;
+                }
+            }
+        }
+        
+        return { 
+            path, 
+            width: width[endIdx], 
+            segments,
+            bottleneck,      // Úsek s nejmenší kapacitou (největší bottleneck)
+            widestSegment    // Úsek s největší kapacitou
+        };
     }
 
     // ⚡ Spolehlivost hrany podle standardního vzorce: r = exp(-w)
@@ -5663,12 +5713,78 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <div style="font-size:0.8rem; color:#6c757d; margin-top:0.25rem;">Vzorec: r = exp(−w), kde w je váha hrany</div>
             </div>`;
             
-            // Nejširší cesta - zpracování chyb pro záporné kapacity
+            // Nejširší cesta - zpracování chyb pro záporné kapacity + podrobná analýza segmentů
             let widestError = widest && widest.error ? `<div style="color:#dc3545; margin-top:0.25rem;">⚠️ ${widest.error}</div>` : '';
+            
+            // Detailní informace o segmentech cesty
+            let bottleneckInfo = '';
+            let widestSegmentInfo = '';
+            let segmentsDetail = '';
+            
+            if (widest && !widest.error && widest.path && widest.path.length > 1) {
+                // Bottleneck (nejužší úsek = největší omezení)
+                if (widest.bottleneck) {
+                    bottleneckInfo = `<div style="margin-top:0.5rem; padding:0.4rem; background-color:#fff3cd; border-radius:0.25rem; border-left:3px solid #ffc107;">
+                        <strong style="color:#856404;">🔴 Bottleneck (nejužší úsek):</strong> 
+                        ${widest.bottleneck.from} → ${widest.bottleneck.to} 
+                        <span style="color:#dc3545; font-weight:bold;">(kapacita: ${formatDistance(widest.bottleneck.capacity)})</span>
+                    </div>`;
+                }
+                
+                // Nejširší segment
+                if (widest.widestSegment && widest.bottleneck && 
+                    (widest.widestSegment.from !== widest.bottleneck.from || widest.widestSegment.to !== widest.bottleneck.to)) {
+                    widestSegmentInfo = `<div style="margin-top:0.25rem; padding:0.4rem; background-color:#d4edda; border-radius:0.25rem; border-left:3px solid #28a745;">
+                        <strong style="color:#155724;">🟢 Nejširší úsek:</strong> 
+                        ${widest.widestSegment.from} → ${widest.widestSegment.to} 
+                        <span style="color:#28a745; font-weight:bold;">(kapacita: ${formatDistance(widest.widestSegment.capacity)})</span>
+                    </div>`;
+                }
+                
+                // Tabulka všech segmentů cesty (pokud je více než 1 segment)
+                if (widest.segments && widest.segments.length > 1) {
+                    segmentsDetail = `<details style="margin-top:0.5rem;">
+                        <summary style="cursor:pointer; color:#0d6efd; font-size:0.9rem;">📊 Zobrazit všechny segmenty cesty (${widest.segments.length})</summary>
+                        <table style="width:100%; margin-top:0.5rem; font-size:0.85rem;">
+                            <thead>
+                                <tr style="background-color:#e9ecef;">
+                                    <th style="padding:0.3rem; text-align:left;">Úsek</th>
+                                    <th style="padding:0.3rem; text-align:right;">Kapacita</th>
+                                    <th style="padding:0.3rem; text-align:center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${widest.segments.map(seg => {
+                                    const isBottleneck = widest.bottleneck && seg.from === widest.bottleneck.from && seg.to === widest.bottleneck.to;
+                                    const isWidest = widest.widestSegment && seg.from === widest.widestSegment.from && seg.to === widest.widestSegment.to;
+                                    let statusIcon = '';
+                                    let rowStyle = '';
+                                    if (isBottleneck) {
+                                        statusIcon = '🔴 Bottleneck';
+                                        rowStyle = 'background-color:#fff3cd;';
+                                    } else if (isWidest) {
+                                        statusIcon = '🟢 Nejširší';
+                                        rowStyle = 'background-color:#d4edda;';
+                                    }
+                                    return `<tr style="${rowStyle}">
+                                        <td style="padding:0.3rem;">${seg.from} → ${seg.to}</td>
+                                        <td style="padding:0.3rem; text-align:right; font-weight:bold;">${formatDistance(seg.capacity)}</td>
+                                        <td style="padding:0.3rem; text-align:center;">${statusIcon}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </details>`;
+                }
+            }
+            
             html += `<div class="result-box">
                 <div class="result-label">Nejširší cesta (max-min kapacita)</div>
-                <div>Kritické hrdlo: ${widest && widest.error ? '—' : formatDistance(widest ? widest.width : null)}</div>
+                <div>Kritické hrdlo (šířka cesty): ${widest && widest.error ? '—' : formatDistance(widest ? widest.width : null)}</div>
                 <div>Cesta: ${formatPath(widest ? widest.path : [])}</div>
+                ${bottleneckInfo}
+                ${widestSegmentInfo}
+                ${segmentsDetail}
                 ${widestError}
             </div>`;
             html += '</div>';
