@@ -2203,13 +2203,29 @@ class Graph {
 
     _reconstructPath(startIdx, endIdx, predecessors) {
         if (startIdx === undefined || startIdx === null || endIdx === undefined || endIdx === null) return [];
+        
         const path = [];
         let current = endIdx;
+        const visited = new Set(); // Ochrana proti zacyklení
+        
+        // Pojistka: Maximálně tolik kroků, kolik je uzlů (cesta nemůže být delší)
+        let safeCounter = 0;
+        const maxSteps = this.nodes.length + 1; 
+
         while (current !== null && current !== undefined && current !== -1) {
+            // Pokud jsme narazili na cyklus nebo překročili limit
+            if (visited.has(current) || safeCounter > maxSteps) {
+                return []; // Vracíme prázdnou cestu, protože cesta je nekonečná/cyklická
+            }
+            visited.add(current);
+            safeCounter++;
+
             path.unshift(this.nodes[current]);
+            
             if (current === startIdx) break;
             current = predecessors[current];
         }
+        
         if (!path.length || path[0] !== this.nodes[startIdx]) return [];
         return path;
     }
