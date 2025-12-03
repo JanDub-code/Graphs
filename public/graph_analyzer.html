@@ -2279,6 +2279,19 @@ class Graph {
     widestPath(startNode, endNode) {
         const graphData = this._buildDirectedGraph(true);
         if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
+        
+        // ⚡ Kontrola záporných kapacit - nejširší cesta vyžaduje nezáporné kapacity
+        let hasNegativeCapacity = false;
+        for (const edge of graphData.edges) {
+            if (edge.weight < 0) {
+                hasNegativeCapacity = true;
+                break;
+            }
+        }
+        if (hasNegativeCapacity) {
+            return { path: [], width: null, error: 'Graf obsahuje záporné kapacity – nejširší cesta není definována.' };
+        }
+        
         const startIdx = graphData.idx[startNode];
         const endIdx = graphData.idx[endNode];
         if (startIdx === endIdx) return { path: [startNode], width: Infinity };
@@ -2311,53 +2324,104 @@ class Graph {
         return { path: this._reconstructPath(startIdx, endIdx, pred), width: width[endIdx] };
     }
 
-    _normalizeSafetyWeight(weight, stats) {
-        if (!stats) return 0.5;
-        const min = stats.min;
-        const max = stats.max;
-        if (max === min) return 0.999;
-        const ratio = (weight - min) / (max - min);
-        return Math.min(0.9999, Math.max(0.0001, ratio));
+    // ⚡ Spolehlivost hrany podle standardního vzorce: r = exp(-w)
+    // Pro w > 0: r ∈ (0, 1) - čím vyšší váha, tím nižší spolehlivost
+    // Pro w = 0: r = 1 (maximální spolehlivost)
+    // Pro w < 0: r > 1 (není standardní interpretace, ale matematicky platné)
+    _edgeReliability(weight) {
+        return Math.exp(-weight);
     }
 
     safestPath(startNode, endNode) {
-        const stats = this.edgeWeightStats();
-        if (!(stats)) return null;
+        // Nejbezpečnější cesta maximalizuje součin spolehlivostí hran
+        // Spolehlivost hrany: r = exp(-w) kde w je váha hrany
+        // Maximalizace součinu r1 * r2 * ... = exp(-w1) * exp(-w2) * ... = exp(-(w1+w2+...))
+        // = minimalizace součtu vah = nejkratší cesta!
+        // 
+        // Pro kladné váhy: vyšší váha = nižší spolehlivost
+        // Pro záporné váhy: algoritmus stále funguje, ale interpretace je nestandardní
+        
         const graphData = this._buildDirectedGraph(true);
         if (!(startNode in graphData.idx) || !(endNode in graphData.idx)) return null;
         const startIdx = graphData.idx[startNode];
         const endIdx = graphData.idx[endNode];
         if (startIdx === endIdx) return { path: [startNode], reliability: 1 };
+        
+        // Kontrola záporných vah - pro ně použijeme Bellman-Ford
+        let hasNegative = false;
+        for (const edge of graphData.edges) {
+            if (edge.weight < 0) {
+                hasNegative = true;
+                break;
+            }
+        }
+        
         const n = this.nodes.length;
         const dist = Array(n).fill(Infinity);
-        const visited = Array(n).fill(false);
         const pred = Array(n).fill(null);
         dist[startIdx] = 0;
-        for (let iter = 0; iter < n; iter++) {
-            let u = -1;
-            let best = Infinity;
-            for (let i = 0; i < n; i++) {
-                if (!visited[i] && dist[i] < best) {
-                    best = dist[i];
-                    u = i;
+        
+        if (hasNegative) {
+            // Bellman-Ford pro záporné váhy
+            for (let i = 0; i < n - 1; i++) {
+                let updated = false;
+                for (const edge of graphData.edges) {
+                    if (dist[edge.from] === Infinity) continue;
+                    const candidate = dist[edge.from] + edge.weight;
+                    if (candidate < dist[edge.to]) {
+                        dist[edge.to] = candidate;
+                        pred[edge.to] = edge.from;
+                        updated = true;
+                    }
+                }
+                if (!updated) break;
+            }
+            // Detekce záporného cyklu
+            let negativeCycle = false;
+            for (const edge of graphData.edges) {
+                if (dist[edge.from] !== Infinity && dist[edge.from] + edge.weight < dist[edge.to]) {
+                    negativeCycle = true;
+                    break;
                 }
             }
-            if (u === -1) break;
-            visited[u] = true;
-            if (u === endIdx) break;
-            for (const edge of graphData.adj[u]) {
-                const normalized = this._normalizeSafetyWeight(edge.weight, stats);
-                const cost = -Math.log(normalized);
-                if (dist[u] + cost < dist[edge.to]) {
-                    dist[edge.to] = dist[u] + cost;
-                    pred[edge.to] = u;
+            if (negativeCycle) {
+                return { path: [], reliability: null, error: 'Detekován záporný cyklus – spolehlivost není definována.' };
+            }
+        } else {
+            // Dijkstra pro nezáporné váhy
+            const visited = Array(n).fill(false);
+            for (let iter = 0; iter < n; iter++) {
+                let u = -1;
+                let best = Infinity;
+                for (let i = 0; i < n; i++) {
+                    if (!visited[i] && dist[i] < best) {
+                        best = dist[i];
+                        u = i;
+                    }
+                }
+                if (u === -1) break;
+                visited[u] = true;
+                if (u === endIdx) break;
+                for (const edge of graphData.adj[u]) {
+                    // Přímé sčítání vah (ekvivalent násobení spolehlivostí přes logaritmus)
+                    const candidate = dist[u] + edge.weight;
+                    if (candidate < dist[edge.to]) {
+                        dist[edge.to] = candidate;
+                        pred[edge.to] = u;
+                    }
                 }
             }
         }
+        
         if (dist[endIdx] === Infinity) return { path: [], reliability: 0 };
+        
+        // Spolehlivost cesty = exp(-součet vah) = součin spolehlivostí hran
+        const pathReliability = Math.exp(-dist[endIdx]);
+        
         return {
             path: this._reconstructPath(startIdx, endIdx, pred),
-            reliability: Math.exp(-dist[endIdx])
+            reliability: pathReliability,
+            totalWeight: dist[endIdx]
         };
     }
 
@@ -5319,12 +5383,12 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <tr style="background-color: rgba(0,0,0,0.03);">
                     <td style="padding: 0.3rem;"><strong>Nejširší cesta</strong></td>
                     <td style="padding: 0.3rem;">O((V+E) log V)</td>
-                    <td style="padding: 0.3rem;">Maximalizace minimální kapacity – síťové toky, bandwidth</td>
+                    <td style="padding: 0.3rem;">Maximalizace minimální kapacity – síťové toky, bandwidth. <span style="color:#dc3545;">Vyžaduje nezáporné kapacity!</span></td>
                 </tr>
                 <tr>
                     <td style="padding: 0.3rem;"><strong>Nejbezpečnější</strong></td>
                     <td style="padding: 0.3rem;">O((V+E) log V)</td>
-                    <td style="padding: 0.3rem;">Maximalizace součinu spolehlivostí – kritické systémy</td>
+                    <td style="padding: 0.3rem;">Spolehlivost r = exp(−w). Max. součin spolehlivostí = min. součet vah.</td>
                 </tr>
                 <tr style="background-color: rgba(0,0,0,0.03);">
                     <td style="padding: 0.3rem;"><strong>Nejdelší cesta</strong></td>
@@ -5588,16 +5652,29 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <div>Cesta: ${formatPath(longest ? longest.path : [])}</div>
                 ${longestNote}
             </div>`;
-            const reliability = safest ? Math.min(1, Math.max(0, safest.reliability || 0)) : 0;
+            
+            // Nejbezpečnější cesta - zpracování chyb a zobrazení vzorce
+            let safestError = safest && safest.error ? `<div style="color:#dc3545; margin-top:0.25rem;">⚠️ ${safest.error}</div>` : '';
+            const reliability = safest && safest.reliability !== null ? Math.min(1, Math.max(0, safest.reliability || 0)) : 0;
+            const totalWeightInfo = safest && safest.totalWeight !== undefined 
+                ? `<div style="font-size:0.85rem; color:#6c757d;">Součet vah: ${formatDistance(safest.totalWeight)} → r = exp(-${formatDistance(safest.totalWeight)}) = ${(reliability * 100).toFixed(2)}%</div>` 
+                : '';
             html += `<div class="result-box">
                 <div class="result-label">Nejbezpečnější cesta (maximalizace spolehlivosti)</div>
-                <div>Spolehlivost: ${(reliability * 100).toFixed(2)} %</div>
+                <div>Spolehlivost: ${safest && safest.error ? '—' : (reliability * 100).toFixed(2) + ' %'}</div>
                 <div>Cesta: ${formatPath(safest ? safest.path : [])}</div>
+                ${totalWeightInfo}
+                ${safestError}
+                <div style="font-size:0.8rem; color:#6c757d; margin-top:0.25rem;">Vzorec: r = exp(−w), kde w je váha hrany</div>
             </div>`;
+            
+            // Nejširší cesta - zpracování chyb pro záporné kapacity
+            let widestError = widest && widest.error ? `<div style="color:#dc3545; margin-top:0.25rem;">⚠️ ${widest.error}</div>` : '';
             html += `<div class="result-box">
                 <div class="result-label">Nejširší cesta (max-min kapacita)</div>
-                <div>Kritické hrdlo: ${formatDistance(widest ? widest.width : null)}</div>
+                <div>Kritické hrdlo: ${widest && widest.error ? '—' : formatDistance(widest ? widest.width : null)}</div>
                 <div>Cesta: ${formatPath(widest ? widest.path : [])}</div>
+                ${widestError}
             </div>`;
             html += '</div>';
             html += '<p style="font-size:0.9rem; color:#495057; margin-top:0.75rem;">Tip: úplnou matici nejkratších cest poskytuje sekce „Nejkratší cesty (Floyd-Warshall)“.</p>';
