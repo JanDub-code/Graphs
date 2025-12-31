@@ -25,6 +25,8 @@
             justify-content: center;
             margin-top: 40px;
             flex-wrap: wrap;
+            position: relative;
+            z-index: 100;
         }
         a {
             display: block;
@@ -338,12 +340,200 @@
             font-size: 1.5rem;
             margin-top: 30px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* ========== INSTANT SEASON ENGINE CSS ========== */
+        /* Christmas-only elements - hidden by default, shown only in christmas season */
+        .christmas-only {
+            opacity: 0;
+            transition: opacity 200ms ease;
+        }
+        body.season-christmas .christmas-only {
+            opacity: 1;
+        }
+
+        /* Seasonal backgrounds */
+        body.season-winter { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+        body.season-spring { background: linear-gradient(135deg, #2d5016 0%, #4a7c23 50%, #6b9b37 100%); }
+        body.season-summer { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a7b 50%, #3d7a9b 100%); }
+        body.season-autumn { background: linear-gradient(135deg, #4a2c1a 0%, #6b3d2e 50%, #8b4513 100%); }
+        body.season-halloween { background: linear-gradient(135deg, #1a0a1a 0%, #2d0a2d 50%, #0a0a0a 100%); }
+        body.season-valentine { background: linear-gradient(135deg, #2d1f3d 0%, #4a2d5a 50%, #6b3d7a 100%); }
+        body.season-christmas { background: linear-gradient(135deg, #1a472a 0%, #2d5a3a 50%, #1a472a 100%); }
+
+        /* Seasonal title colors */
+        body.season-winter h1 { color: #87ceeb; }
+        body.season-spring h1 { color: #ffb7c5; }
+        body.season-summer h1 { color: #87ceeb; }
+        body.season-autumn h1 { color: #daa520; }
+        body.season-halloween h1 { color: #ff6600; }
+        body.season-valentine h1 { color: #ff69b4; }
+        body.season-christmas h1 { color: #ffd700; }
+
+        /* Decoration containers - all prerendered, hidden by default */
+        .deco { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; opacity: 0; transition: opacity 200ms ease; will-change: opacity; }
+        body.season-christmas .deco-christmas { opacity: 1; }
+        body.season-winter .deco-winter { opacity: 1; }
+        body.season-spring .deco-spring { opacity: 1; }
+        body.season-summer .deco-summer { opacity: 1; }
+        body.season-autumn .deco-autumn { opacity: 1; }
+        body.season-halloween .deco-halloween { opacity: 1; }
+        body.season-valentine .deco-valentine { opacity: 1; }
+
+        /* Snowflakes (winter) */
+        .deco-winter .snowflake {
+            position: absolute;
+            color: #fff;
+            opacity: 0.8;
+            animation: snowfall linear infinite;
+            will-change: transform;
+        }
+        @keyframes snowfall {
+            0% { transform: translateY(-20px) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+
+        /* Sakura petals (spring) */
+        .deco-spring .petal {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, #ffb7c5 0%, #ff69b4 100%);
+            border-radius: 50% 0 50% 0;
+            animation: sakura-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes sakura-fall {
+            0% { transform: translateY(-20px) translateX(0) rotate(0deg); }
+            25% { transform: translateY(25vh) translateX(30px) rotate(90deg); }
+            50% { transform: translateY(50vh) translateX(-20px) rotate(180deg); }
+            75% { transform: translateY(75vh) translateX(40px) rotate(270deg); }
+            100% { transform: translateY(100vh) translateX(0) rotate(360deg); }
+        }
+
+        /* Bubbles (summer) */
+        .deco-summer .bubble {
+            position: absolute;
+            bottom: -50px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(135,206,235,0.3));
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: bubble-rise linear infinite;
+            will-change: transform;
+        }
+        @keyframes bubble-rise {
+            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.7; }
+            50% { transform: translateY(-50vh) translateX(20px) scale(1.1); opacity: 0.5; }
+            100% { transform: translateY(-100vh) translateX(-10px) scale(0.8); opacity: 0; }
+        }
+
+        /* Falling leaves (autumn) */
+        .deco-autumn .leaf {
+            position: absolute;
+            font-size: 1.5rem;
+            animation: leaf-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes leaf-fall {
+            0% { transform: translateY(-20px) translateX(0) rotate(0deg); }
+            25% { transform: translateY(25vh) translateX(50px) rotate(90deg); }
+            50% { transform: translateY(50vh) translateX(-30px) rotate(180deg); }
+            75% { transform: translateY(75vh) translateX(60px) rotate(270deg); }
+            100% { transform: translateY(100vh) translateX(0) rotate(360deg); }
+        }
+
+        /* Halloween decorations */
+        .deco-halloween .bat {
+            position: absolute;
+            font-size: 2rem;
+            animation: bat-fly linear infinite;
+            will-change: transform;
+        }
+        @keyframes bat-fly {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(100px, 50px) rotate(10deg); }
+            50% { transform: translate(0, 100px) rotate(-10deg); }
+            75% { transform: translate(-100px, 50px) rotate(10deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .deco-halloween .pumpkin {
+            position: fixed;
+            font-size: 3rem;
+            animation: pumpkin-glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes pumpkin-glow {
+            0% { filter: brightness(0.8) drop-shadow(0 0 10px #ff6600); }
+            100% { filter: brightness(1.2) drop-shadow(0 0 30px #ff6600); }
+        }
+
+        /* Valentine hearts */
+        .deco-valentine .heart {
+            position: absolute;
+            color: #ff69b4;
+            animation: heart-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes heart-fall {
+            0% { transform: translateY(-20px) scale(1); opacity: 1; }
+            50% { transform: translateY(50vh) scale(1.2); opacity: 0.8; }
+            100% { transform: translateY(100vh) scale(0.8); opacity: 0.3; }
+        }
+
+        .greeting {
             animation: greeting-fade 3s ease-in-out infinite alternate;
         }
 
         @keyframes greeting-fade {
             0% { opacity: 0.7; transform: scale(1); }
             100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        /* Season Showcase Picker */
+        .season-picker {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .season-picker-title {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.7rem;
+            text-align: center;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .season-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .season-btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+        .season-btn.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        .season-btn span.label {
+            color: white;
+            font-size: 0.75rem;
         }
 
         /* Cukrová hůlka dekorace */
@@ -379,11 +569,20 @@
         <div class="lights-container" id="lightsContainer"></div>
     </div>
 
-    <!-- Padající sníh -->
-    <div class="snowflakes" id="snowflakes"></div>
+    <!-- Seasonal decoration containers - all pre-rendered -->
+    <div class="deco deco-christmas" id="decoChristmas"></div>
+    <div class="deco deco-winter" id="decoWinter"></div>
+    <div class="deco deco-spring" id="decoSpring"></div>
+    <div class="deco deco-summer" id="decoSummer"></div>
+    <div class="deco deco-autumn" id="decoAutumn"></div>
+    <div class="deco deco-halloween" id="decoHalloween"></div>
+    <div class="deco deco-valentine" id="decoValentine"></div>
 
-    <!-- Animovaný Santa na saních -->
-    <div class="santa-container" id="santaContainer">
+    <!-- Padající sníh - shown only at christmas -->
+    <div class="snowflakes christmas-only" id="snowflakes"></div>
+
+    <!-- Animovaný Santa na saních - christmas only -->
+    <div class="santa-container christmas-only" id="santaContainer">
         <div class="sleigh">
             <span class="reindeer">🦌</span>
             <span class="reindeer">🦌</span>
@@ -391,60 +590,175 @@
         </div>
     </div>
 
-    <!-- Hvězda nahoře -->
-    <div class="star">⭐</div>
+    <!-- Hvězda nahoře - christmas only -->
+    <div class="star christmas-only">⭐</div>
 
-    <!-- Sob v rohu -->
-    <div class="corner-reindeer">🦌</div>
+    <!-- Sob v rohu - christmas only -->
+    <div class="corner-reindeer christmas-only">🦌</div>
 
-    <h1>🎄 Graph Analyzers 🎄</h1>
+    <!-- Season Showcase Picker -->
+    <div class="season-picker" id="seasonPicker">
+        <div class="season-picker-title">Season Preview</div>
+        <button class="season-btn" data-season="christmas" title="Dec 1 - Jan 6">🎄 <span class="label">Christmas</span></button>
+        <button class="season-btn" data-season="winter" title="Jan 7 - Feb 28">❄️ <span class="label">Winter</span></button>
+        <button class="season-btn" data-season="valentine" title="Feb 10 - Feb 16">💕 <span class="label">Valentine</span></button>
+        <button class="season-btn" data-season="spring" title="Mar 1 - May 31">🌸 <span class="label">Spring</span></button>
+        <button class="season-btn" data-season="summer" title="Jun 1 - Aug 31">☀️ <span class="label">Summer</span></button>
+        <button class="season-btn" data-season="autumn" title="Sep 1 - Nov 30">🍂 <span class="label">Autumn</span></button>
+        <button class="season-btn" data-season="halloween" title="Oct 20 - Nov 2">🎃 <span class="label">Halloween</span></button>
+        <button class="season-btn" data-season="auto" title="Auto-detect">🔄 <span class="label">Auto</span></button>
+    </div>
+
+    <h1 id="pageTitle">🎄 Graph Analyzers 🎄</h1>
     
-    <!-- Vánoční přání -->
-    <p class="greeting">✨ Veselé Vánoce a šťastný nový rok! ✨</p>
+    <!-- Sezónní přání -->
+    <p class="greeting" id="greeting">✨ Veselé Vánoce a šťastný nový rok! ✨</p>
     
     <div class="links">
         <a href="graph_analyzer.html">🎁 Graph Analyzer</a>
         <a href="bst_analyzer.html">🌟 BST Analyzer</a>
     </div>
 
-    <!-- Cukrové hůlky -->
-    <div class="candy-canes">🍬🍭🍬</div>
+    <!-- Cukrové hůlky - christmas only -->
+    <div class="candy-canes christmas-only">🍬🍭🍬</div>
 
-    <!-- Sněhulák -->
-    <div class="snowman">⛄</div>
+    <!-- Sněhulák - christmas only -->
+    <div class="snowman christmas-only">⛄</div>
 
-    <!-- Vánoční stromeček -->
-    <div class="christmas-tree">🎄</div>
+    <!-- Vánoční stromeček - christmas only -->
+    <div class="christmas-tree christmas-only">🎄</div>
 
-    <!-- Dárky -->
-    <div class="presents">🎁🎀🎁</div>
+    <!-- Dárky - christmas only -->
+    <div class="presents christmas-only">🎁🎀🎁</div>
 
     <script>
-        // Generování vánočních světýlek
-        function generateChristmasLights() {
-            const container = document.getElementById('lightsContainer');
+        // ========== INSTANT SEASON ENGINE ==========
+        
+        // Season configuration
+        const SEASONS = {
+            christmas: { dates: [[12,1], [1,6]], title: '🎄 Graph Analyzers 🎄', greeting: '✨ Veselé Vánoce a šťastný nový rok! ✨' },
+            winter: { dates: [[1,7], [2,28]], title: '❄️ Graph Analyzers ❄️', greeting: '❄️ Užijte si zimu! ❄️' },
+            spring: { dates: [[3,1], [5,31]], title: '🌸 Graph Analyzers 🌸', greeting: '🌷 Krásné jarní dny! 🌷' },
+            summer: { dates: [[6,1], [8,31]], title: '☀️ Graph Analyzers ☀️', greeting: '☀️ Krásné léto! ☀️' },
+            autumn: { dates: [[9,1], [11,30]], title: '🍂 Graph Analyzers 🍂', greeting: '🍁 Barevný podzim! 🍁' },
+            halloween: { dates: [[10,20], [11,2]], title: '🎃 Graph Analyzers 👻', greeting: '🎃 Happy Halloween! 👻', priority: true },
+            valentine: { dates: [[2,10], [2,16]], title: '💕 Graph Analyzers 💕', greeting: '💝 Šťastný Valentýn! 💝', priority: true }
+        };
+
+        function detectSeason() {
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            
+            // Priority holidays first
+            for (const [name, cfg] of Object.entries(SEASONS)) {
+                if (!cfg.priority) continue;
+                const [[sm, sd], [em, ed]] = cfg.dates;
+                if ((month > sm || (month === sm && day >= sd)) && (month < em || (month === em && day <= ed))) return name;
+            }
+            
+            // Regular seasons
+            for (const [name, cfg] of Object.entries(SEASONS)) {
+                if (cfg.priority) continue;
+                const [[sm, sd], [em, ed]] = cfg.dates;
+                // Handle year wrap (christmas Dec-Jan)
+                if (sm > em) {
+                    if (month > sm || (month === sm && day >= sd) || month < em || (month === em && day <= ed)) return name;
+                } else {
+                    if ((month > sm || (month === sm && day >= sd)) && (month < em || (month === em && day <= ed))) return name;
+                }
+            }
+            return 'spring'; // default
+        }
+
+        function prerenderDecorations() {
+            // Christmas lights
+            const lightsContainer = document.getElementById('decoChristmas');
             const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
-            const screenWidth = window.innerWidth;
-            const lightSpacing = 45;
-            const numberOfLights = Math.floor(screenWidth / lightSpacing);
-            
-            container.innerHTML = '';
-            
-            for (let i = 0; i < numberOfLights; i++) {
+            for (let i = 0; i < 30; i++) {
                 const light = document.createElement('div');
                 light.className = 'light ' + colors[i % colors.length];
-                light.style.animationDelay = (Math.random() * 2) + 's, ' + (Math.random() * 2) + 's';
-                container.appendChild(light);
+                light.style.cssText = `position:absolute;top:0;left:${i * 3.3}%;animation-delay:${Math.random() * 2}s,${Math.random() * 2}s`;
+                lightsContainer.appendChild(light);
+            }
+
+            // Winter snowflakes
+            const winterContainer = document.getElementById('decoWinter');
+            const snowflakeChars = ['❄', '❅', '❆', '✻', '✼', '❉'];
+            for (let i = 0; i < 50; i++) {
+                const flake = document.createElement('div');
+                flake.className = 'snowflake';
+                flake.textContent = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
+                flake.style.cssText = `left:${Math.random() * 100}%;font-size:${Math.random() * 1 + 0.5}em;animation-duration:${Math.random() * 5 + 5}s;animation-delay:${Math.random() * 10}s;opacity:${Math.random() * 0.5 + 0.5}`;
+                winterContainer.appendChild(flake);
+            }
+
+            // Spring sakura
+            const springContainer = document.getElementById('decoSpring');
+            for (let i = 0; i < 40; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.cssText = `left:${Math.random() * 100}%;animation-duration:${Math.random() * 6 + 6}s;animation-delay:${Math.random() * 10}s;opacity:${Math.random() * 0.5 + 0.5}`;
+                springContainer.appendChild(petal);
+            }
+
+            // Summer bubbles
+            const summerContainer = document.getElementById('decoSummer');
+            for (let i = 0; i < 25; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = Math.random() * 30 + 10;
+                bubble.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${Math.random() * 8 + 6}s;animation-delay:${Math.random() * 10}s`;
+                summerContainer.appendChild(bubble);
+            }
+
+            // Autumn leaves
+            const autumnContainer = document.getElementById('decoAutumn');
+            const leafEmojis = ['🍂', '🍁', '🍃', '🌰'];
+            for (let i = 0; i < 35; i++) {
+                const leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+                leaf.style.cssText = `left:${Math.random() * 100}%;animation-duration:${Math.random() * 8 + 6}s;animation-delay:${Math.random() * 10}s;opacity:${Math.random() * 0.5 + 0.5}`;
+                autumnContainer.appendChild(leaf);
+            }
+
+            // Halloween
+            const halloweenContainer = document.getElementById('decoHalloween');
+            for (let i = 0; i < 15; i++) {
+                const bat = document.createElement('div');
+                bat.className = 'bat';
+                bat.textContent = '🦇';
+                bat.style.cssText = `left:${Math.random() * 80}%;top:${Math.random() * 60}%;animation-duration:${Math.random() * 4 + 4}s;animation-delay:${Math.random() * 3}s`;
+                halloweenContainer.appendChild(bat);
+            }
+            // Corner pumpkins
+            const pumpkinPositions = [{bottom:'20px',left:'20px'},{bottom:'20px',right:'20px'},{top:'100px',left:'20px'},{top:'100px',right:'20px'}];
+            pumpkinPositions.forEach(pos => {
+                const pumpkin = document.createElement('div');
+                pumpkin.className = 'pumpkin';
+                pumpkin.textContent = '🎃';
+                Object.assign(pumpkin.style, pos);
+                pumpkin.style.animationDelay = Math.random() * 2 + 's';
+                halloweenContainer.appendChild(pumpkin);
+            });
+
+            // Valentine hearts
+            const valentineContainer = document.getElementById('decoValentine');
+            const heartChars = ['❤️', '💕', '💖', '💗', '💝', '💘'];
+            for (let i = 0; i < 40; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart';
+                heart.textContent = heartChars[Math.floor(Math.random() * heartChars.length)];
+                heart.style.cssText = `left:${Math.random() * 100}%;font-size:${Math.random() * 1.5 + 0.8}em;animation-duration:${Math.random() * 5 + 5}s;animation-delay:${Math.random() * 10}s`;
+                valentineContainer.appendChild(heart);
             }
         }
 
-        // Generování padajícího sněhu
-        function generateSnowflakes() {
+        function generateChristmasSnowflakes() {
             const container = document.getElementById('snowflakes');
             const snowflakeChars = ['❄', '❅', '❆', '✻', '✼', '❉'];
-            const numberOfFlakes = 50;
-
-            for (let i = 0; i < numberOfFlakes; i++) {
+            for (let i = 0; i < 50; i++) {
                 const flake = document.createElement('div');
                 flake.className = 'snowflake';
                 flake.textContent = snowflakeChars[Math.floor(Math.random() * snowflakeChars.length)];
@@ -457,18 +771,58 @@
             }
         }
 
-        // Náhodné zpoždění pro Santa animaci
         function randomizeSanta() {
             const santa = document.getElementById('santaContainer');
             setInterval(() => {
                 santa.style.animationDuration = (Math.random() * 5 + 12) + 's';
             }, 15000);
         }
-        
-        generateChristmasLights();
-        generateSnowflakes();
+
+        function initSeason() {
+            const season = detectSeason();
+            applySeason(season);
+            updatePickerActive(season);
+        }
+
+        function applySeason(season) {
+            const cfg = SEASONS[season];
+            
+            // INSTANT switch - just change body class
+            document.body.className = 'season-' + season;
+            
+            // Update title and greeting
+            document.getElementById('pageTitle').innerHTML = cfg.title;
+            document.getElementById('greeting').textContent = cfg.greeting;
+        }
+
+        function updatePickerActive(season) {
+            document.querySelectorAll('.season-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.season === season);
+            });
+        }
+
+        function initSeasonPicker() {
+            document.querySelectorAll('.season-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const season = btn.dataset.season;
+                    if (season === 'auto') {
+                        const autoSeason = detectSeason();
+                        applySeason(autoSeason);
+                        updatePickerActive('auto');
+                    } else {
+                        applySeason(season);
+                        updatePickerActive(season);
+                    }
+                });
+            });
+        }
+
+        // Initialize everything
+        prerenderDecorations();
+        generateChristmasSnowflakes();
         randomizeSanta();
-        window.addEventListener('resize', generateChristmasLights);
+        initSeason();
+        initSeasonPicker();
     </script>
 </body>
 </html>

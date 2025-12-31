@@ -1082,6 +1082,124 @@
             0% { box-shadow: 0 0 10px 3px rgba(253, 126, 20, 0.4), 0 0 20px 6px rgba(253, 126, 20, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
             100% { box-shadow: 0 0 20px 8px rgba(253, 126, 20, 0.8), 0 0 40px 15px rgba(253, 126, 20, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
         }
+
+        /* ═══════════════════════════════════════════════════════════════
+           INSTANT SEASON ENGINE - All decorations pre-rendered
+           Switching = just body class change, 0ms, GPU only
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* All decorations hidden by default */
+        .deco { 
+            opacity: 0; 
+            pointer-events: none;
+            transition: opacity 200ms ease;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 999;
+        }
+        
+        /* Show decoration based on body class */
+        body.season-christmas .deco-christmas,
+        body.season-winter .deco-winter,
+        body.season-spring .deco-spring,
+        body.season-summer .deco-summer,
+        body.season-autumn .deco-autumn,
+        body.season-halloween .deco-halloween,
+        body.season-valentine .deco-valentine { opacity: 1; }
+
+        /* ❄️ WINTER - Snowflakes */
+        .deco-winter { height: 100%; overflow: hidden; }
+        .snowflake {
+            position: absolute;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.8);
+            animation: snowfall linear infinite;
+            will-change: transform;
+        }
+        @keyframes snowfall {
+            0% { transform: translateY(-5vh) rotate(0deg); }
+            100% { transform: translateY(105vh) rotate(360deg); }
+        }
+
+        /* 🌸 SPRING - Sakura */
+        .deco-spring { height: 100%; overflow: hidden; }
+        .sakura {
+            position: absolute;
+            animation: sakura-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes sakura-fall {
+            0% { transform: translateY(-5vh) rotate(0deg) translateX(0); }
+            50% { transform: translateY(50vh) rotate(180deg) translateX(30px); }
+            100% { transform: translateY(105vh) rotate(360deg) translateX(-20px); }
+        }
+
+        /* ☀️ SUMMER - Bubbles */
+        .deco-summer { height: 100%; overflow: hidden; }
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(135,206,250,0.3));
+            box-shadow: inset 0 0 8px rgba(255,255,255,0.6);
+            animation: bubble-rise linear infinite;
+            will-change: transform;
+        }
+        @keyframes bubble-rise {
+            0% { transform: translateY(105vh) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(0.5); opacity: 0; }
+        }
+
+        /* 🍂 AUTUMN - Leaves */
+        .deco-autumn { height: 100%; overflow: hidden; }
+        .leaf {
+            position: absolute;
+            animation: leaf-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes leaf-fall {
+            0% { transform: translateY(-5vh) rotate(0deg) translateX(0); }
+            25% { transform: translateY(25vh) rotate(90deg) translateX(40px); }
+            50% { transform: translateY(50vh) rotate(180deg) translateX(-20px); }
+            75% { transform: translateY(75vh) rotate(270deg) translateX(30px); }
+            100% { transform: translateY(105vh) rotate(360deg) translateX(0); }
+        }
+
+        /* 🎃 HALLOWEEN */
+        .deco-halloween { height: 60px; overflow: visible; }
+        .bat {
+            position: absolute;
+            animation: bat-fly 3s ease-in-out infinite;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            will-change: transform;
+        }
+        .pumpkin {
+            position: absolute;
+            animation: pumpkin-glow 2s ease-in-out infinite alternate;
+            will-change: filter;
+        }
+        @keyframes bat-fly {
+            0%, 100% { transform: translateY(0) scaleX(1); }
+            25% { transform: translateY(-8px) scaleX(0.9); }
+            50% { transform: translateY(4px) scaleX(1); }
+            75% { transform: translateY(-4px) scaleX(0.95); }
+        }
+        @keyframes pumpkin-glow {
+            0% { filter: drop-shadow(0 0 5px orange); }
+            100% { filter: drop-shadow(0 0 15px orange) brightness(1.1); }
+        }
+
+        /* 💕 VALENTINE */
+        .deco-valentine { height: 100%; overflow: hidden; }
+        .heart {
+            position: absolute;
+            animation: heart-fall linear infinite;
+            will-change: transform;
+        }
+        @keyframes heart-fall {
+            0% { transform: translateY(-5vh) scale(1) rotate(-10deg); }
+            50% { transform: translateY(50vh) scale(1.15) rotate(10deg); }
+            100% { transform: translateY(105vh) scale(0.9) rotate(-5deg); }
+        }
     </style>
 </head>
 <body>
@@ -1090,11 +1208,33 @@
     <span class="icon" id="themeIcon">🌙</span>
 </button>
 
-<!-- Vánoční světýlka -->
-<div class="christmas-lights">
+<!-- ═══════════════════════════════════════════════════════════════
+     SEASONAL DECORATIONS - All pre-rendered, instant switching
+     ═══════════════════════════════════════════════════════════════ -->
+
+<!-- 🎄 Christmas Lights -->
+<div class="deco deco-christmas christmas-lights">
     <div class="wire"></div>
     <div class="lights-container" id="lightsContainer"></div>
 </div>
+
+<!-- ❄️ Winter Snowflakes -->
+<div class="deco deco-winter" id="winterDeco"></div>
+
+<!-- 🌸 Spring Sakura -->
+<div class="deco deco-spring" id="springDeco"></div>
+
+<!-- ☀️ Summer Bubbles -->
+<div class="deco deco-summer" id="summerDeco"></div>
+
+<!-- 🍂 Autumn Leaves -->
+<div class="deco deco-autumn" id="autumnDeco"></div>
+
+<!-- 🎃 Halloween -->
+<div class="deco deco-halloween" id="halloweenDeco"></div>
+
+<!-- 💕 Valentine -->
+<div class="deco deco-valentine" id="valentineDeco"></div>
 <div id="matrix-stats-tooltip" style="position: absolute; display: none; background-color: var(--tooltip-bg); color: var(--tooltip-text); padding: 8px 12px; border-radius: 5px; pointer-events: none; z-index: 1000; font-size: 0.9em; line-height: 1.5;"></div>
 <h1>Graph Analyzer</h1>
 <p>Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje
@@ -6933,29 +7073,152 @@ document.addEventListener('change', function(event) {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// VÁNOČNÍ SVĚTÝLKA - CHRISTMAS LIGHTS
+// INSTANT SEASON ENGINE - 0ms switching, GPU only
 // ═══════════════════════════════════════════════════════════════
-function generateChristmasLights() {
-    const container = document.getElementById('lightsContainer');
-    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
-    const screenWidth = window.innerWidth;
-    const lightSpacing = 45;
-    const numberOfLights = Math.floor(screenWidth / lightSpacing);
+
+function detectSeason() {
+    const d = new Date(), m = d.getMonth() + 1, day = d.getDate();
+    // Speciální svátky mají prioritu
+    if ((m === 10 && day >= 20) || (m === 11 && day <= 2)) return 'halloween';
+    if (m === 2 && day >= 10 && day <= 16) return 'valentine';
+    if (m === 12 || (m === 1 && day <= 6)) return 'christmas';
+    // Roční období
+    if (m >= 3 && m <= 5) return 'spring';
+    if (m >= 6 && m <= 8) return 'summer';
+    if (m >= 9 && m <= 11) return 'autumn';
+    return 'winter';
+}
+
+function prerenderDecorations() {
+    const w = window.innerWidth;
     
-    container.innerHTML = '';
+    // 🎄 Christmas - lights
+    const lightsContainer = document.getElementById('lightsContainer');
+    if (lightsContainer && !lightsContainer.hasChildNodes()) {
+        const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange'];
+        const count = Math.floor(w / 45);
+        for (let i = 0; i < count; i++) {
+            const light = document.createElement('div');
+            light.className = 'light ' + colors[i % colors.length];
+            light.style.animationDelay = (i * 0.1 % 2) + 's, ' + (i * 0.15 % 2) + 's';
+            lightsContainer.appendChild(light);
+        }
+    }
     
-    for (let i = 0; i < numberOfLights; i++) {
-        const light = document.createElement('div');
-        light.className = 'light ' + colors[i % colors.length];
-        light.style.animationDelay = (Math.random() * 2) + 's, ' + (Math.random() * 2) + 's';
-        container.appendChild(light);
+    // ❄️ Winter - snowflakes
+    const winterDeco = document.getElementById('winterDeco');
+    if (winterDeco && !winterDeco.hasChildNodes()) {
+        const chars = ['❄', '❅', '❆', '✻', '✼'];
+        for (let i = 0; i < 35; i++) {
+            const el = document.createElement('div');
+            el.className = 'snowflake';
+            el.textContent = chars[i % chars.length];
+            el.style.left = (i * 2.9) + '%';
+            el.style.fontSize = (0.6 + (i % 3) * 0.4) + 'em';
+            el.style.animationDuration = (6 + (i % 5)) + 's';
+            el.style.animationDelay = (i * 0.3) + 's';
+            el.style.opacity = 0.6 + (i % 4) * 0.1;
+            winterDeco.appendChild(el);
+        }
+    }
+    
+    // 🌸 Spring - sakura
+    const springDeco = document.getElementById('springDeco');
+    if (springDeco && !springDeco.hasChildNodes()) {
+        const chars = ['🌸', '🏵️', '💮', '🦋'];
+        for (let i = 0; i < 30; i++) {
+            const el = document.createElement('div');
+            el.className = 'sakura';
+            el.textContent = chars[i % chars.length];
+            el.style.left = (i * 3.3) + '%';
+            el.style.fontSize = (0.8 + (i % 3) * 0.3) + 'em';
+            el.style.animationDuration = (8 + (i % 6)) + 's';
+            el.style.animationDelay = (i * 0.4) + 's';
+            springDeco.appendChild(el);
+        }
+    }
+    
+    // ☀️ Summer - bubbles
+    const summerDeco = document.getElementById('summerDeco');
+    if (summerDeco && !summerDeco.hasChildNodes()) {
+        for (let i = 0; i < 20; i++) {
+            const el = document.createElement('div');
+            el.className = 'bubble';
+            const size = 12 + (i % 5) * 8;
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            el.style.left = (i * 5) + '%';
+            el.style.animationDuration = (10 + (i % 8)) + 's';
+            el.style.animationDelay = (i * 0.7) + 's';
+            summerDeco.appendChild(el);
+        }
+    }
+    
+    // 🍂 Autumn - leaves
+    const autumnDeco = document.getElementById('autumnDeco');
+    if (autumnDeco && !autumnDeco.hasChildNodes()) {
+        const chars = ['🍂', '🍁', '🍃', '🌰'];
+        for (let i = 0; i < 25; i++) {
+            const el = document.createElement('div');
+            el.className = 'leaf';
+            el.textContent = chars[i % chars.length];
+            el.style.left = (i * 4) + '%';
+            el.style.fontSize = (1 + (i % 3) * 0.4) + 'em';
+            el.style.animationDuration = (10 + (i % 8)) + 's';
+            el.style.animationDelay = (i * 0.5) + 's';
+            autumnDeco.appendChild(el);
+        }
+    }
+    
+    // 🎃 Halloween
+    const halloweenDeco = document.getElementById('halloweenDeco');
+    if (halloweenDeco && !halloweenDeco.hasChildNodes()) {
+        const count = Math.floor(w / 70);
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = i % 2 === 0 ? 'bat' : 'pumpkin';
+            el.textContent = i % 2 === 0 ? '🦇' : '🎃';
+            el.style.left = (i * 70 + 10) + 'px';
+            el.style.top = (12 + (i % 3) * 10) + 'px';
+            el.style.fontSize = (1.4 + (i % 2) * 0.4) + 'em';
+            el.style.animationDelay = (i * 0.2) + 's';
+            halloweenDeco.appendChild(el);
+        }
+    }
+    
+    // 💕 Valentine
+    const valentineDeco = document.getElementById('valentineDeco');
+    if (valentineDeco && !valentineDeco.hasChildNodes()) {
+        const chars = ['❤️', '💕', '💖', '💗', '💓', '💘'];
+        for (let i = 0; i < 30; i++) {
+            const el = document.createElement('div');
+            el.className = 'heart';
+            el.textContent = chars[i % chars.length];
+            el.style.left = (i * 3.3) + '%';
+            el.style.fontSize = (0.9 + (i % 3) * 0.3) + 'em';
+            el.style.animationDuration = (7 + (i % 5)) + 's';
+            el.style.animationDelay = (i * 0.35) + 's';
+            valentineDeco.appendChild(el);
+        }
     }
 }
 
-// Inicializovat theme a světýlka
+function initSeason() {
+    prerenderDecorations();
+    const season = detectSeason();
+    // Remove any existing season class
+    document.body.className = document.body.className.replace(/season-\w+/g, '').trim();
+    document.body.classList.add('season-' + season);
+}
+
+// Init
 initTheme();
-generateChristmasLights();
-window.addEventListener('resize', generateChristmasLights);
+initSeason();
+window.addEventListener('resize', () => {
+    // Only regenerate halloween (depends on width), others are % based
+    const h = document.getElementById('halloweenDeco');
+    if (h) { h.innerHTML = ''; prerenderDecorations(); }
+});
 </script>
 </body>
 </html>
