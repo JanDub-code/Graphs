@@ -4,30 +4,136 @@
     <meta charset="utf-8">
     <title>Graph Analyzer</title>
     <style>
+        /* ═══════════════════════════════════════════════════════════════
+           THEME VARIABLES - Light & Dark Mode
+           ═══════════════════════════════════════════════════════════════ */
+        :root {
+            /* Light theme (default) */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e9ecef;
+            --bg-info: #e7f3ff;
+            --bg-success: #d1e7dd;
+            --bg-properties: #e2e3e5;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --text-accent: #0d6efd;
+            --text-accent-hover: #0b5ed7;
+            --text-muted: #6c757d;
+            --text-info: #084298;
+            --text-success: #198754;
+            --text-danger: #dc3545;
+            --border-color: #dee2e6;
+            --border-input: #ced4da;
+            --border-info: #b6d4fe;
+            --btn-primary-bg: #0d6efd;
+            --btn-primary-hover: #0b5ed7;
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --shadow-accent: rgba(13, 110, 253, 0.4);
+            --tooltip-bg: rgba(0, 0, 0, 0.8);
+            --tooltip-text: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme */
+            --bg-primary: #1a1d21;
+            --bg-secondary: #2d3238;
+            --bg-tertiary: #3d444d;
+            --bg-info: #1e3a5f;
+            --bg-success: #1e3a2f;
+            --bg-properties: #3d444d;
+            --bg-warning: #3d3215;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --text-accent: #6ea8fe;
+            --text-accent-hover: #3d8bfd;
+            --text-muted: #868e96;
+            --text-info: #6ea8fe;
+            --text-success: #20c997;
+            --text-danger: #e35d6a;
+            --text-warning: #ffc107;
+            --border-color: #495057;
+            --border-input: #5c636a;
+            --border-info: #3d6cb3;
+            --btn-primary-bg: #0d6efd;
+            --btn-primary-hover: #3d8bfd;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --shadow-accent: rgba(61, 139, 253, 0.4);
+            --tooltip-bg: rgba(45, 50, 56, 0.95);
+            --tooltip-text: #e9ecef;
+        }
+
+        /* Smooth transitions for theme changes */
+        body, .query-section, .result-box, .scrollable-list, table, th, td, 
+        textarea, select, button, .properties span, .query-result {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           THEME TOGGLE BUTTON
+           ═══════════════════════════════════════════════════════════════ */
+        .theme-toggle {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            z-index: 1001;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 6px 20px var(--shadow-accent);
+        }
+
+        .theme-toggle .icon {
+            transition: transform 0.5s ease;
+        }
+
+        .theme-toggle:hover .icon {
+            transform: rotate(360deg);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BASE STYLES
+           ═══════════════════════════════════════════════════════════════ */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 1.5rem;
-            background-color: #f8f9fa;
-            color: #212529;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
         }
         h1, h2, h3 {
-            color: #0d6efd;
+            color: var(--text-accent);
         }
         textarea {
             width: 100%;
             max-width: 100%;
             min-height: 160px;
             padding: 0.5rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             font-family: monospace;
             margin-bottom: 1rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
         }
         button {
             padding: 0.5rem 1rem;
             font-size: 1rem;
-            background-color: #0d6efd;
+            background-color: var(--btn-primary-bg);
             color: #fff;
             border: none;
             border-radius: 0.25rem;
@@ -36,10 +142,10 @@
             margin-right: 0.5rem;
         }
         button:hover {
-            background-color: #0b5ed7;
+            background-color: var(--btn-primary-hover);
         }
         button:disabled {
-            background-color: #6c757d;
+            background-color: var(--text-muted);
             cursor: not-allowed;
         }
         table {
@@ -48,12 +154,12 @@
             width: 100%;
         }
         th, td {
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             padding: 0.25rem 0.5rem;
             text-align: center;
         }
         th {
-            background-color: #e9ecef;
+            background-color: var(--bg-tertiary);
         }
         .matrix {
             overflow-x: auto;
@@ -68,13 +174,13 @@
             margin-right: 1rem;
             margin-bottom: 0.5rem;
             padding: 0.25rem 0.5rem;
-            background-color: #e2e3e5;
+            background-color: var(--bg-properties);
             border-radius: 0.25rem;
         }
         .query-section {
-            background-color: #fff;
+            background-color: var(--bg-secondary);
             padding: 1rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             margin-bottom: 1rem;
         }
@@ -86,27 +192,81 @@
         }
         .query-inputs select {
             padding: 0.5rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
         }
         .query-result {
             margin-top: 0.5rem;
             padding: 0.5rem;
-            background-color: #e7f3ff;
+            background-color: var(--bg-info);
             border-radius: 0.25rem;
             font-weight: bold;
+        }
+        /* Info box - light blue background */
+        .info-box {
+            background-color: var(--bg-info) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-info) !important;
+        }
+        /* Dark mode override for info box - override inline #e7f3ff */
+        [data-theme="dark"] .info-box {
+            background-color: var(--bg-info) !important;
+            background: var(--bg-info) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-info) !important;
+        }
+        /* Warning box - light yellow background */
+        .warning-box {
+            background-color: var(--bg-warning) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--text-warning) !important;
+        }
+        /* Dark mode override for warning box - override inline #fff3cd */
+        [data-theme="dark"] .warning-box {
+            background-color: var(--bg-warning) !important;
+            background: var(--bg-warning) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--text-warning) !important;
+        }
+        /* Stats box - light gray background */
+        .stats-box {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        /* Stats card - individual stat boxes with white background */
+        .stats-card {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+        .stats-card h3 {
+            color: inherit !important;
+        }
+        /* Dark mode overrides for stats cards - override inline white background */
+        [data-theme="dark"] .stats-card {
+            background-color: var(--bg-secondary) !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+        [data-theme="dark"] .stats-card h3 {
+            color: inherit !important;
+        }
+        [data-theme="dark"] .stats-card strong {
+            color: var(--text-primary) !important;
         }
         .scrollable-list {
             max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             padding: 0.5rem;
-            background-color: #fff;
+            background-color: var(--bg-secondary);
         }
         .degree-info {
             display: inline-block;
             margin-left: 0.5rem;
-            color: #6c757d;
+            color: var(--text-muted);
             font-size: 0.9em;
         }
         .optimal-grid {
@@ -115,16 +275,662 @@
             gap: 1rem;
         }
         .result-box {
-            background-color: white;
-            border: 1px solid #dee2e6;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             border-radius: 0.25rem;
             padding: 0.75rem;
             box-shadow: inset 0 0 0 rgba(0,0,0,0);
         }
         .result-label {
             font-weight: bold;
-            color: #0d6efd;
+            color: var(--text-accent);
             margin-bottom: 0.5rem;
+        }
+
+        /* Theme-aware utility classes for dynamic content */
+        .text-success { color: var(--text-success) !important; }
+        .text-danger { color: var(--text-danger) !important; }
+        .text-muted { color: var(--text-muted) !important; }
+        .text-accent { color: var(--text-accent) !important; }
+        .text-info { color: var(--text-info) !important; }
+        .bg-info { background-color: var(--bg-info) !important; }
+        .bg-secondary { background-color: var(--bg-secondary) !important; }
+        .border-info { border-color: var(--border-info) !important; }
+        .border-color { border-color: var(--border-color) !important; }
+
+        /* Counters box styling */
+        .counters-box {
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: var(--bg-info);
+            border: 1px solid var(--text-accent);
+            border-radius: 0.25rem;
+        }
+        .counters-box h3 {
+            margin-top: 0;
+            color: var(--text-accent);
+        }
+        .counters-box .stat-value {
+            color: var(--text-accent-hover);
+            font-weight: bold;
+        }
+        .counters-box .info-footer {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-info);
+            font-size: 0.9rem;
+            color: var(--text-info);
+        }
+
+        /* Additional styles for dynamically generated content */
+        code {
+            background-color: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            color: var(--text-primary);
+        }
+
+        /* Input fields in dark mode */
+        input[type="text"], input[type="number"], select {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-input);
+        }
+
+        /* Warning/info boxes - override inline styles */
+        [data-theme="dark"] div[style*="background-color: #fff3cd"],
+        [data-theme="dark"] div[style*="background-color:#fff3cd"] {
+            background-color: #3d3215 !important;
+            color: var(--text-primary) !important;
+        }
+        [data-theme="dark"] div[style*="border-left: 4px solid #ffc107"],
+        [data-theme="dark"] div[style*="border: 1px solid #ffc107"] {
+            border-color: #ffc107 !important;
+        }
+
+        /* Details/summary styling */
+        details summary {
+            cursor: pointer;
+            color: var(--text-accent);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           COMPREHENSIVE DARK MODE OVERRIDES FOR INLINE STYLES
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* All tables inside output */
+        [data-theme="dark"] #output table,
+        [data-theme="dark"] .matrix table,
+        [data-theme="dark"] .scrollable-list table {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        [data-theme="dark"] #output table th,
+        [data-theme="dark"] #output table td,
+        [data-theme="dark"] .matrix table th,
+        [data-theme="dark"] .matrix table td {
+            border-color: var(--border-color) !important;
+            background-color: inherit;
+        }
+        [data-theme="dark"] #output table th,
+        [data-theme="dark"] .matrix table th,
+        [data-theme="dark"] tr[style*="background-color: #e9ecef"],
+        [data-theme="dark"] th[style*="background-color"],
+        [data-theme="dark"] thead tr {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Override ALL inline background colors in dark mode */
+        [data-theme="dark"] div[style*="background-color: #e7f3ff"],
+        [data-theme="dark"] div[style*="background-color:#e7f3ff"],
+        [data-theme="dark"] div[style*="background-color: #e2d9f3"],
+        [data-theme="dark"] [style*="background-color: #e7f3ff"],
+        [data-theme="dark"] [style*="background-color:#e7f3ff"] {
+            background-color: var(--bg-info) !important;
+        }
+
+        [data-theme="dark"] div[style*="background-color: #fff"],
+        [data-theme="dark"] div[style*="background-color:#fff"],
+        [data-theme="dark"] div[style*="background-color: white"],
+        [data-theme="dark"] div[style*="background-color:white"],
+        [data-theme="dark"] [style*="background-color: #fff"],
+        [data-theme="dark"] [style*="background-color: white"] {
+            background-color: var(--bg-secondary) !important;
+        }
+
+        [data-theme="dark"] div[style*="background-color: #f8f9fa"],
+        [data-theme="dark"] div[style*="background-color:#f8f9fa"],
+        [data-theme="dark"] [style*="background-color: #f8f9fa"] {
+            background-color: var(--bg-primary) !important;
+        }
+
+        [data-theme="dark"] div[style*="background-color: #e9ecef"],
+        [data-theme="dark"] [style*="background-color: #e9ecef"],
+        [data-theme="dark"] [style*="background-color:#e9ecef"] {
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        [data-theme="dark"] div[style*="background-color: #d1e7dd"],
+        [data-theme="dark"] [style*="background-color: #d1e7dd"] {
+            background-color: var(--bg-success) !important;
+        }
+
+        /* Override inline text colors */
+        [data-theme="dark"] span[style*="color: #198754"],
+        [data-theme="dark"] [style*="color: #198754"],
+        [data-theme="dark"] [style*="color:#198754"] {
+            color: var(--text-success) !important;
+        }
+        [data-theme="dark"] span[style*="color: #dc3545"],
+        [data-theme="dark"] [style*="color: #dc3545"],
+        [data-theme="dark"] [style*="color:#dc3545"] {
+            color: var(--text-danger) !important;
+        }
+        [data-theme="dark"] span[style*="color: #6c757d"],
+        [data-theme="dark"] span[style*="color: #666"],
+        [data-theme="dark"] [style*="color: #6c757d"],
+        [data-theme="dark"] [style*="color: #666"] {
+            color: var(--text-muted) !important;
+        }
+        [data-theme="dark"] [style*="color: #0d6efd"],
+        [data-theme="dark"] [style*="color:#0d6efd"],
+        [data-theme="dark"] [style*="color: #0b5ed7"],
+        [data-theme="dark"] [style*="color:#0b5ed7"],
+        [data-theme="dark"] h3[style*="color:"],
+        [data-theme="dark"] strong[style*="color: #0d6efd"],
+        [data-theme="dark"] label[style*="color: #0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+        [data-theme="dark"] [style*="color: #084298"],
+        [data-theme="dark"] [style*="color:#084298"] {
+            color: var(--text-info) !important;
+        }
+        [data-theme="dark"] [style*="color: #856404"] {
+            color: #ffc107 !important;
+        }
+
+        /* Section specific colors */
+        [data-theme="dark"] h3[style*="color: #6f42c1"] { color: #b47cff !important; }
+        [data-theme="dark"] h3[style*="color: #fd7e14"] { color: #fd9843 !important; }
+        [data-theme="dark"] h3[style*="color: #f59f00"] { color: #ffc107 !important; }
+        [data-theme="dark"] h3[style*="color: #20c997"] { color: #20c997 !important; }
+        [data-theme="dark"] h3[style*="color: #0dcaf0"] { color: #0dcaf0 !important; }
+
+        /* Override inline borders */
+        [data-theme="dark"] [style*="border: 1px solid #dee2e6"],
+        [data-theme="dark"] [style*="border:1px solid #dee2e6"],
+        [data-theme="dark"] td[style*="border: 1px solid #dee2e6"],
+        [data-theme="dark"] th[style*="border: 1px solid #dee2e6"] {
+            border-color: var(--border-color) !important;
+        }
+        [data-theme="dark"] [style*="border: 1px solid #0d6efd"],
+        [data-theme="dark"] [style*="border:1px solid #0d6efd"] {
+            border-color: var(--text-accent) !important;
+        }
+        [data-theme="dark"] [style*="border: 1px solid #ced4da"],
+        [data-theme="dark"] [style*="border:1px solid #ced4da"] {
+            border-color: var(--border-input) !important;
+        }
+        [data-theme="dark"] [style*="border-top: 1px solid #b6d4fe"],
+        [data-theme="dark"] [style*="border-top:1px solid #b6d4fe"] {
+            border-color: var(--border-info) !important;
+        }
+
+        /* Query sections and result boxes */
+        [data-theme="dark"] .query-section,
+        [data-theme="dark"] .result-box,
+        [data-theme="dark"] .scrollable-list {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Stats tables inside advanced-stats */
+        [data-theme="dark"] .advanced-stats,
+        [data-theme="dark"] .advanced-stats table,
+        [data-theme="dark"] .advanced-stats div {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+        [data-theme="dark"] .advanced-stats td,
+        [data-theme="dark"] .advanced-stats th {
+            border-color: var(--border-color) !important;
+            background-color: transparent !important;
+        }
+        [data-theme="dark"] .advanced-stats thead tr,
+        [data-theme="dark"] .advanced-stats tr:first-child {
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        /* Matrix containers */
+        [data-theme="dark"] .matrix {
+            background-color: var(--bg-secondary);
+        }
+
+        /* Section divs with inline styles */
+        [data-theme="dark"] .section > div,
+        [data-theme="dark"] #output > div {
+            color: var(--text-primary);
+        }
+
+        /* Ensure all text inside output is readable */
+        [data-theme="dark"] #output,
+        [data-theme="dark"] #output * {
+            color: inherit;
+        }
+        [data-theme="dark"] #output h2,
+        [data-theme="dark"] #output h3 {
+            color: var(--text-accent);
+        }
+
+        /* Checkboxes and labels */
+        [data-theme="dark"] input[type="checkbox"] + label,
+        [data-theme="dark"] .matrix-stats-toggle + label {
+            color: var(--text-accent) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           ADDITIONAL OVERRIDES FOR PROBLEMATIC SECTIONS
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* Force all sections in output to use theme colors */
+        [data-theme="dark"] #output .section {
+            background-color: transparent !important;
+        }
+        
+        /* Optimal grid boxes */
+        [data-theme="dark"] .optimal-grid > div {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        /* Info explanation boxes with light blue bg */
+        [data-theme="dark"] div[style*="padding: 1rem"][style*="background-color"],
+        [data-theme="dark"] div[style*="padding: 0.75rem"][style*="background-color"],
+        [data-theme="dark"] div[style*="padding:1rem"][style*="background-color"],
+        [data-theme="dark"] div[style*="padding:0.75rem"][style*="background-color"] {
+            background-color: var(--bg-info) !important;
+            border-color: var(--border-info) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Tables with explicit styling - target more specifically */
+        [data-theme="dark"] table[style*="width: 100%"] th,
+        [data-theme="dark"] table[style*="width:100%"] th {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+        [data-theme="dark"] table[style*="width: 100%"] td,
+        [data-theme="dark"] table[style*="width:100%"] td {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Warning boxes with yellow background */
+        [data-theme="dark"] div[style*="#fff3cd"],
+        [data-theme="dark"] [style*="background-color: #fff3cd"],
+        [data-theme="dark"] [style*="background-color:#fff3cd"] {
+            background-color: var(--bg-warning) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Summary/details elements */
+        [data-theme="dark"] details {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        /* All strong elements inside output */
+        [data-theme="dark"] #output strong {
+            color: var(--text-primary);
+        }
+        [data-theme="dark"] #output strong[style*="color"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* Force input backgrounds */
+        [data-theme="dark"] input[style*="border"],
+        [data-theme="dark"] input[style*="padding"] {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-input) !important;
+        }
+
+        /* Override row highlighting in tables */
+        [data-theme="dark"] tr[style*="background-color: #fff3cd"],
+        [data-theme="dark"] tr[style*="background-color:#fff3cd"] {
+            background-color: var(--bg-warning) !important;
+        }
+        [data-theme="dark"] tr[style*="background-color: #e9ecef"],
+        [data-theme="dark"] tr[style*="background-color:#e9ecef"] {
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        /* Code elements inside output */
+        [data-theme="dark"] #output code,
+        [data-theme="dark"] code[style*="background-color"] {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Fix for inline padding divs that should be info boxes */
+        [data-theme="dark"] div[style*="padding: 0.5rem"][style*="border-radius"],
+        [data-theme="dark"] div[style*="padding:0.5rem"][style*="border-radius"] {
+            background-color: var(--bg-info) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CRITICAL: Override WHITE backgrounds in boxes
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* Direct white background override */
+        [data-theme="dark"] div[style*="background-color: white"],
+        [data-theme="dark"] div[style*="background-color:white"],
+        [data-theme="dark"] [style*="background-color: white"],
+        [data-theme="dark"] [style*="background-color:white"],
+        [data-theme="dark"] div[style*="background: white"],
+        [data-theme="dark"] div[style*="background:white"] {
+            background-color: var(--bg-secondary) !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Light blue info boxes (#e7f3ff) */
+        [data-theme="dark"] div[style*="#e7f3ff"],
+        [data-theme="dark"] [style*="background-color: #e7f3ff"],
+        [data-theme="dark"] [style*="background-color:#e7f3ff"],
+        [data-theme="dark"] [style*="background: #e7f3ff"] {
+            background-color: var(--bg-info) !important;
+            background: var(--bg-info) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Light green (#d4edda) */
+        [data-theme="dark"] div[style*="#d4edda"],
+        [data-theme="dark"] [style*="background-color: #d4edda"],
+        [data-theme="dark"] [style*="background-color:#d4edda"] {
+            background-color: var(--bg-success) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Light gray backgrounds (#f8f9fa, #e9ecef) */
+        [data-theme="dark"] div[style*="#f8f9fa"],
+        [data-theme="dark"] [style*="background-color: #f8f9fa"],
+        [data-theme="dark"] [style*="background-color:#f8f9fa"],
+        [data-theme="dark"] div[style*="#e9ecef"],
+        [data-theme="dark"] [style*="background-color: #e9ecef"],
+        [data-theme="dark"] [style*="background-color:#e9ecef"] {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Override text colors */
+        [data-theme="dark"] [style*="color: #666"],
+        [data-theme="dark"] [style*="color:#666"],
+        [data-theme="dark"] span[style*="color: #666"],
+        [data-theme="dark"] span[style*="color:#666"] {
+            color: var(--text-secondary) !important;
+        }
+
+        [data-theme="dark"] h3[style*="color: #198754"],
+        [data-theme="dark"] h3[style*="color:#198754"],
+        [data-theme="dark"] [style*="color: #198754"] {
+            color: var(--text-success) !important;
+        }
+
+        [data-theme="dark"] h3[style*="color: #dc3545"],
+        [data-theme="dark"] h3[style*="color:#dc3545"],
+        [data-theme="dark"] [style*="color: #dc3545"] {
+            color: var(--text-danger) !important;
+        }
+
+        /* Border colors */
+        [data-theme="dark"] [style*="border-left: 4px solid #198754"],
+        [data-theme="dark"] [style*="border-left:4px solid #198754"] {
+            border-left-color: var(--text-success) !important;
+        }
+        [data-theme="dark"] [style*="border-left: 4px solid #dc3545"],
+        [data-theme="dark"] [style*="border-left:4px solid #dc3545"] {
+            border-left-color: var(--text-danger) !important;
+        }
+        [data-theme="dark"] [style*="border-left: 4px solid #0d6efd"],
+        [data-theme="dark"] [style*="border-left:4px solid #0d6efd"] {
+            border-left-color: var(--text-accent) !important;
+        }
+        [data-theme="dark"] [style*="border-left: 4px solid #ffc107"],
+        [data-theme="dark"] [style*="border-left:4px solid #ffc107"] {
+            border-left-color: var(--text-warning) !important;
+        }
+
+        /* HR lines */
+        [data-theme="dark"] hr[style*="border-top: 1px solid #dee2e6"],
+        [data-theme="dark"] hr[style*="border-top:1px solid #dee2e6"],
+        [data-theme="dark"] hr {
+            border-color: var(--border-color) !important;
+        }
+
+        /* Input with white background */
+        [data-theme="dark"] input[style*="width"],
+        [data-theme="dark"] input[style*="padding"] {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-input) !important;
+        }
+
+        /* Table header backgrounds */
+        [data-theme="dark"] th[style*="background-color"],
+        [data-theme="dark"] th[style*="background"] {
+            background-color: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Table cell backgrounds */
+        [data-theme="dark"] td[style*="background-color: white"],
+        [data-theme="dark"] td[style*="background-color:white"],
+        [data-theme="dark"] td[style*="background: white"] {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Blue accent color text */
+        [data-theme="dark"] [style*="color: #0d6efd"],
+        [data-theme="dark"] [style*="color:#0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           INPUT FIELDS - Comprehensive override
+           ═══════════════════════════════════════════════════════════════ */
+        [data-theme="dark"] input,
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] .query-inputs input,
+        [data-theme="dark"] .query-section input {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-input) !important;
+        }
+
+        [data-theme="dark"] select,
+        [data-theme="dark"] .query-inputs select,
+        [data-theme="dark"] .query-section select {
+            background-color: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-input) !important;
+        }
+
+        /* Buttons with specific colors */
+        [data-theme="dark"] button[style*="background-color: #0d6efd"] {
+            background-color: var(--text-accent) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MORE SPECIFIC WHITE BACKGROUND OVERRIDES
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* Any element with white background inside output */
+        [data-theme="dark"] #output [style*="background-color: white"],
+        [data-theme="dark"] #output [style*="background:white"],
+        [data-theme="dark"] #output [style*="background-color:white"],
+        [data-theme="dark"] #output [style*="background: white"] {
+            background-color: var(--bg-secondary) !important;
+            background: var(--bg-secondary) !important;
+        }
+
+        /* Common wrapper divs */
+        [data-theme="dark"] #output > div > div[style*="background"],
+        [data-theme="dark"] .section div[style*="background-color: white"],
+        [data-theme="dark"] .section div[style*="background:white"] {
+            background-color: var(--bg-secondary) !important;
+            background: var(--bg-secondary) !important;
+        }
+
+        /* Ensure nested divs inside sections are themed */
+        [data-theme="dark"] .section > div {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Matrix table cells with monospace code */
+        [data-theme="dark"] td[style*="font-family: monospace"] {
+            color: var(--text-primary) !important;
+        }
+
+        /* Buttons in dark mode */
+        [data-theme="dark"] button {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+        [data-theme="dark"] button:hover {
+            background-color: var(--bg-info);
+        }
+
+        /* Links in dark mode */
+        [data-theme="dark"] a {
+            color: var(--text-accent);
+        }
+
+        /* Pre and code blocks */
+        [data-theme="dark"] pre,
+        [data-theme="dark"] code {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* h4 headings with color */
+        [data-theme="dark"] h4[style*="color"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           STATISTICS SECTION - Dynamic JS elements override
+           ═══════════════════════════════════════════════════════════════ */
+        
+        /* Statistics section */
+        [data-theme="dark"] #statisticsSection,
+        [data-theme="dark"] div#statisticsSection,
+        [data-theme="dark"] [id="statisticsSection"] {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Stats grid container divs with white bg */
+        [data-theme="dark"] #statisticsSection div[style*="background-color: white"],
+        [data-theme="dark"] #statisticsSection div[style*="background:white"],
+        [data-theme="dark"] #statisticsSection [style*="background-color: white"],
+        [data-theme="dark"] #statisticsSection [style*="background: white"] {
+            background-color: var(--bg-secondary) !important;
+            background: var(--bg-secondary) !important;
+        }
+
+        /* All direct children divs inside statistics section that have inline bg */
+        [data-theme="dark"] #statisticsSection div[style*="display: grid"] div[style*="background"],
+        [data-theme="dark"] #statisticsSection [style*="display: grid"] > div {
+            background-color: var(--bg-secondary) !important;
+        }
+
+        /* All table header rows */
+        [data-theme="dark"] #output tr[style*="background-color: #e9ecef"],
+        [data-theme="dark"] #output tr[style*="background-color:#e9ecef"],
+        [data-theme="dark"] #output tr[style*="background: #e9ecef"],
+        [data-theme="dark"] tr[style*="background-color: #e9ecef"],
+        [data-theme="dark"] tr[style*="background:#e9ecef"],
+        [data-theme="dark"] thead tr {
+            background-color: var(--bg-tertiary) !important;
+            background: var(--bg-tertiary) !important;
+        }
+
+        /* All table cells */
+        [data-theme="dark"] #output th,
+        [data-theme="dark"] #output td,
+        [data-theme="dark"] #statisticsSection th,
+        [data-theme="dark"] #statisticsSection td {
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Table cells and borders */
+        [data-theme="dark"] th[style*="border: 1px solid #dee2e6"],
+        [data-theme="dark"] td[style*="border: 1px solid #dee2e6"],
+        [data-theme="dark"] th[style*="border:1px solid #dee2e6"],
+        [data-theme="dark"] td[style*="border:1px solid #dee2e6"] {
+            border-color: var(--border-color) !important;
+        }
+
+        /* Summary elements with cursor */
+        [data-theme="dark"] summary[style*="color: #0d6efd"],
+        [data-theme="dark"] summary[style*="color:#0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* Details elements inside output */
+        [data-theme="dark"] #output details,
+        [data-theme="dark"] #statisticsSection details {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+
+        /* Divs with border-top solid #dee2e6 */
+        [data-theme="dark"] div[style*="border-top: 1px solid #dee2e6"],
+        [data-theme="dark"] div[style*="border-top:1px solid #dee2e6"] {
+            border-color: var(--border-color) !important;
+        }
+
+        /* Strong elements with color */
+        [data-theme="dark"] strong[style*="color: #0d6efd"],
+        [data-theme="dark"] strong[style*="color:#0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+        [data-theme="dark"] strong[style*="color: #198754"],
+        [data-theme="dark"] strong[style*="color:#198754"] {
+            color: var(--text-success) !important;
+        }
+        [data-theme="dark"] strong[style*="color: #dc3545"],
+        [data-theme="dark"] strong[style*="color:#dc3545"] {
+            color: var(--text-danger) !important;
+        }
+
+        /* h2 headings with color */
+        [data-theme="dark"] h2[style*="color: #0d6efd"],
+        [data-theme="dark"] h2[style*="color:#0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* h3 headings with color */
+        [data-theme="dark"] h3[style*="color: #0d6efd"],
+        [data-theme="dark"] h3[style*="color:#0d6efd"] {
+            color: var(--text-accent) !important;
+        }
+
+        /* Spans with color #666 */
+        [data-theme="dark"] span[style*="color: #666"],
+        [data-theme="dark"] span[style*="color:#666"] {
+            color: var(--text-secondary) !important;
         }
 
         /* Vánoční světýlka - Christmas Lights */
@@ -279,12 +1085,17 @@
     </style>
 </head>
 <body>
+<!-- Theme Toggle Button -->
+<button class="theme-toggle" onclick="toggleTheme()" title="Přepnout světlý/tmavý režim">
+    <span class="icon" id="themeIcon">🌙</span>
+</button>
+
 <!-- Vánoční světýlka -->
 <div class="christmas-lights">
     <div class="wire"></div>
     <div class="lights-container" id="lightsContainer"></div>
 </div>
-<div id="matrix-stats-tooltip" style="position: absolute; display: none; background-color: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; pointer-events: none; z-index: 1000; font-size: 0.9em; line-height: 1.5;"></div>
+<div id="matrix-stats-tooltip" style="position: absolute; display: none; background-color: var(--tooltip-bg); color: var(--tooltip-text); padding: 8px 12px; border-radius: 5px; pointer-events: none; z-index: 1000; font-size: 0.9em; line-height: 1.5;"></div>
 <h1>Graph Analyzer</h1>
 <p>Zadejte definici grafu ve formátu uvedeném v zadání. Každý uzel se definuje
 pomocí řádku začínajícího <code>u</code> a každá hrana pomocí řádku začínajícího
@@ -314,14 +1125,14 @@ h F &gt; H 7 :h13;
 h G &lt; H 7 :h14;</textarea>
 <button id="parseBtn">Analyzovat graf</button>
 
-<div id="counters" style="margin: 1rem 0; padding: 1rem; background-color: #e7f3ff; border: 1px solid #0d6efd; border-radius: 0.25rem; display: none;">
-    <h3 style="margin-top: 0; color: #0d6efd;">📊 Základní statistiky</h3>
+<div id="counters" class="counters-box" style="display: none;">
+    <h3>📊 Základní statistiky</h3>
     <div style="display: flex; gap: 2rem; font-size: 1.1rem; flex-wrap: wrap;">
-        <div><strong>Počet uzlů:</strong> <span id="nodeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
-        <div><strong>Počet hran:</strong> <span id="edgeCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
-        <div><strong>Počet komponent:</strong> <span id="componentCount" style="color: #0b5ed7; font-weight: bold;">0</span></div>
+        <div><strong>Počet uzlů:</strong> <span id="nodeCount" class="stat-value">0</span></div>
+        <div><strong>Počet hran:</strong> <span id="edgeCount" class="stat-value">0</span></div>
+        <div><strong>Počet komponent:</strong> <span id="componentCount" class="stat-value">0</span></div>
     </div>
-    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #b6d4fe; font-size: 0.9rem; color: #084298;">
+    <div class="info-footer">
         💡 <strong>Komponenta</strong> = oddělená část grafu (1 komponenta = graf je souvislý)
     </div>
 </div>
@@ -329,6 +1140,44 @@ h G &lt; H 7 :h14;</textarea>
 <div id="output"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════════════
+// THEME TOGGLE - Light/Dark Mode
+// ═══════════════════════════════════════════════════════════════
+function initTheme() {
+    const savedTheme = localStorage.getItem('graph-analyzer-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else if (prefersDark) {
+        setTheme('dark');
+    } else {
+        setTheme('light');
+    }
+    
+    // Listen for system preference changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('graph-analyzer-theme')) {
+            setTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('graph-analyzer-theme', newTheme);
+    setTheme(newTheme);
+}
+
 // Graph analyzer with optimizations for large graphs
 class Graph {
     constructor() {
@@ -3211,9 +4060,9 @@ function createMatrixStatsHTML(stats, options = {}) {
 
     if (hasPosNeg) {
         html += `<div style="display: flex; gap: 1.5rem; margin-bottom: 0.75rem; font-size: 1rem;">`;
-        if (stats.positiveCount > 0) html += `<div><span style="color: #198754; font-weight: bold;">✔ Kladné:</span> ${stats.positiveCount}</div>`;
-        if (stats.negativeCount > 0) html += `<div><span style="color: #dc3545; font-weight: bold;">✖ Záporné:</span> ${stats.negativeCount}</div>`;
-        if (stats.zeroCount > 0) html += `<div><span style="color: #6c757d; font-weight: bold;">_ Nulové:</span> ${stats.zeroCount}</div>`;
+        if (stats.positiveCount > 0) html += `<div><span class="text-success" style="font-weight: bold;">✔ Kladné:</span> ${stats.positiveCount}</div>`;
+        if (stats.negativeCount > 0) html += `<div><span class="text-danger" style="font-weight: bold;">✖ Záporné:</span> ${stats.negativeCount}</div>`;
+        if (stats.zeroCount > 0) html += `<div><span class="text-muted" style="font-weight: bold;">_ Nulové:</span> ${stats.zeroCount}</div>`;
         html += `</div>`;
     }
 
@@ -3222,8 +4071,8 @@ function createMatrixStatsHTML(stats, options = {}) {
     html += `
         <div style="margin-bottom: 1rem;">
             <input type="checkbox" id="${toggleId}" class="matrix-stats-toggle" style="display: none;">
-            <label for="${toggleId}" style="cursor: pointer; color: #0d6efd; text-decoration: underline;">Zobrazit/skrýt pokročilé statistiky (součty)</label>
-            <div class="advanced-stats" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background-color: #fff; border-radius: 0.25rem; border: 1px solid #dee2e6;">
+            <label for="${toggleId}" class="text-accent" style="cursor: pointer; text-decoration: underline;">Zobrazit/skrýt pokročilé statistiky (součty)</label>
+            <div class="advanced-stats bg-secondary" style="display: none; margin-top: 0.5rem; padding: 0.5rem; border-radius: 0.25rem; border: 1px solid var(--border-color);">
     `;
     
     if (options.showRowColSums && stats.rowStats && stats.colStats) {
@@ -3234,10 +4083,10 @@ function createMatrixStatsHTML(stats, options = {}) {
         };
         
         // Filtr pro rychlé vyhledání uzlu
-        html += `<div style="margin-bottom: 0.75rem; padding: 0.5rem; background-color: #e7f3ff; border-radius: 0.25rem;">
-            <strong style="color: #0d6efd;">🔍 Filtr uzlů:</strong>
+        html += `<div class="bg-info" style="margin-bottom: 0.75rem; padding: 0.5rem; border-radius: 0.25rem;">
+            <strong class="text-accent">🔍 Filtr uzlů:</strong>
             <input type="text" id="${filterId}" placeholder="Zadejte název uzlu pro filtrování..." 
-                   style="margin-left: 0.5rem; padding: 0.25rem 0.5rem; border: 1px solid #ced4da; border-radius: 0.25rem; width: 200px;"
+                   style="margin-left: 0.5rem; padding: 0.25rem 0.5rem; border: 1px solid var(--border-input); border-radius: 0.25rem; width: 200px; background-color: var(--bg-secondary); color: var(--text-primary);"
                    oninput="filterMatrixStatsTables(this.value, '${filterId}')">
             <button onclick="document.getElementById('${filterId}').value=''; filterMatrixStatsTables('', '${filterId}')" 
                     style="margin-left: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.85em;">Vymazat</button>
@@ -3482,6 +4331,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     // 📊 STATISTICKÁ SEKCE - Kompletní přehled grafu
     const statsSection = document.createElement('div');
     statsSection.id = 'statisticsSection';
+    statsSection.className = 'stats-box';
     statsSection.style.margin = '1rem 0';
     statsSection.style.padding = '1rem';
     statsSection.style.backgroundColor = '#f8f9fa';
@@ -3510,7 +4360,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             
             // 📈 Základní metriky
             html += `
-                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0d6efd;">
+                <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0d6efd;">
                     <h3 style="margin-top: 0; color: #0d6efd;">📈 Základní metriky</h3>
                     <div style="line-height: 1.8;">
                         <strong>Uzly:</strong> ${stats.nodeCount}<br>
@@ -3530,7 +4380,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 const shortestWeight = shortest.weight !== null && shortest.weight !== undefined ? shortest.weight : 1;
                 const longestWeight = longest.weight !== null && longest.weight !== undefined ? longest.weight : 1;
                 html += `
-                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #6f42c1;">
+                    <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #6f42c1;">
                         <h3 style="margin-top: 0; color: #6f42c1;">📏 Nejkratší a nejdelší hrana</h3>
                         <div style="line-height: 1.8;">
                             <strong>Nejkratší:</strong> ${shortest.u} → ${shortest.v} (váha: ${shortestWeight})<br>
@@ -3541,7 +4391,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             }
             if (stats.edgeWeights) {
                 html += `
-                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #fd7e14;">
+                    <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #fd7e14;">
                         <h3 style="margin-top: 0; color: #fd7e14;">⚖️ Statistiky vah hran</h3>
                         <div style="line-height: 1.8;">
                             <strong>Min váha:</strong> ${stats.edgeWeights.min}<br>
@@ -3570,7 +4420,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             }
             
             html += `
-                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #198754;">
+                <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #198754;">
                     <h3 style="margin-top: 0; color: #198754;">🎯 Stupně uzlů</h3>
                     <div style="line-height: 1.8;">
                         <strong>Min:</strong> ${stats.degrees.min}<br>
@@ -3587,7 +4437,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             
             // 🔗 Hrany
             html += `
-                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #dc3545;">
+                <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #dc3545;">
                     <h3 style="margin-top: 0; color: #dc3545;">🔗 Hrany</h3>
                     <div style="line-height: 1.8;">
                         <strong>Orientované:</strong> ${stats.directedEdges}<br>
@@ -3602,7 +4452,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             // 🌳 Komponenty
             if (stats.componentSizes) {
                 html += `
-                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #ffc107;">
+                    <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #ffc107;">
                         <h3 style="margin-top: 0; color: #f59f00;">🌳 Komponenty</h3>
                         <div style="line-height: 1.8;">
                             <strong>Počet komponent:</strong> ${stats.componentCount}<br>
@@ -3617,7 +4467,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             // 📏 Průměr a poloměr (pokud vypočítáno)
             if (stats.diameter !== null) {
                 html += `
-                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #6f42c1;">
+                    <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #6f42c1;">
                         <h3 style="margin-top: 0; color: #6f42c1;">📏 Průměr a poloměr</h3>
                         <div style="line-height: 1.8;">
                             <strong>Průměr grafu:</strong> ${stats.diameter}<br>
@@ -3644,7 +4494,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 .slice(0, 15);
             
             html += `
-                <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #20c997; grid-column: span 1;">
+                <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #20c997; grid-column: span 1;">
                     <h3 style="margin-top: 0; color: #20c997;">🏆 TOP uzly (nejvyšší stupeň)</h3>
                     <div style="line-height: 1.6; font-size: 0.9rem;">
                         ${topNodes.map(([node, deg], i) => `${i + 1}. <strong>${node}</strong> (${deg})`).join('<br>')}
@@ -3656,7 +4506,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
             if (stats.nodeCount <= 50) {
                 const maxFreq = Math.max(...Object.values(stats.degrees.distribution));
                 html += `
-                    <div style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0dcaf0; grid-column: span 2;">
+                    <div class="stats-card" style="background-color: white; padding: 1rem; border-radius: 0.25rem; border-left: 4px solid #0dcaf0; grid-column: span 2;">
                         <h3 style="margin-top: 0; color: #0dcaf0;">📉 Histogram stupňů</h3>
                         <div style="font-family: monospace; font-size: 0.85rem; line-height: 1.4;">
                 `;
@@ -3877,6 +4727,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     adjSection.innerHTML = '<h2>Matice sousednosti</h2>';
     
     const adjLegendDiv = document.createElement('div');
+    adjLegendDiv.className = 'info-box';
     adjLegendDiv.style.backgroundColor = '#e7f3ff';
     adjLegendDiv.style.padding = '0.75rem';
     adjLegendDiv.style.borderRadius = '0.25rem';
@@ -3910,6 +4761,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     adjStatsDiv.style.display = 'none';
     adjStatsDiv.style.marginTop = '1rem';
     adjStatsDiv.style.padding = '1rem';
+    adjStatsDiv.className = 'info-box';
     adjStatsDiv.style.backgroundColor = '#e7f3ff';
     adjStatsDiv.style.borderRadius = '0.25rem';
     
@@ -3963,6 +4815,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej vysvětlivku
     const signLegendDiv = document.createElement('div');
+    signLegendDiv.className = 'info-box';
     signLegendDiv.style.backgroundColor = '#e7f3ff';
     signLegendDiv.style.padding = '0.75rem';
     signLegendDiv.style.borderRadius = '0.25rem';
@@ -3990,6 +4843,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     signStatsDiv.style.display = 'none';
     signStatsDiv.style.marginTop = '1rem';
     signStatsDiv.style.padding = '1rem';
+    signStatsDiv.className = 'info-box';
     signStatsDiv.style.backgroundColor = '#e7f3ff';
     signStatsDiv.style.borderRadius = '0.25rem';
     
@@ -4023,6 +4877,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej vysvětlivku
     const laplacianLegendDiv = document.createElement('div');
+    laplacianLegendDiv.className = 'info-box';
     laplacianLegendDiv.style.backgroundColor = '#e7f3ff';
     laplacianLegendDiv.style.padding = '0.75rem';
     laplacianLegendDiv.style.borderRadius = '0.25rem';
@@ -4053,6 +4908,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     laplacianStatsDiv.style.display = 'none';
     laplacianStatsDiv.style.marginTop = '1rem';
     laplacianStatsDiv.style.padding = '1rem';
+    laplacianStatsDiv.className = 'info-box';
     laplacianStatsDiv.style.backgroundColor = '#e7f3ff';
     laplacianStatsDiv.style.borderRadius = '0.25rem';
     
@@ -4086,6 +4942,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej vysvětlivku
     const multiplicityLegendDiv = document.createElement('div');
+    multiplicityLegendDiv.className = 'info-box';
     multiplicityLegendDiv.style.backgroundColor = '#e7f3ff';
     multiplicityLegendDiv.style.padding = '0.75rem';
     multiplicityLegendDiv.style.borderRadius = '0.25rem';
@@ -4112,6 +4969,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej legend
     const powerLegendDiv = document.createElement('div');
+    powerLegendDiv.className = 'info-box';
     powerLegendDiv.style.backgroundColor = '#e7f3ff';
     powerLegendDiv.style.padding = '0.75rem';
     powerLegendDiv.style.borderRadius = '0.25rem';
@@ -4138,6 +4996,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Add legend
     const customPowerLegendDiv = document.createElement('div');
+    customPowerLegendDiv.className = 'warning-box';
     customPowerLegendDiv.style.backgroundColor = '#fff3cd';
     customPowerLegendDiv.style.padding = '0.75rem';
     customPowerLegendDiv.style.borderRadius = '0.25rem';
@@ -4287,6 +5146,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Add legend
     const sumWalksLegendDiv = document.createElement('div');
+    sumWalksLegendDiv.className = 'info-box';
     sumWalksLegendDiv.style.backgroundColor = '#e7f3ff';
     sumWalksLegendDiv.style.padding = '0.75rem';
     sumWalksLegendDiv.style.borderRadius = '0.25rem';
@@ -4385,6 +5245,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     incSection.innerHTML = '<h2>Matice incidence</h2>';
     
     const incLegendDiv = document.createElement('div');
+    incLegendDiv.className = 'info-box';
     incLegendDiv.style.backgroundColor = '#e7f3ff';
     incLegendDiv.style.padding = '0.75rem';
     incLegendDiv.style.borderRadius = '0.25rem';
@@ -4448,6 +5309,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     reachSection.innerHTML = '<h2>Dosažitelnost (transitivní uzávěr)</h2>';
     
     const reachLegendDiv = document.createElement('div');
+    reachLegendDiv.className = 'info-box';
     reachLegendDiv.style.backgroundColor = '#e7f3ff';
     reachLegendDiv.style.padding = '0.75rem';
     reachLegendDiv.style.borderRadius = '0.25rem';
@@ -4585,7 +5447,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                 <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.25rem; border: 1px solid #dee2e6;">
                     <h3 style="margin-top: 0; color: #0d6efd;">📈 Statistiky dosažitelnosti a komponent</h3>
                     
-                    <div style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+                    <div class="stats-card" style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
                         <strong>Celková dosažitelnost:</strong><br>
                         • <strong>${totalReachable}</strong> z ${maxPossible} možných spojení (${reachabilityPercent}%)<br>
                         • Průměrně každý uzel dosáhne <strong>${(totalReachable / n).toFixed(1)}</strong> uzlů<br>
@@ -4602,7 +5464,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
                     </div>
                     ` : ''}
                     
-                    <div style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+                    <div class="stats-card" style="background-color: white; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
                         <strong>🔗 Komponenty grafu (${components.length}):</strong><br>
                         <span style="font-size: 0.9rem; color: #666;">Každá komponenta má reprezentanta (kořenový uzel) - použij ho pro BFS:</span><br>
                         <div style="margin-top: 0.5rem;">
@@ -4660,6 +5522,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
         const warningDiv = document.createElement('div');
         warningDiv.style.marginTop = '1rem';
         warningDiv.style.padding = '0.75rem';
+        warningDiv.className = 'warning-box';
         warningDiv.style.backgroundColor = '#fff3cd';
         warningDiv.style.borderRadius = '0.25rem';
         warningDiv.style.border = '1px solid #ffc107';
@@ -4678,6 +5541,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     bfsSection.innerHTML = '<h2>BFS Vrstvy (Breadth-First Search Layers)</h2>';
     
     const bfsLegendDiv = document.createElement('div');
+    bfsLegendDiv.className = 'info-box';
     bfsLegendDiv.style.backgroundColor = '#e7f3ff';
     bfsLegendDiv.style.padding = '0.75rem';
     bfsLegendDiv.style.borderRadius = '0.25rem';
@@ -4733,6 +5597,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     allPathsSection.innerHTML = '<h2>Všechny nejkratší cesty (neohodnocené)</h2>';
     
     const allPathsLegendDiv = document.createElement('div');
+    allPathsLegendDiv.className = 'info-box';
     allPathsLegendDiv.style.backgroundColor = '#e7f3ff';
     allPathsLegendDiv.style.padding = '0.75rem';
     allPathsLegendDiv.style.borderRadius = '0.25rem';
@@ -4808,6 +5673,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     simplePathsSection.innerHTML = '<h2>Jednoduché cesty U→V do délky K</h2>';
     
     const simplePathsLegendDiv = document.createElement('div');
+    simplePathsLegendDiv.className = 'info-box';
     simplePathsLegendDiv.style.backgroundColor = '#e7f3ff';
     simplePathsLegendDiv.style.padding = '0.75rem';
     simplePathsLegendDiv.style.borderRadius = '0.25rem';
@@ -4895,6 +5761,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     neighborSection.innerHTML = '<h2>Sousedé podle směru</h2>';
     
     const neighborLegendDiv = document.createElement('div');
+    neighborLegendDiv.className = 'info-box';
     neighborLegendDiv.style.backgroundColor = '#e7f3ff';
     neighborLegendDiv.style.padding = '0.75rem';
     neighborLegendDiv.style.borderRadius = '0.25rem';
@@ -4952,6 +5819,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej vysvětlivku
     const lenLegendDiv = document.createElement('div');
+    lenLegendDiv.className = 'info-box';
     lenLegendDiv.style.backgroundColor = '#e7f3ff';
     lenLegendDiv.style.padding = '0.75rem';
     lenLegendDiv.style.borderRadius = '0.25rem';
@@ -4979,6 +5847,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     lenStatsDiv.style.display = 'none';
     lenStatsDiv.style.marginTop = '1rem';
     lenStatsDiv.style.padding = '1rem';
+    lenStatsDiv.className = 'info-box';
     lenStatsDiv.style.backgroundColor = '#e7f3ff';
     lenStatsDiv.style.borderRadius = '0.25rem';
 
@@ -5012,6 +5881,7 @@ document.getElementById('parseBtn').addEventListener('click', () => {
     
     // Přidej vysvětlivku pro Floyd-Warshall
     const fwLegendDiv = document.createElement('div');
+    fwLegendDiv.className = 'info-box';
     fwLegendDiv.style.backgroundColor = '#e7f3ff';
     fwLegendDiv.style.padding = '0.75rem';
     fwLegendDiv.style.borderRadius = '0.25rem';
@@ -6082,7 +6952,8 @@ function generateChristmasLights() {
     }
 }
 
-// Inicializovat světýlka
+// Inicializovat theme a světýlka
+initTheme();
 generateChristmasLights();
 window.addEventListener('resize', generateChristmasLights);
 </script>

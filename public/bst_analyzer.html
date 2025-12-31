@@ -5,36 +5,159 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Binary Tree Analyzer</title>
     <style>
+        /* ═══════════════════════════════════════════════════════════════
+           THEME VARIABLES - Light & Dark Mode
+           ═══════════════════════════════════════════════════════════════ */
+        :root {
+            /* Light theme (default) */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e9ecef;
+            --bg-info: #e7f3ff;
+            --bg-success: #d1e7dd;
+            --bg-path: #e2d9f3;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --text-accent: #0d6efd;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --border-input: #ced4da;
+            --border-info: #b6d4fe;
+            --btn-primary-bg: #0d6efd;
+            --btn-primary-hover: #0b5ed7;
+            --btn-danger-bg: #dc3545;
+            --btn-danger-hover: #bb2d3b;
+            --node-primary: #0d6efd;
+            --node-highlight: #fd7e14;
+            --node-found: #198754;
+            --node-path: #6f42c1;
+            --canvas-bg: #ffffff;
+            --canvas-text: #1e4d6b;
+            --canvas-edge: #90caf9;
+            --canvas-edge-path: #9c27b0;
+            --canvas-node: #2196f3;
+            --canvas-node-found: #4caf50;
+            --canvas-node-path: #9c27b0;
+            --canvas-node-stroke: #1565c0;
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --shadow-accent: rgba(13, 110, 253, 0.4);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme */
+            --bg-primary: #1a1d21;
+            --bg-secondary: #2d3238;
+            --bg-tertiary: #3d444d;
+            --bg-info: #1e3a5f;
+            --bg-success: #1e3a2f;
+            --bg-path: #2d2640;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --text-accent: #6ea8fe;
+            --text-muted: #868e96;
+            --border-color: #495057;
+            --border-input: #5c636a;
+            --border-info: #3d6cb3;
+            --btn-primary-bg: #0d6efd;
+            --btn-primary-hover: #3d8bfd;
+            --btn-danger-bg: #dc3545;
+            --btn-danger-hover: #e35d6a;
+            --node-primary: #3d8bfd;
+            --node-highlight: #fd9843;
+            --node-found: #20c997;
+            --node-path: #9461fb;
+            --canvas-bg: #2d3238;
+            --canvas-text: #adb5bd;
+            --canvas-edge: #4a6fa5;
+            --canvas-edge-path: #b47cff;
+            --canvas-node: #3d8bfd;
+            --canvas-node-found: #20c997;
+            --canvas-node-path: #b47cff;
+            --canvas-node-stroke: #6ea8fe;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --shadow-accent: rgba(61, 139, 253, 0.4);
+        }
+
+        /* Smooth transitions for theme changes */
+        body, .card, .result-box, .tree-viz, .scrollable-panel, .stat-card, 
+        .info-box, .search-result, .path-info, table, th, td, textarea, 
+        input, button, .viz-mode, .mode-btn, code, pre, canvas {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           THEME TOGGLE BUTTON
+           ═══════════════════════════════════════════════════════════════ */
+        .theme-toggle {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            z-index: 1001;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 6px 20px var(--shadow-accent);
+        }
+
+        .theme-toggle .icon {
+            transition: transform 0.5s ease;
+        }
+
+        .theme-toggle:hover .icon {
+            transform: rotate(360deg);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BASE STYLES
+           ═══════════════════════════════════════════════════════════════ */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 1.5rem;
-            background-color: #f8f9fa;
-            color: #212529;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
         }
         h1, h2, h3 {
-            color: #0d6efd;
+            color: var(--text-accent);
         }
         textarea {
             width: 100%;
             max-width: 100%;
             min-height: 160px;
             padding: 0.5rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             font-family: monospace;
             margin-bottom: 1rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
         }
         input[type="text"], input[type="number"] {
             padding: 0.5rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             font-size: 1rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
         }
         button {
             padding: 0.5rem 1rem;
             font-size: 1rem;
-            background-color: #0d6efd;
+            background-color: var(--btn-primary-bg);
             color: #fff;
             border: none;
             border-radius: 0.25rem;
@@ -43,17 +166,17 @@
             margin-right: 0.5rem;
         }
         button:hover {
-            background-color: #0b5ed7;
+            background-color: var(--btn-primary-hover);
         }
         button:disabled {
-            background-color: #6c757d;
+            background-color: var(--text-muted);
             cursor: not-allowed;
         }
         .btn-remove {
-            background-color: #dc3545;
+            background-color: var(--btn-danger-bg);
         }
         .btn-remove:hover {
-            background-color: #bb2d3b;
+            background-color: var(--btn-danger-hover);
         }
         table {
             border-collapse: collapse;
@@ -61,20 +184,20 @@
             width: 100%;
         }
         th, td {
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             padding: 0.25rem 0.5rem;
             text-align: center;
         }
         th {
-            background-color: #e9ecef;
+            background-color: var(--bg-tertiary);
         }
         .section {
             margin-bottom: 2rem;
         }
         .card {
-            background-color: #fff;
+            background-color: var(--bg-secondary);
             padding: 1rem;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             margin-bottom: 1rem;
         }
@@ -90,22 +213,22 @@
             min-width: 150px;
         }
         .result-box {
-            background-color: white;
-            border: 1px solid #dee2e6;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             border-radius: 0.25rem;
             padding: 0.75rem;
         }
         .result-label {
             font-weight: bold;
-            color: #0d6efd;
+            color: var(--text-accent);
             margin-bottom: 0.5rem;
         }
         .tree-viz {
-            background: white;
-            color: #212529;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             padding: 1rem;
             border-radius: 0.25rem;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             overflow-x: auto;
             min-height: 200px;
         }
@@ -114,10 +237,10 @@
             padding: 0.5rem 0.75rem;
             margin: 0.2rem;
             border-radius: 50%;
-            background-color: #0d6efd;
+            background-color: var(--node-primary);
             color: white;
             font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 2px 4px var(--shadow-color);
             cursor: pointer;
             min-width: 40px;
             text-align: center;
@@ -125,18 +248,18 @@
         }
         .node-visual:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.4);
+            box-shadow: 0 4px 8px var(--shadow-accent);
         }
         .node-visual.highlight {
-            background-color: #fd7e14;
+            background-color: var(--node-highlight);
             animation: pulse 1s infinite;
         }
         .node-visual.found {
-            background-color: #198754;
+            background-color: var(--node-found);
             transform: scale(1.15);
         }
         .node-visual.path {
-            background-color: #6f42c1;
+            background-color: var(--node-path);
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
@@ -152,30 +275,30 @@
         }
         .level-label {
             display: block;
-            color: #0d6efd;
+            color: var(--text-accent);
             font-weight: bold;
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
         }
         .search-result {
-            background-color: #d1e7dd;
-            border-left: 4px solid #198754;
+            background-color: var(--bg-success);
+            border-left: 4px solid var(--node-found);
             padding: 0.75rem;
             border-radius: 0.25rem;
         }
         .path-info {
             display: inline-block;
             padding: 0.2rem 0.5rem;
-            background-color: #e2d9f3;
+            background-color: var(--bg-path);
             border-radius: 0.25rem;
             margin: 0.1rem;
             font-family: monospace;
         }
         canvas {
             border-radius: 0.25rem;
-            background: white;
+            background: var(--canvas-bg);
             max-width: 100%;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
         }
         .viz-controls {
             display: flex;
@@ -186,19 +309,19 @@
         }
         .viz-mode {
             padding: 0.5rem 1rem;
-            background-color: #e9ecef;
-            border: 1px solid #ced4da;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
-            color: #212529;
+            color: var(--text-primary);
             cursor: pointer;
             transition: background-color 0.2s;
         }
         .viz-mode:hover {
-            background-color: #dee2e6;
+            background-color: var(--border-color);
         }
         .viz-mode.active {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+            background-color: var(--btn-primary-bg);
+            border-color: var(--btn-primary-bg);
             color: white;
         }
         .mode-selector {
@@ -211,27 +334,27 @@
         .mode-btn {
             padding: 0.5rem 1.5rem;
             font-size: 1rem;
-            background-color: #e9ecef;
-            color: #212529;
-            border: 1px solid #ced4da;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-input);
             border-radius: 0.25rem;
             cursor: pointer;
             transition: background-color 0.2s;
         }
         .mode-btn:hover {
-            background-color: #dee2e6;
+            background-color: var(--border-color);
         }
         .mode-btn.active {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+            background-color: var(--btn-primary-bg);
+            border-color: var(--btn-primary-bg);
             color: white;
         }
         .scrollable-panel {
             max-height: 300px;
             overflow-y: auto;
-            background-color: #fff;
+            background-color: var(--bg-secondary);
             padding: 0.75rem;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             border-radius: 0.25rem;
             margin-top: 0.5rem;
         }
@@ -242,32 +365,32 @@
             margin: 1rem 0;
         }
         .stat-card {
-            background-color: #e7f3ff;
+            background-color: var(--bg-info);
             padding: 1rem;
             border-radius: 0.25rem;
             text-align: center;
-            border: 1px solid #b6d4fe;
+            border: 1px solid var(--border-info);
         }
         .stat-value {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #0d6efd;
+            color: var(--text-accent);
         }
         .stat-label {
             font-size: 0.85rem;
-            color: #495057;
+            color: var(--text-secondary);
         }
         code {
-            background-color: #e9ecef;
+            background-color: var(--bg-tertiary);
             padding: 0.15rem 0.4rem;
             border-radius: 0.25rem;
             font-family: monospace;
         }
         pre {
-            background-color: #f8f9fa;
+            background-color: var(--bg-primary);
             padding: 0.75rem;
             border-radius: 0.25rem;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             overflow-x: auto;
             font-family: monospace;
         }
@@ -275,14 +398,14 @@
             display: none !important;
         }
         .info-box {
-            background-color: #e7f3ff;
-            border: 1px solid #0d6efd;
+            background-color: var(--bg-info);
+            border: 1px solid var(--text-accent);
             border-radius: 0.25rem;
             padding: 0.75rem;
             margin-bottom: 1rem;
         }
         .info-box strong {
-            color: #0d6efd;
+            color: var(--text-accent);
         }
 
         /* Vánoční světýlka - Christmas Lights */
@@ -437,6 +560,11 @@
     </style>
 </head>
 <body>
+<!-- Theme Toggle Button -->
+<button class="theme-toggle" onclick="toggleTheme()" title="Přepnout světlý/tmavý režim">
+    <span class="icon" id="themeIcon">🌙</span>
+</button>
+
 <!-- Vánoční světýlka -->
 <div class="christmas-lights">
     <div class="wire"></div>
@@ -1833,11 +1961,14 @@ u *;</textarea>
             const ctx = canvas.getContext('2d');
             const width = canvas.width;
             const height = canvas.height;
+            const colors = getThemeColors();
             
-            ctx.clearRect(0, 0, width, height);
+            // Fill canvas background with theme color
+            ctx.fillStyle = colors.canvasBg;
+            ctx.fillRect(0, 0, width, height);
             
             if (bst.root === null) {
-                ctx.fillStyle = '#1e4d6b';
+                ctx.fillStyle = colors.canvasText;
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('Prázdný strom', width / 2, height / 2);
@@ -1856,7 +1987,7 @@ u *;</textarea>
                     const leftY = y + verticalSpacing;
                     
                     ctx.strokeStyle = searchPath.includes(node.value) && searchPath.includes(node.left.value) 
-                        ? '#9c27b0' : '#90caf9';
+                        ? colors.canvasEdgePath : colors.canvasEdge;
                     ctx.lineWidth = searchPath.includes(node.value) && searchPath.includes(node.left.value) ? 4 : 2;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -1871,7 +2002,7 @@ u *;</textarea>
                     const rightY = y + verticalSpacing;
                     
                     ctx.strokeStyle = searchPath.includes(node.value) && searchPath.includes(node.right.value) 
-                        ? '#9c27b0' : '#90caf9';
+                        ? colors.canvasEdgePath : colors.canvasEdge;
                     ctx.lineWidth = searchPath.includes(node.value) && searchPath.includes(node.right.value) ? 4 : 2;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -1886,15 +2017,15 @@ u *;</textarea>
                 ctx.arc(x, y, 25, 0, 2 * Math.PI);
                 
                 if (highlightedNodes.has(node.value)) {
-                    ctx.fillStyle = '#4caf50';
+                    ctx.fillStyle = colors.canvasNodeFound;
                 } else if (searchPath.includes(node.value)) {
-                    ctx.fillStyle = '#9c27b0';
+                    ctx.fillStyle = colors.canvasNodePath;
                 } else {
-                    ctx.fillStyle = '#2196f3';
+                    ctx.fillStyle = colors.canvasNode;
                 }
                 
                 ctx.fill();
-                ctx.strokeStyle = '#1565c0';
+                ctx.strokeStyle = colors.canvasNodeStroke;
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
@@ -2190,11 +2321,14 @@ u *;</textarea>
             const ctx = canvas.getContext('2d');
             const width = canvas.width;
             const height = canvas.height;
+            const colors = getThemeColors();
             
-            ctx.clearRect(0, 0, width, height);
+            // Fill canvas background with theme color
+            ctx.fillStyle = colors.canvasBg;
+            ctx.fillRect(0, 0, width, height);
             
             if (binaryTree.nodes.length === 0) {
-                ctx.fillStyle = '#1e4d6b';
+                ctx.fillStyle = colors.canvasText;
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('Prázdný strom', width / 2, height / 2);
@@ -2215,7 +2349,7 @@ u *;</textarea>
                     const leftX = x - horizontalSpacing / 2;
                     const leftY = y + verticalSpacing;
                     
-                    ctx.strokeStyle = '#90caf9';
+                    ctx.strokeStyle = colors.canvasEdge;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -2229,7 +2363,7 @@ u *;</textarea>
                     const rightX = x + horizontalSpacing / 2;
                     const rightY = y + verticalSpacing;
                     
-                    ctx.strokeStyle = '#90caf9';
+                    ctx.strokeStyle = colors.canvasEdge;
                     ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
@@ -2244,10 +2378,10 @@ u *;</textarea>
                 ctx.arc(x, y, 25, 0, 2 * Math.PI);
                 
                 const value = binaryTree.nodes[index];
-                ctx.fillStyle = highlightedNodes.has(value) ? '#4caf50' : '#2196f3';
+                ctx.fillStyle = highlightedNodes.has(value) ? colors.canvasNodeFound : colors.canvasNode;
                 ctx.fill();
                 
-                ctx.strokeStyle = '#1565c0';
+                ctx.strokeStyle = colors.canvasNodeStroke;
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
@@ -3364,6 +3498,67 @@ u *;</textarea>
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // THEME TOGGLE - Light/Dark Mode
+        // ═══════════════════════════════════════════════════════════════
+        function getThemeColors() {
+            const style = getComputedStyle(document.documentElement);
+            return {
+                canvasBg: style.getPropertyValue('--canvas-bg').trim(),
+                canvasText: style.getPropertyValue('--canvas-text').trim(),
+                canvasEdge: style.getPropertyValue('--canvas-edge').trim(),
+                canvasEdgePath: style.getPropertyValue('--canvas-edge-path').trim(),
+                canvasNode: style.getPropertyValue('--canvas-node').trim(),
+                canvasNodeFound: style.getPropertyValue('--canvas-node-found').trim(),
+                canvasNodePath: style.getPropertyValue('--canvas-node-path').trim(),
+                canvasNodeStroke: style.getPropertyValue('--canvas-node-stroke').trim()
+            };
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('bst-analyzer-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else if (prefersDark) {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+            
+            // Listen for system preference changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('bst-analyzer-theme')) {
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+            }
+            
+            // Redraw canvas if visible
+            setTimeout(() => {
+                if (currentMode === 'bst' && bst.root) {
+                    visualizeBST();
+                } else if (currentMode === 'binary' && binaryTree && binaryTree.nodes.length > 0) {
+                    visualizeBinaryTree();
+                }
+            }, 50);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('bst-analyzer-theme', newTheme);
+            setTheme(newTheme);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // VÁNOČNÍ SVĚTÝLKA - CHRISTMAS LIGHTS
         // ═══════════════════════════════════════════════════════════════
         function generateChristmasLights() {
@@ -3388,6 +3583,9 @@ u *;</textarea>
         // INIT
         // ═══════════════════════════════════════════════════════════════
         window.onload = function() {
+            // Initialize theme
+            initTheme();
+            
             // Generovat vánoční světýlka
             generateChristmasLights();
             window.addEventListener('resize', generateChristmasLights);
