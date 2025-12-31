@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seasonal Theme Demo</title>
+    <link rel="stylesheet" href="seasonal-theme.css">
+    <style>
+        /* Your app styles here */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 60px 20px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: var(--text-primary);
+        }
+        
+        .card p {
+            color: var(--text-secondary);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+
+    <!-- Season Picker (optional - for demo/preview) -->
+    <div class="season-picker" id="seasonPicker">
+        <div class="season-picker-title">Season Preview</div>
+        <button class="season-btn" data-season="christmas" title="Dec 1 - Jan 6">🎄 <span class="label">Christmas</span></button>
+        <button class="season-btn" data-season="winter" title="Jan 7 - Feb 28">❄️ <span class="label">Winter</span></button>
+        <button class="season-btn" data-season="valentine" title="Feb 10 - Feb 16">💕 <span class="label">Valentine</span></button>
+        <button class="season-btn" data-season="spring" title="Mar 1 - May 31">🌸 <span class="label">Spring</span></button>
+        <button class="season-btn" data-season="summer" title="Jun 1 - Aug 31">☀️ <span class="label">Summer</span></button>
+        <button class="season-btn" data-season="autumn" title="Sep 1 - Nov 30">🍂 <span class="label">Autumn</span></button>
+        <button class="season-btn" data-season="halloween" title="Oct 20 - Nov 2">🎃 <span class="label">Halloween</span></button>
+        <button class="season-btn" data-season="auto" title="Auto-detect">🔄 <span class="label">Auto</span></button>
+    </div>
+
+    <!-- Seasonal Decoration Containers (REQUIRED) -->
+    <div class="deco deco-christmas" id="decoChristmas"></div>
+    <div class="deco deco-winter" id="decoWinter"></div>
+    <div class="deco deco-spring" id="decoSpring"></div>
+    <div class="deco deco-summer" id="decoSummer"></div>
+    <div class="deco deco-autumn" id="decoAutumn"></div>
+    <div class="deco deco-halloween" id="decoHalloween"></div>
+    <div class="deco deco-valentine" id="decoValentine"></div>
+
+    <!-- Your App Content -->
+    <div class="container">
+        <h1>🎨 Seasonal Theme Demo</h1>
+        
+        <div class="card">
+            <h2>How to Use</h2>
+            <p>This template provides instant seasonal decorations and light/dark mode for your projects.</p>
+            <ol style="color: var(--text-secondary);">
+                <li>Include <code>seasonal-theme.css</code></li>
+                <li>Include <code>seasonal-theme.js</code></li>
+                <li>Add decoration containers (see HTML)</li>
+                <li>Done! Decorations auto-detect based on date.</li>
+            </ol>
+        </div>
+        
+        <div class="card">
+            <h2>Seasons</h2>
+            <table style="width: 100%; color: var(--text-secondary);">
+                <tr><td>🎄 Christmas</td><td>Dec 1 - Jan 6</td></tr>
+                <tr><td>❄️ Winter</td><td>Jan 7 - Feb 28</td></tr>
+                <tr><td>💕 Valentine</td><td>Feb 10 - Feb 16 (priority)</td></tr>
+                <tr><td>🌸 Spring</td><td>Mar 1 - May 31</td></tr>
+                <tr><td>☀️ Summer</td><td>Jun 1 - Aug 31</td></tr>
+                <tr><td>🍂 Autumn</td><td>Sep 1 - Nov 30</td></tr>
+                <tr><td>🎃 Halloween</td><td>Oct 20 - Nov 2 (priority)</td></tr>
+            </table>
+        </div>
+        
+        <div class="card">
+            <h2>Features</h2>
+            <ul style="color: var(--text-secondary);">
+                <li><strong>Instant switching (0ms)</strong> - all decorations pre-rendered</li>
+                <li><strong>Light/Dark mode</strong> - with system preference detection</li>
+                <li><strong>CSS variables</strong> - easy theming</li>
+                <li><strong>GPU accelerated</strong> - smooth animations</li>
+                <li><strong>No dependencies</strong> - vanilla JS/CSS</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn" onclick="alert('It works!')">Example Button</button>
+        </div>
+    </div>
+
+    <script src="seasonal-theme.js"></script>
+</body>
+</html>
