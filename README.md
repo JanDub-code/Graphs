@@ -1,48 +1,86 @@
-# Graph Analyzer
+﻿# Graph & Tree Analyzers
 
-This is a web-based tool for analyzing graphs. You can define a graph using a simple text format and get various analytics and matrix representations.
+Sada webových nástrojů pro analýzu grafů a binárních stromů. Oba analyzery používají jednotný vizuální styl a běží přímo v prohlížeči bez nutnosti serveru.
 
-## Features
+---
 
-*   **Graph Definition**: Define nodes and edges with weights and labels.
-*   **Matrix Representations**:
-    *   Adjacency Matrix
-    *   Sign Matrix
-    *   Laplacian Matrix
-    *   Incidence Matrix
-    *   Length Matrix
-    *   Reachability Matrix
-*   **Graph Properties**:
-    *   Weighted, Oriented, Connected, Simple, etc.
-*   **Statistical Overview**:
-    *   Node/edge counts, degree distribution, density, diameter, radius, etc.
-*   **Pathfinding**:
-    *   All shortest paths (unweighted)
-    *   Simple paths up to a given length
-*   **Graph Traversal**:
-    *   Perform Breadth-First Search (BFS) or Depth-First Search (DFS) starting from any node. The UI will display the order of visited nodes.
-*   **Spanning Tree Analysis**:
-    *   Calculate the total number of possible spanning trees using a fast Laplacian-based determinant (handles dozens of nodes without freezing the UI).
-    *   Find the Minimum/Maximum Spanning Trees for weighted graphs. For disconnected graphs we now show a full spanning forest (per-component MST) together with weights and isolated nodes, so even large multi-component inputs stay responsive.
-*   **Optimal Paths & Metrics**:
-    *   Compare nejkratší, nejdelší, nejbezpečnější a nejširší cesty pomocí Mooreova, Dijkstrova a Bellman-Fordova algoritmu i „widest path“ heuristik.
+## Graph Analyzer
+
+Nástroj pro analýzu obecných grafů. Definujte graf pomocí jednoduchého textového formátu a získejte různé analytiky a maticové reprezentace.
+
+### Funkce
+
+*   **Definice grafu**: Definujte uzly a hrany s váhami a popisky.
+*   **Maticové reprezentace**:
+    *   Matice sousednosti
+    *   Znaménková matice
+    *   Laplaciánská matice
+    *   Incidenční matice
+    *   Matice délek
+    *   Matice dosažitelnosti
+*   **Vlastnosti grafu**:
+    *   Ohodnocený, Orientovaný, Souvislý, Jednoduchý, atd.
+*   **Statistický přehled**:
+    *   Počet uzlů/hran, rozložení stupňů, hustota, průměr, poloměr, atd.
+*   **Hledání cest**:
+    *   Všechny nejkratší cesty (nevážené)
+    *   Jednoduché cesty do zadané délky
+*   **Průchod grafem**:
+    *   BFS (do šířky) a DFS (do hloubky) z libovolného uzlu
+*   **Analýza kostry**:
+    *   Počet koster pomocí Laplaciánu
+    *   Minimální/Maximální kostra pro vážené grafy
+*   **Optimální cesty & metriky**:
+    *   Nejkratší, nejdelší, nejbezpečnější a nejširší cesty (Moore, Dijkstra, Bellman-Ford)
 *   **Síťový graf & CPM**:
-    *   Vytvoř projektovou síť (CPM), spočítej kritickou cestu, délku projektu a rezervy činností.
+    *   Kritická cesta, délka projektu a rezervy činností
 
-## How to Use
+### Jak používat
 
-1.  Open `graph_analyzer.html` in your web browser.
-2.  Enter the graph definition in the text area.
-3.  Click "Analyzovat graf".
-4.  Explore the various sections to see graph properties, matrices, and statistics.
-5.  Use the interactive query sections to get specific values from matrices or find paths.
-6.  Use the "Prohledávání grafu (BFS/DFS)" section to perform traversals.
-7.  Use the "Kostra grafu" section to analyze spanning trees.
+1.  Otevřete `public/graph_analyzer.html` v prohlížeči.
+2.  Zadejte definici grafu do textového pole.
+3.  Klikněte na "Analyzovat graf".
+4.  Prozkoumejte sekce s vlastnostmi, maticemi a statistikami.
 
-## Running Tests
+---
 
-Playwright tests verify UI behaviour (including the default graph regression in `tests/default_graph_output.spec.js`). To run them:
+## Binary Tree Analyzer
 
-1. Install dependencies and browsers (once):<br>`npm install && npx playwright install`
-2. Execute the suite:<br>`npx playwright test`
-3. Run a single spec if needed (e.g., the default graph regression):<br>`npx playwright test tests/default_graph_output.spec.js`
+Nástroj pro analýzu binárních stromů. Podporuje dva režimy: **Binary Search Tree (BST)** pro práci s číselnými hodnotami a **Binary Tree** pro obecné stromy zadané po úrovních (level-order).
+
+### Funkce
+
+*   **BST operace**:
+    *   Vkládání a odebírání hodnot
+    *   Vyhledávání hodnoty s vizualizací cesty
+    *   Rozsahové dotazy (range query)
+    *   DFS/BFS od libovolného uzlu
+*   **Binary Tree (Level-Order)**:
+    *   Zadání stromu ve formátu po úrovních
+    *   Podpora prázdných uzlů (`u *;`)
+    *   Vyhledávání uzlů podle identifikátoru
+*   **Průchody stromem**:
+    *   Pre-order, In-order, Post-order, Level-order
+*   **Vizualizace**:
+    *   Textová, po úrovních, Canvas grafická
+*   **Statistiky**:
+    *   Výška, počet uzlů, počet listů, vyvážení
+*   **CPM pro stromy**:
+    *   Kritická cesta na stromové struktuře
+
+### Jak používat
+
+1.  Otevřete `public/bst_analyzer.html` v prohlížeči.
+2.  Vyberte režim (BST nebo Binary Tree).
+3.  Pro BST: Zadejte hodnoty k vložení a klikněte "Vložit hodnoty", poté "Analyzovat BST".
+4.  Pro Binary Tree: Zadejte strom ve formátu `u Uzel;` po řádcích a klikněte "Analyzovat Binary Tree".
+
+---
+
+## Spuštění testů
+
+Playwright testy ověřují chování UI (včetně regresního testu výchozího grafu v `tests/default_graph_output.spec.js`).
+
+1. Nainstalujte závislosti a prohlížeče (jednou): `npm install && npx playwright install`
+2. Spusťte testy: `npx playwright test`
+3. Spusťte konkrétní test: `npx playwright test tests/default_graph_output.spec.js`

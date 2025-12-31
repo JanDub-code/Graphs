@@ -3,16 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Binary Tree Analyzer - Origos Maximos</title>
+    <title>Binary Tree Analyzer</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e4d6b 0%, #2d5f7a 50%, #3b7391 100%);
-            min-height: 100vh;
-            padding: 2rem;
-            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        h1, h2, h3 {
+            color: #0d6efd;
+        }
+        textarea {
+            width: 100%;
+            max-width: 100%;
+            min-height: 160px;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            margin-bottom: 1rem;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #0d6efd;
+            color: #fff;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            margin-right: 0.5rem;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .btn-remove {
+            background-color: #dc3545;
+        }
+        .btn-remove:hover {
+            background-color: #bb2d3b;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 0.5rem 0;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 0.25rem 0.5rem;
+            text-align: center;
+        }
+        th {
+            background-color: #e9ecef;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .card {
+            background-color: #fff;
+            padding: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .input-group input {
+            flex: 1;
+            min-width: 150px;
+        }
+        .result-box {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+        }
+        .result-label {
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
+        .tree-viz {
+            background: white;
+            color: #212529;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid #dee2e6;
+            overflow-x: auto;
+            min-height: 200px;
+        }
+        .node-visual {
+            display: inline-block;
+            padding: 0.5rem 0.75rem;
+            margin: 0.2rem;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            min-width: 40px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .node-visual:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.4);
+        }
+        .node-visual.highlight {
+            background-color: #fd7e14;
+            animation: pulse 1s infinite;
+        }
+        .node-visual.found {
+            background-color: #198754;
+            transform: scale(1.15);
+        }
+        .node-visual.path {
+            background-color: #6f42c1;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .tree-level {
+            text-align: center;
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .level-label {
+            display: block;
+            color: #0d6efd;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .search-result {
+            background-color: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+        }
+        .path-info {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background-color: #e2d9f3;
+            border-radius: 0.25rem;
+            margin: 0.1rem;
+            font-family: monospace;
+        }
+        canvas {
+            border-radius: 0.25rem;
+            background: white;
+            max-width: 100%;
+            border: 1px solid #dee2e6;
+        }
+        .viz-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .viz-mode {
+            padding: 0.5rem 1rem;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            color: #212529;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .viz-mode:hover {
+            background-color: #dee2e6;
+        }
+        .viz-mode.active {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+        }
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            background-color: #e9ecef;
+            color: #212529;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mode-btn:hover {
+            background-color: #dee2e6;
+        }
+        .mode-btn.active {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+        }
+        .scrollable-panel {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #fff;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background-color: #e7f3ff;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            text-align: center;
+            border: 1px solid #b6d4fe;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #495057;
+        }
+        code {
+            background-color: #e9ecef;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            border: 1px solid #dee2e6;
+            overflow-x: auto;
+            font-family: monospace;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border: 1px solid #0d6efd;
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .info-box strong {
+            color: #0d6efd;
         }
 
         /* Vánoční světýlka - Christmas Lights */
@@ -82,7 +352,6 @@
             filter: blur(1px);
         }
 
-        /* Barvy světýlek */
         .light.red {
             background: radial-gradient(ellipse at 30% 20%, #ff6b6b, #e63946);
             box-shadow: 0 0 15px 5px rgba(230, 57, 70, 0.6),
@@ -165,333 +434,33 @@
             0% { box-shadow: 0 0 10px 3px rgba(253, 126, 20, 0.4), 0 0 20px 6px rgba(253, 126, 20, 0.2), inset 0 -5px 10px rgba(0,0,0,0.2); }
             100% { box-shadow: 0 0 20px 8px rgba(253, 126, 20, 0.8), 0 0 40px 15px rgba(253, 126, 20, 0.4), inset 0 -5px 10px rgba(0,0,0,0.2); }
         }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 3rem;
-            background: linear-gradient(135deg, #64b5f6 0%, #2196f3 50%, #1565c0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 2rem 0 0.5rem 0;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #bbdefb;
-            letter-spacing: 6px;
-            margin-bottom: 0.5rem;
-        }
-
-        .author {
-            text-align: center;
-            color: #90caf9;
-            font-style: italic;
-            margin-bottom: 2rem;
-        }
-
-        .mode-selector {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .mode-btn {
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 2px solid rgba(100, 181, 246, 0.3);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .mode-btn.active {
-            background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
-            border-color: #2196f3;
-            transform: scale(1.05);
-        }
-
-        .mode-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-
-        h2 {
-            color: #64b5f6;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid rgba(100, 181, 246, 0.3);
-            padding-bottom: 0.5rem;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-
-        input, textarea {
-            flex: 1;
-            min-width: 200px;
-            padding: 0.8rem;
-            border-radius: 8px;
-            border: 2px solid rgba(100, 181, 246, 0.3);
-            background: rgba(255, 255, 255, 0.95);
-            font-size: 1rem;
-            color: #1e4d6b;
-        }
-
-        textarea {
-            font-family: 'Courier New', monospace;
-            min-height: 200px;
-            resize: vertical;
-        }
-
-        button {
-            padding: 0.8rem 2rem;
-            background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-        }
-
-        .btn-remove {
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-        }
-
-        .tree-viz {
-            background: white;
-            color: #1e4d6b;
-            padding: 2rem;
-            border-radius: 10px;
-            overflow-x: auto;
-            min-height: 200px;
-        }
-
-        .node-visual {
-            display: inline-block;
-            padding: 0.8rem 1.2rem;
-            margin: 0.3rem;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s;
-            cursor: pointer;
-            min-width: 50px;
-            text-align: center;
-        }
-
-        .node-visual:hover {
-            transform: scale(1.15);
-            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.5);
-        }
-
-        .node-visual.highlight {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            animation: pulse 1s infinite;
-        }
-
-        .node-visual.found {
-            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-            transform: scale(1.2);
-        }
-
-        .node-visual.path {
-            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-        }
-
-        .tree-level {
-            text-align: center;
-            margin: 1.5rem 0;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .level-label {
-            display: block;
-            color: #64b5f6;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .search-result {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(46, 125, 50, 0.2) 100%);
-            border-left: 4px solid #4caf50;
-        }
-
-        .path-info {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            background: rgba(156, 39, 176, 0.2);
-            border-radius: 5px;
-            margin: 0.2rem;
-            font-family: 'Courier New', monospace;
-        }
-
-        canvas {
-            border-radius: 10px;
-            background: white;
-            max-width: 100%;
-        }
-
-        .viz-controls {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .viz-mode {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(100, 181, 246, 0.3);
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .viz-mode.active {
-            background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
-            border-color: #2196f3;
-        }
-
-        .result-box {
-            background: rgba(33, 150, 243, 0.1);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-            border-left: 4px solid #2196f3;
-        }
-
-        .result-label {
-            color: #64b5f6;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .scrollable-panel {
-            max-height: 320px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.25);
-            padding: 1rem;
-            border-radius: 10px;
-            margin-top: 1rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(21, 101, 192, 0.15) 100%);
-            padding: 1.5rem;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #64b5f6;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: #bbdefb;
-        }
-
-        code {
-            background: rgba(33, 150, 243, 0.2);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-        }
-
-        pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-        }
-
-        .hidden {
-            display: none !important;
-        }
     </style>
 </head>
 <body>
-    <!-- Vánoční světýlka -->
-    <div class="christmas-lights">
-        <div class="wire"></div>
-        <div class="lights-container" id="lightsContainer"></div>
-    </div>
-    
-    <div class="container">
-        <h1>🎄 Universal Binary Tree Analyzer 🎄</h1>
-        <div class="subtitle">✨ ORIGOS MAXIMOS ✨</div>
-        <div class="author">Designed by Jan Dub</div>
+<!-- Vánoční světýlka -->
+<div class="christmas-lights">
+    <div class="wire"></div>
+    <div class="lights-container" id="lightsContainer"></div>
+</div>
 
-        <!-- MODE SELECTOR -->
-        <div class="mode-selector">
-            <button class="mode-btn active" data-mode="bst" onclick="switchMode(event, 'bst')">
-                🔢 Binary Search Tree (BST)
-            </button>
-            <button class="mode-btn" data-mode="binary" onclick="switchMode(event, 'binary')">
-                📊 Binary Tree (Level-Order)
-            </button>
-        </div>
+<h1>Binary Tree Analyzer</h1>
+<p>Nástroj pro analýzu binárních stromů. Podporuje dva režimy: <strong>Binary Search Tree (BST)</strong> 
+pro práci s číselnými hodnotami a <strong>Binary Tree</strong> pro obecné stromy zadané po úrovních.</p>
 
-        <div class="card" id="treeTheoryCard">
-            <h2>📘 Teoretický přehled pojmů</h2>
-            <p style="color: #bbdefb;">
-                Potřebujete si rychle připomenout rozdíly mezi jednotlivými typy stromů a průchody?
-                Tady je stručný slovník používaný napříč aplikací.
-            </p>
-            <ul style="line-height: 1.8; padding-left: 1.25rem; color: #e3f2fd;">
-                <li><strong>Strom:</strong> Souvislý acyklický graf – mezi libovolnými dvěma uzly vede právě jedna cesta.</li>
+<!-- MODE SELECTOR -->
+<div class="mode-selector">
+    <button class="mode-btn active" data-mode="bst" onclick="switchMode(event, 'bst')">
+        🔢 Binary Search Tree (BST)
+    </button>
+    <button class="mode-btn" data-mode="binary" onclick="switchMode(event, 'binary')">
+        📊 Binary Tree (Level-Order)
+    </button>
+</div>
+
+<div class="card" id="treeTheoryCard">
+    <h2>📘 Teoretický přehled pojmů</h2>
+    <ul style="line-height: 1.8; padding-left: 1.25rem;">
+        <li><strong>Strom:</strong> Souvislý acyklický graf – mezi libovolnými dvěma uzly vede právě jedna cesta.</li>
                 <li><strong>Binární strom:</strong> Každý uzel může mít nanejvýš dva potomky (levý a pravý). V režimu „Binary Tree“ zapisujeme strom po vrstvách.</li>
                 <li><strong>Binární vyhledávací strom (BST):</strong> Binární strom s podmínkou, že levý podstrom obsahuje menší hodnoty a pravý podstrom větší – díky tomu lze rychle hledat.</li>
                 <li><strong>Level-order:</strong> Průchod po úrovních (BFS) – hodí se pro vizualizaci a práci s úplnými stromy.</li>
@@ -500,45 +469,45 @@
                 <li><strong>Post-order:</strong> Levý, pravý, teprve poté uzel. Používá se např. pro mazání stromu nebo generování postfixových výrazů.</li>
                 <li><strong>Prohledávání do hloubky (DFS):</strong> Základní rodina průchodů (pre/in/post-order), které vždy jdou co nejdál do jedné větve.</li>
                 <li><strong>Prohledávání do šířky (BFS):</strong> Stejný princip jako level-order – vrstvu po vrstvě, ideální pro měření vzdálenosti od kořene.</li>
-            </ul>
+    </ul>
+</div>
+
+<!-- BST MODE -->
+<div id="bstMode">
+    <div class="card">
+        <h2>➕ Operace nad BST</h2>
+        
+        <!-- Vysvětlivka pro BST operace -->
+        <div class="info-box">
+            <strong>🎯 K čemu jsou tyto operace dobré?</strong>
+            <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem;">
+                <strong>Vložení (Insert):</strong> O(log n) v průměru – základ pro dynamické datové struktury, databázové indexy.<br>
+                <strong>Odebrání (Remove):</strong> O(log n) v průměru – mazání záznamů bez nutnosti přestavby celé struktury.<br>
+                <strong>Vyhledání (Search):</strong> O(log n) v průměru – rychlé vyhledávání v databázích, slovnících.<br>
+                <strong>Cesta ke kořeni:</strong> Debugging, analýza hloubky, výpočet předků uzlu.<br>
+                <strong>Rozsahový dotaz (Range Query):</strong> Databázové dotazy typu „všechny záznamy mezi X a Y".<br>
+                <strong>DFS/BFS od uzlu:</strong> Průzkum podstromu – např. všichni potomci kategorie v e-shopu.<br><br>
+                <em style="color: #0d6efd;">💡 Tip: Pro vyvážený BST (AVL, Red-Black) jsou operace garantovaně O(log n)!</em>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="insertValues" placeholder="Hodnoty k vložení (např: 50, 25, 41, 77)">
+            <button onclick="insertValues()">Vložit hodnoty</button>
         </div>
 
-        <!-- BST MODE -->
-        <div id="bstMode">
-            <div class="card">
-                <h2>➕ Operace nad BST</h2>
-                
-                <!-- Vysvětlivka pro BST operace -->
-                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                    <strong style="color: #64b5f6;">🎯 K čemu jsou tyto operace dobré?</strong>
-                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem; color: #e3f2fd;">
-                        <strong>Vložení (Insert):</strong> O(log n) v průměru – základ pro dynamické datové struktury, databázové indexy.<br>
-                        <strong>Odebrání (Remove):</strong> O(log n) v průměru – mazání záznamů bez nutnosti přestavby celé struktury.<br>
-                        <strong>Vyhledání (Search):</strong> O(log n) v průměru – rychlé vyhledávání v databázích, slovnících.<br>
-                        <strong>Cesta ke kořeni:</strong> Debugging, analýza hloubky, výpočet předků uzlu.<br>
-                        <strong>Rozsahový dotaz (Range Query):</strong> Databázové dotazy typu „všechny záznamy mezi X a Y".<br>
-                        <strong>DFS/BFS od uzlu:</strong> Průzkum podstromu – např. všichni potomci kategorie v e-shopu.<br><br>
-                        <em style="color: #90caf9;">💡 Tip: Pro vyvážený BST (AVL, Red-Black) jsou operace garantovaně O(log n)!</em>
-                    </div>
-                </div>
-                
-                <div class="input-group">
-                    <input type="text" id="insertValues" placeholder="Hodnoty k vložení (např: 50, 25, 41, 77)">
-                    <button onclick="insertValues()">Vložit hodnoty</button>
-                </div>
+        <div class="input-group">
+            <input type="text" id="removeValues" placeholder="Hodnoty k odebrání (např: 53, 12, 77)">
+            <button class="btn-remove" onclick="removeValues()">Odebrat hodnoty</button>
+        </div>
 
-                <div class="input-group">
-                    <input type="text" id="removeValues" placeholder="Hodnoty k odebrání (např: 53, 12, 77)">
-                    <button class="btn-remove" onclick="removeValues()">Odebrat hodnoty</button>
-                </div>
+        <div class="input-group">
+            <input type="number" id="searchValue" placeholder="Hledaná hodnota">
+            <button onclick="searchValue()">🔍 Vyhledat</button>
+            <button onclick="findPath()">🗺️ Najít cestu</button>
+        </div>
 
-                <div class="input-group">
-                    <input type="number" id="searchValue" placeholder="Hledaná hodnota">
-                    <button onclick="searchValue()">🔍 Vyhledat</button>
-                    <button onclick="findPath()">🗺️ Najít cestu</button>
-                </div>
-
-                <div class="input-group">
+        <div class="input-group">
                     <input type="number" id="rangeMin" placeholder="Min rozsah">
                     <input type="number" id="rangeMax" placeholder="Max rozsah">
                     <button onclick="findInRange()">📊 Hledat v rozsahu</button>
@@ -560,9 +529,9 @@
                 <h2>📝 Vstup Binary Tree (Level-Order)</h2>
                 
                 <!-- Vysvětlivka pro Binary Tree -->
-                <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <strong style="color: #64b5f6;">🌳 K čemu je Binary Tree reprezentace dobrá?</strong>
-                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem; color: #e3f2fd;">
+                <div class="info-box">
+                    <strong>🌳 K čemu je Binary Tree reprezentace dobrá?</strong>
+                    <div style="margin-top: 0.5rem; line-height: 1.7; font-size: 0.95rem;">
                         <strong>Level-Order zápis:</strong> Kompaktní reprezentace úplných stromů (heaps), indexování pomocí 2i+1, 2i+2.<br>
                         <strong>Praktické využití:</strong>
                         <ul style="margin: 0.25rem 0 0.5rem 1rem; padding-left: 0;">
@@ -574,7 +543,7 @@
                     </div>
                 </div>
                 
-                <p style="margin-bottom: 1rem; color: #bbdefb;">
+                <p style="margin-bottom: 1rem;">
                     Formát: <code>u identifikátor;</code> pro uzly, <code>u *;</code> pro prázdné uzly.
                 </p>
                 
@@ -665,14 +634,14 @@ u *;</textarea>
 
         <div id="cpmCard" class="card hidden">
             <h2>🕒 Síťový graf & CPM pro stromy</h2>
-            <p style="color: #bbdefb;">
+            <p>
                 Strom je orientovaný acyklický graf – proto můžeme jeho hrany chápat jako činnosti v síti (zdroj = kořen, cíle = listy)
                 a spočítat kritickou cestu pomocí metody CPM.
             </p>
             
             <!-- Legenda CPM pojmů -->
-            <div style="background: rgba(33, 150, 243, 0.15); border-left: 4px solid #2196f3; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <strong style="color: #64b5f6;">📖 Co je CPM (Critical Path Method)?</strong>
+            <div class="info-box">
+                <strong>📖 Co je CPM (Critical Path Method)?</strong>
                 <div style="margin-top: 0.5rem; line-height: 1.8; font-size: 0.95rem;">
                     <strong>CPM</strong> = Metoda kritické cesty – technika pro plánování projektů, která identifikuje nejdelší cestu úkolů.<br>
                     <strong>ES (Early Start)</strong> = Nejdříve možný začátek – kdy může činnost nejdříve začít.<br>
@@ -692,13 +661,12 @@ u *;</textarea>
                        placeholder="Volitelné délky: A=3, B=2, C=1.5">
                 <button onclick="runTreeCpm()">Analyzovat CPM / síť</button>
             </div>
-            <p style="color: #bbdefb; font-size: 0.9rem; margin-bottom: 1rem;">
+            <p style="font-size: 0.9rem; margin-bottom: 1rem;">
                 Pokud uzly obsahují čísla, jejich absolutní hodnota se použije jako délka činnosti (jinak výchozí hodnota).
                 Do pole s vlastními délkami zadejte dvojice ve tvaru <code>Uzel=Číslo</code>, oddělené čárkou nebo středníkem.
             </p>
             <div id="cpmResult"></div>
         </div>
-    </div>
 
     <script>
         // ═══════════════════════════════════════════════════════════════
