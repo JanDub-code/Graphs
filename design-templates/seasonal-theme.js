@@ -11,42 +11,42 @@
 
 // ========== SEASON CONFIGURATION ==========
 const SEASONS = {
-    christmas: { 
-        dates: [[12, 1], [1, 6]], 
+    christmas: {
+        dates: [[12, 1], [1, 6]],
         emoji: '🎄',
         name: 'Christmas'
     },
-    winter: { 
+    winter: {
         dates: [[1, 7], [2, 29]], // includes leap year
         emoji: '❄️',
         name: 'Winter'
     },
-    spring: { 
-        dates: [[3, 1], [5, 31]], 
+    spring: {
+        dates: [[3, 1], [5, 31]],
         emoji: '🌸',
         name: 'Spring'
     },
-    summer: { 
-        dates: [[6, 1], [8, 31]], 
+    summer: {
+        dates: [[6, 1], [8, 31]],
         emoji: '☀️',
         name: 'Summer'
     },
-    autumn: { 
-        dates: [[9, 1], [11, 30]], 
+    autumn: {
+        dates: [[9, 1], [11, 30]],
         emoji: '🍂',
         name: 'Autumn'
     },
-    halloween: { 
-        dates: [[10, 20], [11, 2]], 
+    halloween: {
+        dates: [[10, 20], [11, 2]],
         emoji: '🎃',
         name: 'Halloween',
-        priority: true 
+        priority: true
     },
-    valentine: { 
-        dates: [[2, 10], [2, 16]], 
+    valentine: {
+        dates: [[2, 10], [2, 16]],
         emoji: '💕',
         name: 'Valentine',
-        priority: true 
+        priority: true
     }
 };
 
@@ -62,7 +62,7 @@ function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    
+
     // Update toggle button if exists
     const toggle = document.getElementById('themeToggle');
     if (toggle) {
@@ -81,29 +81,29 @@ function detectSeason() {
     const now = new Date();
     const month = now.getMonth() + 1;
     const day = now.getDate();
-    
+
     // Priority holidays first (halloween, valentine)
     for (const [name, cfg] of Object.entries(SEASONS)) {
         if (!cfg.priority) continue;
         const [[sm, sd], [em, ed]] = cfg.dates;
-        if ((month > sm || (month === sm && day >= sd)) && 
+        if ((month > sm || (month === sm && day >= sd)) &&
             (month < em || (month === em && day <= ed))) {
             return name;
         }
     }
-    
+
     // Regular seasons
     for (const [name, cfg] of Object.entries(SEASONS)) {
         if (cfg.priority) continue;
         const [[sm, sd], [em, ed]] = cfg.dates;
         // Handle year wrap (christmas Dec-Jan)
         if (sm > em) {
-            if (month > sm || (month === sm && day >= sd) || 
+            if (month > sm || (month === sm && day >= sd) ||
                 month < em || (month === em && day <= ed)) {
                 return name;
             }
         } else {
-            if ((month > sm || (month === sm && day >= sd)) && 
+            if ((month > sm || (month === sm && day >= sd)) &&
                 (month < em || (month === em && day <= ed))) {
                 return name;
             }
@@ -118,10 +118,10 @@ function applySeason(season) {
     document.body.className = document.body.className
         .replace(/season-\w+/g, '')
         .trim();
-    
+
     // Add new season class
     document.body.classList.add('season-' + season);
-    
+
     // Update picker if exists
     updateSeasonPicker(season);
 }
@@ -238,7 +238,47 @@ function prerenderDecorations() {
 }
 
 // ========== SEASON PICKER ==========
+function toggleSeasonPicker() {
+    const picker = document.getElementById('seasonPicker');
+    const toggle = document.getElementById('seasonPickerToggle');
+    if (!picker) return;
+
+    picker.classList.toggle('collapsed');
+
+    // Update toggle arrow
+    if (toggle) {
+        toggle.textContent = picker.classList.contains('collapsed') ? '▼' : '▲';
+    }
+}
+
+function initSeasonPickerMobile() {
+    const picker = document.getElementById('seasonPicker');
+    if (!picker) return;
+
+    // Check if mobile (same breakpoint as CSS)
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+    if (isMobile) {
+        // Start collapsed on mobile
+        picker.classList.add('collapsed');
+    } else {
+        // Start expanded on desktop
+        picker.classList.remove('collapsed');
+    }
+
+    // Listen for resize changes
+    window.matchMedia('(max-width: 768px)').addEventListener('change', (e) => {
+        if (e.matches) {
+            picker.classList.add('collapsed');
+        } else {
+            picker.classList.remove('collapsed');
+        }
+    });
+}
+
 function initSeasonPicker() {
+    initSeasonPickerMobile();
+
     document.querySelectorAll('.season-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const season = btn.dataset.season;
@@ -275,6 +315,7 @@ if (typeof module !== 'undefined' && module.exports) {
         detectSeason,
         applySeason,
         initSeason,
-        prerenderDecorations
+        prerenderDecorations,
+        toggleSeasonPicker
     };
 }

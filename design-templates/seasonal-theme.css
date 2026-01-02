@@ -256,6 +256,7 @@ body.season-valentine .deco-valentine { opacity: 1; }
     flex-direction: column;
     gap: 4px;
     border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.3s ease;
 }
 
 [data-theme="light"] .season-picker {
@@ -270,10 +271,40 @@ body.season-valentine .deco-valentine { opacity: 1; }
     margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 [data-theme="light"] .season-picker-title {
     color: rgba(0,0,0,0.6);
+}
+
+/* Toggle button for mobile - hidden on desktop */
+.season-picker-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.season-picker-toggle:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+[data-theme="light"] .season-picker-toggle:hover {
+    background: rgba(0,0,0,0.1);
+}
+
+.season-picker-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .season-btn {
@@ -319,4 +350,55 @@ body.season-valentine .deco-valentine { opacity: 1; }
 
 [data-theme="light"] .season-btn span.label {
     color: #333;
+}
+
+/* ========== MOBILE RESPONSIVE SEASON PICKER ========== */
+@media (max-width: 768px) {
+    .season-picker {
+        top: 10px;
+        right: 60px;
+        padding: 6px 10px;
+    }
+    
+    .season-picker-toggle {
+        display: block;
+    }
+    
+    .season-picker-title {
+        cursor: pointer;
+        margin-bottom: 0;
+    }
+    
+    /* Collapsed state (default on mobile) */
+    .season-picker.collapsed .season-picker-content {
+        display: none;
+    }
+    
+    .season-picker.collapsed {
+        padding: 6px 10px;
+    }
+    
+    .season-picker.collapsed .season-picker-title {
+        margin-bottom: 0;
+    }
+    
+    /* Expanded state */
+    .season-picker:not(.collapsed) .season-picker-content {
+        display: flex;
+        margin-top: 8px;
+    }
+    
+    .season-picker:not(.collapsed) .season-picker-toggle::after {
+        content: '';
+    }
+    
+    /* Smaller buttons on mobile */
+    .season-btn {
+        padding: 5px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .season-btn span.label {
+        font-size: 0.7rem;
+    }
 }
