@@ -7,6 +7,19 @@
     <meta name="description"
         content="Interaktivní nástroje pro analýzu grafů a binárních vyhledávacích stromů. Graph Analyzer a BST Analyzer s vizualizacemi.">
     <title>Graph Analyzers 🎄</title>
+    <script>
+        // Pre-seed theme preference for analyzer pages to avoid light-mode flash on first visit
+        (() => {
+            const storedGraph = localStorage.getItem('graph-analyzer-theme');
+            const storedBst = localStorage.getItem('bst-analyzer-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = storedGraph || storedBst || (prefersDark ? 'dark' : 'light');
+
+            document.documentElement.setAttribute('data-theme', theme);
+            if (!storedGraph) localStorage.setItem('graph-analyzer-theme', theme);
+            if (!storedBst) localStorage.setItem('bst-analyzer-theme', theme);
+        })();
+    </script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
