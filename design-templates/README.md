@@ -63,6 +63,12 @@ Drop-in seasonal decorations + light/dark mode for any web project.
 - 🚀 **GPU accelerated** - `will-change: transform` for smooth animations
 - 📦 **No dependencies** - pure vanilla JS/CSS
 
+## UX note: avoid theme flash
+
+- Set the `data-theme` attribute (and a matching `background-color`) in an inline `<script>` placed before CSS to stop the white→dark flash.
+- Persist the last theme in `localStorage` (or a lightweight cookie if you prefer shared scope across subdomains). First page visit may flash once; subsequent loads should not.
+- If a landing/main page does not expose theme switching, consider keeping it single-theme to avoid any flicker altogether.
+
 ## CSS Variables
 
 Customize colors by overriding these variables:
